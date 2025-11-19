@@ -112,21 +112,30 @@ export default function Home() {
     removeFromCart, 
     updateQty,
     table,
-    setTable
+    setTable,
+    setOrderType, // Assuming this is a new action in the store
+    setTableId, // Assuming this is a new action in the store
+    orderType,
   } = useMenuStore();
   
   // Handle URL params for QR codes
   useEffect(() => {
-    const tableParam = searchParams.get("table");
-    const typeParam = searchParams.get("type");
-
+    const params = new URLSearchParams(window.location.search);
+    const tableParam = params.get('table');
+    
     if (tableParam) {
-      setTable({ id: "qr", label: tableParam });
-    } else if (typeParam === "takeaway") {
-      setTable({ id: "takeaway", label: "À emporter" });
+      setTableId(tableParam);
+      setOrderType('dine-in');
+      setTable({ id: "qr", label: tableParam }); // Keep existing setTable logic for UI
+    } else {
+      // Default to takeaway if no table is specified, without opening the dialog
+      setOrderType('takeaway');
+      setTable({ id: "takeaway", label: "À emporter" }); // Keep existing setTable logic for UI
     }
-  }, [searchParams, setTable]);
-
+    
+    // We no longer automatically open the dialog if no table is present
+    // setIsDialogOpen(true); 
+  }, [setTableId, setOrderType, setTable]); // Add new dependencies
   // State
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -242,7 +251,11 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background pb-24">
-      <Header table={table} onTableClick={() => setIsTableSelectorOpen(true)} />
+      <Header 
+        table={table} 
+        orderType={orderType}
+        onTableClick={() => setIsTableSelectorOpen(true)} 
+      />
       
       <main className="max-w-5xl mx-auto w-full">
         <Hero />
@@ -281,7 +294,7 @@ export default function Home() {
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none z-20">
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none z-50">
         <div className="w-full max-w-5xl pointer-events-auto">
           <CartBar 
             itemCount={itemCount} 

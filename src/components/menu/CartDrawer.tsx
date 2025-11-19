@@ -30,7 +30,7 @@ export function CartDrawer({
 }: CartDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md flex flex-col h-full p-0 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-2xl border-l border-white/20">
+      <SheetContent hideDefaultClose className="w-full sm:max-w-md flex flex-col h-full p-0 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-2xl border-l border-white/20">
         <SheetHeader className="px-6 py-5 border-b border-white/10 bg-white/40 dark:bg-black/20 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -92,9 +92,9 @@ export function CartDrawer({
                         </div>
                         
                         {item.options && Object.keys(item.options).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
+                          <div className="flex flex-wrap gap-1.5 mb-2">
                             {Object.entries(item.options).map(([k, v]) => (
-                              v && <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-medium">{v}</span>
+                              v && <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{v}</span>
                             ))}
                           </div>
                         )}

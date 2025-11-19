@@ -1,46 +1,95 @@
-import { Facebook, Instagram, MapPin, Phone } from "lucide-react";
+import { Facebook, Instagram, MapPin, Phone, Mail, Twitter } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 py-12 pb-24">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-          <div className="space-y-4">
-            <h3 className="font-bold text-lg">Mon Restaurant</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto md:mx-0">
-              Une expérience culinaire unique, alliant tradition et modernité pour le plaisir de vos papilles.
+    <footer className="bg-zinc-950 text-zinc-200 py-16">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+          
+          {/* Brand Section */}
+          <div className="space-y-6">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent inline-block">
+              Mon Restaurant
+            </h3>
+            <p className="text-zinc-400 leading-relaxed">
+              Une expérience culinaire inoubliable, où tradition et modernité se rencontrent pour éveiller vos sens.
             </p>
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="font-bold text-lg">Contact</h3>
-            <div className="flex flex-col gap-2 text-sm text-muted-foreground items-center md:items-start">
-              <a href="#" className="flex items-center hover:text-primary transition-colors">
-                <MapPin className="w-4 h-4 mr-2" /> Cocody, Abidjan
-              </a>
-              <a href="tel:+22507070707" className="flex items-center hover:text-primary transition-colors">
-                <Phone className="w-4 h-4 mr-2" /> +225 07 07 07 07
-              </a>
+            <div className="flex gap-4">
+              <SocialLink icon={<Facebook className="w-5 h-5" />} href="#" />
+              <SocialLink icon={<Instagram className="w-5 h-5" />} href="#" />
+              <SocialLink icon={<Twitter className="w-5 h-5" />} href="#" />
             </div>
           </div>
-          
-          <div className="space-y-4">
-            <h3 className="font-bold text-lg">Suivez-nous</h3>
-            <div className="flex justify-center md:justify-start gap-4">
-              <a href="#" className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-primary hover:text-white transition-all">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="h-10 w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-primary hover:text-white transition-all">
-                <Instagram className="w-5 h-5" />
-              </a>
-            </div>
+
+
+
+          {/* Contact Info */}
+          <div className="space-y-6">
+            <h4 className="text-lg font-semibold text-white">Nous trouver</h4>
+            <ul className="space-y-4 text-zinc-400">
+              <li className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-primary shrink-0 mt-1" />
+                <span>Cocody, Abidjan<br />Côte d'Ivoire</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-primary shrink-0" />
+                <span>+225 07 07 07 07</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-primary shrink-0" />
+                <span>contact@monrestaurant.com</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Opening Hours */}
+          <div className="space-y-6">
+            <h4 className="text-lg font-semibold text-white">Horaires</h4>
+            <ul className="space-y-3 text-zinc-400">
+              <li className="flex justify-between">
+                <span>Lun - Ven</span>
+                <span className="text-white">11:00 - 23:00</span>
+              </li>
+              <li className="flex justify-between">
+                <span>Sam - Dim</span>
+                <span className="text-white">10:00 - 00:00</span>
+              </li>
+            </ul>
           </div>
         </div>
-        
-        <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-muted-foreground">
+
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
           <p>© 2024 Mon Restaurant. Tous droits réservés.</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
+            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
+          </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+function SocialLink({ icon, href }: { icon: React.ReactNode, href: string }) {
+  return (
+    <a 
+      href={href} 
+      className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:bg-primary hover:text-white transition-all duration-300 hover:scale-110"
+    >
+      {icon}
+    </a>
+  );
+}
+
+function FooterLink({ href, children }: { href: string, children: React.ReactNode }) {
+  return (
+    <a 
+      href={href} 
+      className="text-zinc-400 hover:text-primary transition-colors flex items-center gap-2 group"
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+      {children}
+    </a>
   );
 }

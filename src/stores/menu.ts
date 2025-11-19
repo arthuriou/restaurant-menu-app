@@ -75,9 +75,13 @@ type MenuStore = {
   error: string | null;
   selectedCategory: string | null;
   setSelectedCategory: (id: string) => void;
+
+  orderType: 'dine-in' | 'takeaway' | 'delivery';
+  setOrderType: (type: 'dine-in' | 'takeaway' | 'delivery') => void;
   
   table: { id: string; label: string } | null;
   setTable: (table: { id: string; label: string } | null) => void;
+  setTableId: (id: string) => void;
   
   cart: OrderItem[];
   addToCart: (item: OrderItem) => void;
@@ -99,9 +103,13 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   
   selectedCategory: null,
   setSelectedCategory: (id) => set({ selectedCategory: id }),
+
+  orderType: 'dine-in',
+  setOrderType: (type) => set({ orderType: type }),
   
   table: null,
   setTable: (table) => set({ table }),
+  setTableId: (id) => set({ table: { id, label: `Table ${id}` } }),
   
   cart: [],
   addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),

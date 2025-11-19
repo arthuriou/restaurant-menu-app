@@ -6,17 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MenuItem } from "@/types";
 
+import { useRestaurantStore } from "@/stores/restaurant";
+
 interface FeaturedItemsProps {
   items: (MenuItem & { available: boolean })[];
   onAdd: (item: MenuItem & { available: boolean }) => void;
 }
 
 export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
+  const { chefSpecial } = useRestaurantStore();
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Sélectionner quelques items "populaires" (ici les 3 premiers pour l'exemple)
-  const featured = items.slice(0, 3);
+  // Filter Chef Special first, then others
+  const featured = items.filter(item => item.id === chefSpecial.itemId)
+    .concat(items.filter(item => item.id !== chefSpecial.itemId).slice(0, 3));
 
   if (featured.length === 0) return null;
 
@@ -50,7 +54,7 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
       <div className="px-5 flex items-center justify-between">
         <div>
           <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-0.5">Must Try</p>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Spécial du Chef</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">{chefSpecial.title}</h2>
         </div>
         <Link href="/specials" className="flex items-center text-primary text-sm font-bold hover:opacity-80 transition-opacity">
           Voir tout <ChevronRight className="w-4 h-4 ml-0.5" />
