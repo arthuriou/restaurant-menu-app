@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ignore setup scripts (CommonJS allowed)
+    "setup/**",
   ]),
 ]);
 
