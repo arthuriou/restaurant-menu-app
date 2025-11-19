@@ -10,8 +10,9 @@ interface MenuItemProps {
 
 export function MenuItemCard({ item, onAdd }: MenuItemProps) {
   return (
-    <div className="group relative flex gap-4 p-3 bg-card/50 hover:bg-card/80 backdrop-blur-sm rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-white/20 transition-all duration-300">
-      <div className="relative h-28 w-28 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 shadow-inner">
+    <div className="group relative flex flex-col bg-card rounded-xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
+      {/* Image Container */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100">
         {item.imageUrl ? (
           <Image 
             src={item.imageUrl} 
@@ -29,7 +30,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemProps) {
         )}
       </div>
       
-      <div className="flex flex-col justify-between flex-1 min-w-0 py-1">
+      <div className="flex flex-col justify-between flex-1 min-w-0 p-3">
         <div>
           <div className="flex justify-between items-start">
             <h3 className="font-bold text-base truncate pr-2 text-foreground/90">{item.name}</h3>
@@ -37,7 +38,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemProps) {
           <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
         </div>
         
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between mt-3">
           <span className="font-bold text-lg text-primary">{item.price.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
           <Button 
             size="icon" 

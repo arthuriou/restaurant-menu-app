@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Minus, Plus } from "lucide-react";
@@ -38,21 +40,21 @@ interface ItemDetailProps {
   onAddToCart: () => void;
 }
 
-export function ItemDetail({ 
-  open, 
-  onOpenChange, 
-  item, 
-  qty, 
-  setQty, 
-  options, 
-  setOptions, 
-  onAddToCart 
-}: ItemDetailProps) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+interface ItemDetailContentProps {
+  item: MenuItem & { available: boolean };
+  qty: number;
+  setQty: (qty: number) => void;
+  options: {
+    cuisson?: string;
+    sauce?: string;
+    note?: string;
+  };
+  setOptions: (options: any) => void;
+  onAddToCart: () => void;
+}
 
-  if (!item) return null;
-
-  const Content = () => (
+function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart }: ItemDetailContentProps) {
+  return (
     <div className="flex flex-col h-full md:flex-row md:h-auto">
       {/* Image Section */}
       <div className="relative h-64 w-full md:w-1/2 md:h-auto flex-shrink-0">
@@ -165,12 +167,34 @@ export function ItemDetail({
       </div>
     </div>
   );
+}
+
+export function ItemDetail({ 
+  open, 
+  onOpenChange, 
+  item, 
+  qty, 
+  setQty, 
+  options, 
+  setOptions, 
+  onAddToCart 
+}: ItemDetailProps) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  if (!item) return null;
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-background">
-          <Content />
+          <ItemDetailContent 
+            item={item} 
+            qty={qty} 
+            setQty={setQty} 
+            options={options} 
+            setOptions={setOptions} 
+            onAddToCart={onAddToCart} 
+          />
         </DialogContent>
       </Dialog>
     );
@@ -179,7 +203,14 @@ export function ItemDetail({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[90vh] rounded-t-[2rem] p-0 flex flex-col">
-        <Content />
+        <ItemDetailContent 
+          item={item} 
+          qty={qty} 
+          setQty={setQty} 
+          options={options} 
+          setOptions={setOptions} 
+          onAddToCart={onAddToCart} 
+        />
       </SheetContent>
     </Sheet>
   );

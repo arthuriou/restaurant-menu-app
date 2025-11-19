@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Star, Plus, ChevronRight } from "lucide-react";
+import { Star, Plus, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MenuItem } from "@/types";
@@ -34,8 +34,19 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
     }
   };
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const width = scrollRef.current.offsetWidth;
+      const itemWidth = width * 0.85; // Approximate item width
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -itemWidth : itemWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <div className="py-6 space-y-4">
+    <div className="py-6 space-y-4 relative group/featured">
       <div className="px-5 flex items-center justify-between">
         <div>
           <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-0.5">Must Try</p>
@@ -46,6 +57,21 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
         </Link>
       </div>
       
+      {/* Desktop Navigation Arrows */}
+      <button 
+        onClick={() => scroll('left')}
+        className="hidden md:flex absolute left-2 top-1/2 z-10 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-lg opacity-0 group-hover/featured:opacity-100 transition-opacity hover:bg-white"
+      >
+        <ChevronLeft className="w-6 h-6 text-black" />
+      </button>
+      
+      <button 
+        onClick={() => scroll('right')}
+        className="hidden md:flex absolute right-2 top-1/2 z-10 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-lg opacity-0 group-hover/featured:opacity-100 transition-opacity hover:bg-white"
+      >
+        <ChevronRight className="w-6 h-6 text-black" />
+      </button>
+
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
@@ -54,7 +80,7 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
         {featured.map((item) => (
           <div 
             key={item.id} 
-            className="snap-center shrink-0 w-[85%] sm:w-[300px] relative group rounded-3xl overflow-hidden shadow-lg bg-card border border-white/10"
+            className="snap-center shrink-0 w-[85%] sm:w-[300px] relative group rounded-xl overflow-hidden shadow-lg bg-card border border-white/10"
           >
             <div className="relative h-48 w-full">
               {item.imageUrl ? (

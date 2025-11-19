@@ -29,6 +29,7 @@ export type OrderItem = {
   qty: number;
   options?: Record<string, string | number | boolean>;
   note?: string;
+  imageUrl?: string;
 };
 
 export type OrderStatus = "pending" | "preparing" | "ready" | "served";

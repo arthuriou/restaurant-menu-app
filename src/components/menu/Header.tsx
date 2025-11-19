@@ -1,5 +1,4 @@
 import { UtensilsCrossed } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface HeaderProps {
   table: string;
@@ -8,22 +7,26 @@ interface HeaderProps {
 
 export function Header({ table, onTableClick }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40">
-      <div className="flex items-center justify-between px-4 h-14 max-w-5xl mx-auto w-full">
-        <div className="flex items-center gap-2 font-bold text-lg text-primary">
-          <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
-            <UtensilsCrossed className="h-5 w-5" />
+    <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border/50">
+      <div className="flex h-14 items-center justify-between px-4 max-w-5xl mx-auto">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary rounded-lg p-1.5">
+            <UtensilsCrossed className="h-5 w-5 text-white" />
           </div>
-          <span>Panaroma</span>
+          <span className="font-bold text-lg tracking-tight">Panaroma</span>
         </div>
-        
-        <Badge 
-          variant="outline" 
-          className="text-sm px-3 py-1 border-primary/20 bg-primary/5 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
+
+        <div 
+          className="flex flex-col items-end cursor-pointer active:opacity-70 transition-opacity"
           onClick={onTableClick}
         >
-          {table || "Choisir table"}
-        </Badge>
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+            {table === 'takeaway' ? 'Mode' : 'Table N°'}
+          </span>
+          <span className="text-sm font-bold text-primary leading-none">
+            {table === 'takeaway' ? 'À emporter' : (table || "---")}
+          </span>
+        </div>
       </div>
     </header>
   );

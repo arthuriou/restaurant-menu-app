@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const PROMOS = [
   {
@@ -34,6 +35,17 @@ export function Hero() {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const scrollToSlide = (index: number) => {
+    if (scrollRef.current) {
+      const width = scrollRef.current.offsetWidth;
+      scrollRef.current.scrollTo({
+        left: width * index,
+        behavior: 'smooth'
+      });
+      setActiveIndex(index);
+    }
+  };
+
   const handleScroll = () => {
     if (scrollRef.current) {
       const scrollLeft = scrollRef.current.scrollLeft;
@@ -43,19 +55,44 @@ export function Hero() {
     }
   };
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const width = scrollRef.current.offsetWidth;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -width : width,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <div className="pt-2 pb-4 space-y-3">
+    <div className="pt-2 pb-4 space-y-3 relative group/hero">
       <div className="px-5">
         <h1 className="text-2xl font-bold tracking-tight">Bienvenue chez <span className="text-primary">Panaroma</span> 👋</h1>
       </div>
       
+      {/* Desktop Navigation Arrows */}
+      <button 
+        onClick={() => scroll('left')}
+        className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-lg opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white"
+      >
+        <ChevronLeft className="w-6 h-6 text-black" />
+      </button>
+      
+      <button 
+        onClick={() => scroll('right')}
+        className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-lg opacity-0 group-hover/hero:opacity-100 transition-opacity hover:bg-white"
+      >
+        <ChevronRight className="w-6 h-6 text-black" />
+      </button>
+
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
         className="flex overflow-x-auto snap-x snap-mandatory px-4 gap-4 pb-4 no-scrollbar"
       >
         {PROMOS.map((promo) => (
-          <div key={promo.id} className="relative w-full shrink-0 aspect-[2.2/1] rounded-3xl overflow-hidden shadow-2xl shadow-black/20 group snap-center">
+          <div key={promo.id} className="relative w-full shrink-0 aspect-[2.2/1] rounded-xl overflow-hidden shadow-2xl shadow-black/20 group snap-center">
             <Image 
               src={promo.image} 
               alt={promo.title}
@@ -85,13 +122,15 @@ export function Hero() {
       {/* Indicators */}
       <div className="flex justify-center gap-2">
         {PROMOS.map((_, idx) => (
-          <div 
+          <button 
             key={idx}
-            className={`h-2 w-2 rounded-full transition-all duration-300 ${
+            onClick={() => scrollToSlide(idx)}
+            className={`h-2 w-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
               idx === activeIndex 
                 ? "bg-primary scale-125 shadow-sm" 
-                : "bg-zinc-300 dark:bg-zinc-700"
+                : "bg-zinc-300 dark:bg-zinc-700 hover:bg-zinc-400"
             }`}
+            aria-label={`Go to slide ${idx + 1}`}
           />
         ))}
       </div>

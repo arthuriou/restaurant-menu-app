@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus, Trash2, ShoppingBag, ChevronDown } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,58 +65,70 @@ export function CartDrawer({
             <ScrollArea className="flex-1 px-4">
               <div className="py-6 space-y-4">
                 {cart.map((item, idx) => (
-                  <div key={idx} className="group bg-white dark:bg-zinc-900/80 rounded-2xl p-4 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-zinc-100 dark:border-zinc-800/50 flex gap-4 transition-all hover:shadow-md">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-base truncate pr-2 text-foreground/90">{item.name}</h4>
-                        <span className="font-bold text-primary whitespace-nowrap">
-                          {(item.price * (item.qty || 1)).toLocaleString()}
-                        </span>
-                      </div>
-                      
-                      {item.options && Object.keys(item.options).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {Object.entries(item.options).map(([k, v]) => (
-                            v && <Badge key={k} variant="secondary" className="text-[10px] px-2 py-0.5 h-5 font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-0">{v}</Badge>
-                          ))}
+                  <div key={idx} className="group bg-white dark:bg-zinc-900/80 rounded-xl p-3 shadow-sm border border-zinc-100 dark:border-zinc-800/50 flex gap-3 transition-all hover:shadow-md">
+                    {/* Item Image */}
+                    <div className="relative h-20 w-20 shrink-0 rounded-lg overflow-hidden bg-zinc-100">
+                      {item.imageUrl ? (
+                        <Image 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          fill 
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                          <ShoppingBag className="w-6 h-6 opacity-20" />
                         </div>
                       )}
-                      
-                      {item.note && (
-                        <p className="text-xs text-muted-foreground italic mb-3 bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded-lg border border-zinc-100 dark:border-zinc-800/50">
-                          "{item.note}"
-                        </p>
-                      )}
+                    </div>
 
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-full p-1 shadow-inner">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="font-bold text-sm truncate pr-2 text-foreground/90">{item.name}</h4>
+                          <span className="font-bold text-sm text-primary whitespace-nowrap">
+                            {(item.price * (item.qty || 1)).toLocaleString()}
+                          </span>
+                        </div>
+                        
+                        {item.options && Object.keys(item.options).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {Object.entries(item.options).map(([k, v]) => (
+                              v && <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-medium">{v}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-full p-0.5 shadow-inner">
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm transition-all"
+                            className="h-6 w-6 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm transition-all"
                             onClick={() => onUpdateQty(idx, -1)}
                             disabled={item.qty <= 1}
                           >
-                            <Minus className="h-3.5 w-3.5" />
+                            <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="text-sm font-bold w-8 text-center tabular-nums">{item.qty}</span>
+                          <span className="text-xs font-bold w-4 text-center tabular-nums">{item.qty}</span>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm transition-all"
+                            className="h-6 w-6 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm transition-all"
                             onClick={() => onUpdateQty(idx, 1)}
                           >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                         
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
                           onClick={() => onRemove(idx)}
                         >
-                          <Trash2 className="h-4.5 w-4.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

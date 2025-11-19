@@ -28,11 +28,15 @@ export function TableSelector({
   onSelectTable,
   forceSelection = false
 }: TableSelectorProps) {
+  const [step, setStep] = useState<'choice' | 'input'>('choice');
   const [value, setValue] = useState(currentTable);
 
   useEffect(() => {
-    setValue(currentTable);
-  }, [currentTable]);
+    if (open) {
+      setStep('choice'); // Reset to choice when opening
+      setValue(currentTable === 'takeaway' ? '' : currentTable);
+    }
+  }, [open, currentTable]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,34 +46,65 @@ export function TableSelector({
     }
   };
 
+  const handleTakeaway = () => {
+    onSelectTable("takeaway");
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={(val) => !forceSelection && onOpenChange(val)}>
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => forceSelection && e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Numéro de table</DialogTitle>
+          <DialogTitle>{step === 'choice' ? "Type de commande" : "Numéro de table"}</DialogTitle>
           <DialogDescription>
-            Veuillez indiquer votre numéro de table pour que nous puissions vous servir.
+            {step === 'choice' 
+              ? "Comment souhaitez-vous commander ?" 
+              : "Veuillez indiquer votre numéro de table."}
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="table-number">Votre table</Label>
-            <Input
-              id="table-number"
-              placeholder="Ex: 12"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              autoFocus
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button type="submit" disabled={!value.trim()} className="w-full sm:w-auto">
-              Confirmer
+        {step === 'choice' ? (
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col gap-2 hover:bg-primary/5 hover:border-primary hover:text-primary transition-all"
+              onClick={() => setStep('input')}
+            >
+              <span className="text-2xl">🍽️</span>
+              <span className="font-bold">Sur place</span>
             </Button>
-          </DialogFooter>
-        </form>
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col gap-2 hover:bg-primary/5 hover:border-primary hover:text-primary transition-all"
+              onClick={handleTakeaway}
+            >
+              <span className="text-2xl">🛍️</span>
+              <span className="font-bold">À emporter</span>
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="table-number">Votre table</Label>
+              <Input
+                id="table-number"
+                placeholder="Ex: 12"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                autoFocus
+              />
+            </div>
+            
+            <DialogFooter className="flex-row gap-2 justify-end">
+              <Button type="button" variant="ghost" onClick={() => setStep('choice')}>
+                Retour
+              </Button>
+              <Button type="submit" disabled={!value.trim()}>
+                Confirmer
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

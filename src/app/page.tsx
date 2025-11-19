@@ -115,11 +115,7 @@ export default function Home() {
   // Load Menu
   useEffect(() => {
     loadMenu();
-    // Ouvrir le sélecteur de table au démarrage si pas de table
-    if (!table) {
-      setIsTableSelectorOpen(true);
-    }
-  }, [loadMenu, table]);
+  }, [loadMenu]);
 
   // Handle Errors
   useEffect(() => {
@@ -174,6 +170,7 @@ export default function Home() {
       qty: detail.qty,
       note: detail.options.note?.trim(),
       options: detail.options,
+      imageUrl: detail.item.imageUrl,
     };
     
     setCart((prev) => [...prev, toAdd]);
@@ -198,6 +195,12 @@ export default function Home() {
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
     
+    if (!table) {
+      setIsTableSelectorOpen(true);
+      toast.info("Veuillez indiquer votre numéro de table pour commander.");
+      return;
+    }
+
     try {
       const orderId = await placeOrder({
         tableId: table,
@@ -279,7 +282,7 @@ export default function Home() {
         onOpenChange={setIsTableSelectorOpen}
         currentTable={table}
         onSelectTable={setTable}
-        forceSelection={!table}
+        forceSelection={false}
       />
 
       <ItemDetail 

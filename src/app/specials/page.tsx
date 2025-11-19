@@ -91,6 +91,7 @@ export default function SpecialsPage() {
       qty: detail.qty,
       note: detail.options.note?.trim(),
       options: detail.options,
+      imageUrl: detail.item.imageUrl,
     };
     setCart((prev) => [...prev, toAdd]);
     setDetail({ open: false, item: null, qty: 1, options: {} });
@@ -130,9 +131,9 @@ export default function SpecialsPage() {
         <h1 className="text-lg font-bold">Spécial du Chef</h1>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {displayItems.map((item) => (
-          <div key={item.id} className="group relative rounded-3xl overflow-hidden shadow-lg bg-card border border-white/10">
+          <div key={item.id} className="group relative rounded-xl overflow-hidden shadow-lg bg-card border border-white/10">
             <div className="relative h-56 w-full">
               {item.imageUrl ? (
                 <Image 
