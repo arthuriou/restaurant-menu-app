@@ -3,7 +3,7 @@ import type { Category } from "@/types";
 
 interface CategoryNavProps {
   categories: Category[];
-  selectedCategory: string;
+  selectedCategory: string | null;
   onSelect: (id: string) => void;
 }
 

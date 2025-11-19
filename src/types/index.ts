@@ -15,11 +15,11 @@ export type MenuItem = {
   price: number;
   imageUrl?: string;
   available: boolean;
-};
-
-export type Table = {
-  id: string;
-  label: string;
+  options?: {
+    name: string;
+    price: number;
+    type: 'addon' | 'variant';
+  }[];
 };
 
 export type OrderItem = {

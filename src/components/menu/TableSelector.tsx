@@ -16,8 +16,8 @@ import {
 interface TableSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentTable: string;
-  onSelectTable: (table: string) => void;
+  currentTable: { id: string; label: string } | null;
+  onSelectTable: (table: { id: string; label: string } | null) => void;
   forceSelection?: boolean;
 }
 
@@ -29,25 +29,25 @@ export function TableSelector({
   forceSelection = false
 }: TableSelectorProps) {
   const [step, setStep] = useState<'choice' | 'input'>('choice');
-  const [value, setValue] = useState(currentTable);
+  const [value, setValue] = useState(currentTable?.label || "");
 
   useEffect(() => {
     if (open) {
       setStep('choice'); // Reset to choice when opening
-      setValue(currentTable === 'takeaway' ? '' : currentTable);
+      setValue(currentTable?.id === 'takeaway' ? '' : (currentTable?.label || ""));
     }
   }, [open, currentTable]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim()) {
-      onSelectTable(value.trim());
+      onSelectTable({ id: `table-${value.trim()}`, label: `Table ${value.trim()}` });
       onOpenChange(false);
     }
   };
 
   const handleTakeaway = () => {
-    onSelectTable("takeaway");
+    onSelectTable({ id: "takeaway", label: "À emporter" });
     onOpenChange(false);
   };
 

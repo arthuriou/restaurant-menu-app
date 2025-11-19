@@ -1,7 +1,7 @@
 import { UtensilsCrossed } from "lucide-react";
 
 interface HeaderProps {
-  table: string;
+  table: { id: string; label: string } | null;
   onTableClick?: () => void;
 }
 
@@ -21,10 +21,10 @@ export function Header({ table, onTableClick }: HeaderProps) {
           onClick={onTableClick}
         >
           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-            {table === 'takeaway' ? 'Mode' : 'Table N°'}
+            {table?.id === 'takeaway' ? 'Mode' : 'Table N°'}
           </span>
           <span className="text-sm font-bold text-primary leading-none">
-            {table === 'takeaway' ? 'À emporter' : (table || "---")}
+            {table?.id === 'takeaway' ? 'À emporter' : (table?.label || "---")}
           </span>
         </div>
       </div>

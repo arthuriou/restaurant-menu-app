@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMenuStore } from "@/stores/menu";
@@ -16,6 +16,7 @@ import { CartBar } from "@/components/menu/CartBar";
 import { ItemDetail } from "@/components/menu/ItemDetail";
 import { TableSelector } from "@/components/menu/TableSelector";
 import { CartDrawer } from "@/components/menu/CartDrawer";
+import { Footer } from "@/components/menu/Footer";
 
 // TODO: Données de démonstration - À remplacer par les données de Firestore
 const mockCategories: Category[] = [
@@ -96,11 +97,37 @@ type DetailState = {
 
 export default function Home() {
   const router = useRouter();
-  const { categories, items, isLoading, error, loadMenu, placeOrder } = useMenuStore();
+  const searchParams = useSearchParams();
+  const { 
+    categories, 
+    items, 
+    isLoading, 
+    error, 
+    loadMenu, 
+    placeOrder,
+    selectedCategory, 
+    setSelectedCategory, 
+    cart, 
+    addToCart, 
+    removeFromCart, 
+    updateQty,
+    table,
+    setTable
+  } = useMenuStore();
   
+  // Handle URL params for QR codes
+  useEffect(() => {
+    const tableParam = searchParams.get("table");
+    const typeParam = searchParams.get("type");
+
+    if (tableParam) {
+      setTable({ id: "qr", label: tableParam });
+    } else if (typeParam === "takeaway") {
+      setTable({ id: "takeaway", label: "À emporter" });
+    }
+  }, [searchParams, setTable]);
+
   // State
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [table, setTable] = useState<string>(""); 
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   
@@ -110,7 +137,6 @@ export default function Home() {
     qty: 1,
     options: {}
   });
-  const [cart, setCart] = useState<OrderItem[]>([]);
 
   // Load Menu
   useEffect(() => {
@@ -173,24 +199,11 @@ export default function Home() {
       imageUrl: detail.item.imageUrl,
     };
     
-    setCart((prev) => [...prev, toAdd]);
+    addToCart(toAdd);
     setDetail({ open: false, item: null, qty: 1, options: {} });
     toast.success("Ajouté au panier");
   };
 
-  const removeFromCart = (idx: number) => {
-    setCart((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleUpdateQty = (idx: number, delta: number) => {
-    setCart((prev) => prev.map((item, i) => {
-      if (i === idx) {
-        const newQty = Math.max(1, (item.qty || 1) + delta);
-        return { ...item, qty: newQty };
-      }
-      return item;
-    }));
-  };
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
@@ -203,13 +216,14 @@ export default function Home() {
 
     try {
       const orderId = await placeOrder({
-        tableId: table,
+        tableId: table.label,
         items: cart,
         total: total,
       });
       
       toast.success("Commande envoyée en cuisine !");
-      setCart([]);
+      const { clearCart } = useMenuStore.getState();
+      clearCart();
       setCartOpen(false);
       router.push(`/order/${orderId}`);
     } catch (error) {
@@ -276,6 +290,8 @@ export default function Home() {
           />
         </div>
       </div>
+      
+      <Footer />
 
       <TableSelector 
         open={isTableSelectorOpen} 
@@ -300,7 +316,7 @@ export default function Home() {
         open={cartOpen} 
         onOpenChange={setCartOpen}
         cart={cart}
-        onUpdateQty={handleUpdateQty}
+        onUpdateQty={updateQty}
         onRemove={removeFromCart}
         onCheckout={handlePlaceOrder}
         total={total}

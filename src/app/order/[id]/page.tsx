@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+// import { doc, onSnapshot } from "firebase/firestore";
+// import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -38,7 +38,9 @@ export default function OrderPage() {
       return;
     }
 
-    // Mode Réel : Firestore
+    // Mode Réel : Firestore (seulement si Firebase est configuré)
+    // Désactivé pour le moment - Firebase non configuré
+    /*
     const unsub = onSnapshot(doc(db, "orders", orderId), (doc) => {
       if (doc.exists()) {
         setOrder({ id: doc.id, ...doc.data() } as Order);
@@ -47,6 +49,21 @@ export default function OrderPage() {
     });
 
     return () => unsub();
+    */
+    
+    // En l'absence de Firebase configuré, on affiche une commande de démo
+    setOrder({
+      id: orderId,
+      tableId: "Table 12",
+      items: [
+        { menuId: "chicken_01", name: "Poulet braisé", price: 4500, qty: 2 },
+        { menuId: "soda_01", name: "Coca Cola", price: 1000, qty: 2 }
+      ],
+      total: 11000,
+      status: "preparing",
+      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any
+    });
+    setLoading(false);
   }, [params.id]);
 
   if (loading) {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 // import { collection, getDocs, addDoc, query, orderBy, where } from 'firebase/firestore';
 // import { db } from '@/lib/firebase';
-import type { Category, MenuItem, Order, OrderStatus } from '@/types';
+import type { Category, MenuItem, Order, OrderStatus, OrderItem } from '@/types';
 
 // Données de démonstration
 const DEMO_CATEGORIES: Category[] = [
@@ -73,6 +73,18 @@ type MenuStore = {
   items: MenuItem[];
   isLoading: boolean;
   error: string | null;
+  selectedCategory: string | null;
+  setSelectedCategory: (id: string) => void;
+  
+  table: { id: string; label: string } | null;
+  setTable: (table: { id: string; label: string } | null) => void;
+  
+  cart: OrderItem[];
+  addToCart: (item: OrderItem) => void;
+  removeFromCart: (index: number) => void;
+  updateQty: (index: number, delta: number) => void;
+  clearCart: () => void;
+  
   loadMenu: () => Promise<void>;
   placeOrder: (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   getItemsByCategory: (categoryId: string) => MenuItem[];
@@ -84,6 +96,26 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   items: [],
   isLoading: false,
   error: null,
+  
+  selectedCategory: null,
+  setSelectedCategory: (id) => set({ selectedCategory: id }),
+  
+  table: null,
+  setTable: (table) => set({ table }),
+  
+  cart: [],
+  addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
+  removeFromCart: (index) => set((state) => ({ cart: state.cart.filter((_, i) => i !== index) })),
+  updateQty: (index, delta) => set((state) => ({
+    cart: state.cart.map((item, i) => {
+      if (i === index) {
+        const newQty = Math.max(1, (item.qty || 1) + delta);
+        return { ...item, qty: newQty };
+      }
+      return item;
+    })
+  })),
+  clearCart: () => set({ cart: [] }),
   
   loadMenu: async () => {
     set({ isLoading: true, error: null });
@@ -105,7 +137,7 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
     }
   },
   
-  placeOrder: async (order) => {
+  placeOrder: async (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => {
     // Simulation d'envoi de commande
     return new Promise((resolve) => {
       console.log('Commande passée (MOCK):', order);
