@@ -1,4 +1,4 @@
-import { ShoppingBag } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CartBarProps {
@@ -11,24 +11,28 @@ export function CartBar({ itemCount, total, onViewCart }: CartBarProps) {
   if (itemCount === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto">
-      <Button 
-        className="w-full h-14 rounded-full shadow-xl flex items-center justify-between px-6 text-lg animate-in slide-in-from-bottom-10 fade-in"
-        onClick={onViewCart}
-      >
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 rounded-full p-1.5">
-            <ShoppingBag className="h-5 w-5 text-white" />
+    <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+      <div className="w-full max-w-md pointer-events-auto">
+        <Button 
+          className="w-full h-[4.5rem] rounded-2xl shadow-[0_8px_30px_rgba(220,38,38,0.4)] bg-[#D32F2F] hover:bg-[#B71C1C] text-white transition-all duration-300 flex items-center justify-between px-5 animate-in slide-in-from-bottom-10 fade-in border-0"
+          onClick={onViewCart}
+        >
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-[10px] font-bold tracking-widest uppercase opacity-90">{itemCount} ITEMS</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bold text-xl tracking-tight">${(total / 655).toFixed(2)}</span>
+              <span className="text-[10px] font-medium opacity-80">Including Taxes</span>
+            </div>
           </div>
-          <span className="font-semibold">{itemCount} item{itemCount > 1 ? 's' : ''}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-bold">View Cart</span>
-          <span className="bg-white/20 px-2 py-0.5 rounded text-sm font-mono">
-            {total.toLocaleString()}
-          </span>
-        </div>
-      </Button>
+          
+          <div className="flex items-center gap-2 pl-4">
+            <span className="font-bold text-sm">View Cart</span>
+            <div className="bg-white text-[#D32F2F] rounded-full p-1">
+              <ChevronRight className="h-3 w-3 stroke-[4]" />
+            </div>
+          </div>
+        </Button>
+      </div>
     </div>
   );
 }

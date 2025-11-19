@@ -9,6 +9,7 @@ import type { Category, MenuItem, OrderItem } from "@/types";
 
 import { Header } from "@/components/menu/Header";
 import { Hero } from "@/components/menu/Hero";
+import { FeaturedItems } from "@/components/menu/FeaturedItems";
 import { CategoryNav } from "@/components/menu/CategoryNav";
 import { MenuItemCard } from "@/components/menu/MenuItem";
 import { CartBar } from "@/components/menu/CartBar";
@@ -229,6 +230,8 @@ export default function Home() {
       <main className="max-w-5xl mx-auto w-full">
         <Hero />
         
+        <FeaturedItems items={displayItems} onAdd={openDetail} />
+
         <CategoryNav 
           categories={displayCategories} 
           selectedCategory={selectedCategory} 
