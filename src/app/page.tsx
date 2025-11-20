@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useMenuStore } from "@/stores/menu";
 import type { Category, MenuItem, OrderItem } from "@/types";
@@ -113,9 +114,10 @@ export default function Home() {
     updateQty,
     table,
     setTable,
-    setOrderType, // Assuming this is a new action in the store
-    setTableId, // Assuming this is a new action in the store
+    setOrderType,
+    setTableId,
     orderType,
+    activeOrderId,
   } = useMenuStore();
   
   // Handle URL params for QR codes
@@ -303,6 +305,20 @@ export default function Home() {
           />
         </div>
       </div>
+
+      {/* Active Order Floating Button */}
+      {activeOrderId && (
+        <div className="fixed bottom-32 right-4 z-40">
+          <Button 
+            onClick={() => router.push(`/order/${activeOrderId}`)}
+            className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white px-4 py-3 h-auto flex items-center gap-2 animate-in slide-in-from-bottom-10"
+          >
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span className="font-bold">Suivi Commande</span>
+          </Button>
+        </div>
+      )}
+      
       
       <Footer />
 

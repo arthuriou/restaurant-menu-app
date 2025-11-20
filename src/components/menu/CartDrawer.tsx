@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import type { OrderItem } from "@/types";
 
 interface CartDrawerProps {
@@ -47,7 +46,7 @@ export function CartDrawer({
           </div>
         </SheetHeader>
         
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-6 p-8 text-center animate-in fade-in zoom-in-95 duration-500">
               <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mb-2 shadow-inner">
@@ -62,7 +61,7 @@ export function CartDrawer({
               </Button>
             </div>
           ) : (
-            <ScrollArea className="flex-1 px-4">
+            <ScrollArea className="h-full px-4">
               <div className="py-6 space-y-4">
                 {cart.map((item, idx) => (
                   <div key={idx} className="group bg-white dark:bg-zinc-900/80 rounded-xl p-3 shadow-sm border border-zinc-100 dark:border-zinc-800/50 flex gap-3 transition-all hover:shadow-md">

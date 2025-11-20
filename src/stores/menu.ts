@@ -82,6 +82,9 @@ type MenuStore = {
   table: { id: string; label: string } | null;
   setTable: (table: { id: string; label: string } | null) => void;
   setTableId: (id: string) => void;
+
+  activeOrderId: string | null;
+  setActiveOrderId: (id: string | null) => void;
   
   cart: OrderItem[];
   addToCart: (item: OrderItem) => void;
@@ -110,6 +113,9 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   table: null,
   setTable: (table) => set({ table }),
   setTableId: (id) => set({ table: { id, label: `Table ${id}` } }),
+
+  activeOrderId: null,
+  setActiveOrderId: (id) => set({ activeOrderId: id }),
   
   cart: [],
   addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
@@ -149,7 +155,11 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
     // Simulation d'envoi de commande
     return new Promise((resolve) => {
       console.log('Commande passée (MOCK):', order);
-      setTimeout(() => resolve(`demo-order-${Date.now()}`), 1000);
+      const newOrderId = `demo-order-${Date.now()}`;
+      setTimeout(() => {
+        set({ activeOrderId: newOrderId, cart: [] });
+        resolve(newOrderId);
+      }, 1000);
     });
   },
   

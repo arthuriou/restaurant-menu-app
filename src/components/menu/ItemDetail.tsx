@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -51,23 +51,32 @@ interface ItemDetailContentProps {
   };
   setOptions: (options: any) => void;
   onAddToCart: () => void;
+  onClose: () => void;
 }
 
-function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart }: ItemDetailContentProps) {
+function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart, onClose }: ItemDetailContentProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'addons'>('details');
 
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
       {/* Header Section with Curve */}
-      <div className="relative h-[40vh] w-full shrink-0">
+      <div className="relative h-[35vh] w-full shrink-0">
         {/* Background Curve */}
-        <div className="absolute inset-0 bg-primary rounded-b-[50%] scale-x-[1.3] origin-top overflow-hidden shadow-lg z-0">
+        <div className="absolute inset-0 bg-primary rounded-b-[100%] scale-x-[1.5] origin-top overflow-hidden shadow-lg z-0">
            {/* Optional: Add a subtle pattern or gradient here if needed */}
         </div>
 
+        {/* Close Button (Mobile Only) */}
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 z-50 p-2 rounded-full border-2 border-white/50 bg-black/5 text-zinc-900 hover:bg-black/10 transition-colors md:hidden backdrop-blur-sm"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         {/* Image */}
-        <div className="absolute inset-x-0 -bottom-16 z-10 flex justify-center">
-          <div className="relative w-72 h-72 md:w-80 md:h-80 rounded-full shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] overflow-hidden">
+        <div className="absolute inset-x-0 -bottom-20 z-10 flex justify-center">
+          <div className="relative w-56 h-56 md:w-64 md:h-64 rounded-full shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] overflow-hidden">
              {item.imageUrl ? (
               <Image 
                 src={item.imageUrl} 
@@ -83,7 +92,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
       </div>
 
       {/* Content Section */}
-      <div className="flex-1 flex flex-col pt-16 px-6 pb-28 overflow-hidden">
+      <div className="flex-1 flex flex-col pt-24 px-6 pb-28 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="flex flex-col items-center text-center space-y-6 pb-8">
             
@@ -281,7 +290,8 @@ export function ItemDetail({
                 setQty={setQty} 
                 options={options} 
                 setOptions={setOptions} 
-                onAddToCart={onAddToCart} 
+                onAddToCart={onAddToCart}
+                onClose={() => onOpenChange(false)}
               />
             </div>
           </div>
@@ -292,15 +302,16 @@ export function ItemDetail({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[92vh] rounded-t-[2.5rem] p-0 flex flex-col border-t-0 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] duration-500 ease-out overflow-hidden">
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-300/50 dark:bg-zinc-700/50 rounded-full z-50" />
+      <SheetContent side="bottom" hideDefaultClose className="h-[92vh] rounded-t-[2.5rem] p-0 flex flex-col border-t-0 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] duration-500 ease-out overflow-hidden">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/40 rounded-full z-50" />
         <ItemDetailContent 
           item={item} 
           qty={qty} 
           setQty={setQty} 
           options={options} 
           setOptions={setOptions} 
-          onAddToCart={onAddToCart} 
+          onAddToCart={onAddToCart}
+          onClose={() => onOpenChange(false)}
         />
       </SheetContent>
     </Sheet>
