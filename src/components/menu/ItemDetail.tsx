@@ -54,121 +54,170 @@ interface ItemDetailContentProps {
 }
 
 function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart }: ItemDetailContentProps) {
+  const [activeTab, setActiveTab] = useState<'details' | 'addons'>('details');
+
   return (
-    <div className="flex flex-col h-full md:flex-row w-full">
-      {/* Image Section */}
-      <div className="relative h-48 sm:h-64 w-full md:w-1/2 md:h-full flex-shrink-0 group overflow-hidden">
-        {item.imageUrl && (
-          <>
-            <Image 
-              src={item.imageUrl} 
-              alt={item.name} 
-              fill 
-              className="object-cover transition-transform duration-700 group-hover:scale-105 rounded-t-[2rem] md:rounded-l-[2rem] md:rounded-tr-none"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/5 opacity-60" />
-          </>
-        )}
-        {/* Mobile Handle Indicator */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/80 rounded-full backdrop-blur-sm md:hidden z-10" />
+    <div className="flex flex-col h-full w-full bg-background relative">
+      {/* Header Section with Curve */}
+      <div className="relative h-[40vh] w-full shrink-0">
+        {/* Background Curve */}
+        <div className="absolute inset-0 bg-primary rounded-b-[50%] scale-x-[1.3] origin-top overflow-hidden shadow-lg z-0">
+           {/* Optional: Add a subtle pattern or gradient here if needed */}
+        </div>
+
+        {/* Image */}
+        <div className="absolute inset-x-0 -bottom-16 z-10 flex justify-center">
+          <div className="relative w-72 h-72 md:w-80 md:h-80 rounded-full shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] overflow-hidden">
+             {item.imageUrl ? (
+              <Image 
+                src={item.imageUrl} 
+                alt={item.name} 
+                fill 
+                className="object-cover scale-110 hover:scale-105 transition-transform duration-700"
+              />
+            ) : (
+              <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-400">No Image</div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Details Section */}
-      <div className="flex-1 flex flex-col bg-background md:w-1/2 h-full relative">
-        <ScrollArea className="flex-1">
-          <div className="px-4 pt-4 md:px-6 md:pt-6 pb-32"> {/* Added padding bottom to avoid overlap with footer */}
-            <div className="space-y-4 md:space-y-6">
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl md:text-2xl font-bold leading-tight">{item.name}</h2>
-                  <span className="text-lg md:text-xl font-bold text-primary whitespace-nowrap ml-4">{item.price.toLocaleString()} FCFA</span>
-                </div>
-                <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{item.description}</p>
+      {/* Content Section */}
+      <div className="flex-1 flex flex-col pt-16 px-6 pb-28 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="flex flex-col items-center text-center space-y-6 pb-8">
+            
+            {/* Title & Price */}
+            <div className="space-y-2 w-full">
+              <div className="flex items-center justify-between">
+                 <h2 className="text-2xl font-bold text-foreground text-left">{item.name}</h2>
+                 <span className="text-xl font-bold text-primary whitespace-nowrap">{item.price.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">FCFA</span></span>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">Cuisson</Label>
-                  <RadioGroup 
-                    value={options.cuisson} 
-                    onValueChange={(v) => setOptions({...options, cuisson: v})}
-                    className="flex flex-wrap gap-2"
-                  >
-                    {['Saignant', 'À point', 'Bien cuit'].map((opt) => (
-                      <div key={opt}>
-                        <RadioGroupItem value={opt} id={`c-${opt}`} className="peer sr-only" />
-                        <Label
-                          htmlFor={`c-${opt}`}
-                          className="flex items-center justify-center rounded-full border-2 border-muted bg-transparent px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer"
-                        >
-                          {opt}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">Sauce</Label>
-                  <RadioGroup 
-                    value={options.sauce} 
-                    onValueChange={(v) => setOptions({...options, sauce: v})}
-                    className="flex flex-wrap gap-2"
-                  >
-                    {['Barbecue', 'Mayonnaise', 'Piment'].map((opt) => (
-                      <div key={opt}>
-                        <RadioGroupItem value={opt} id={`s-${opt}`} className="peer sr-only" />
-                        <Label
-                          htmlFor={`s-${opt}`}
-                          className="flex items-center justify-center rounded-full border-2 border-muted bg-transparent px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary cursor-pointer"
-                        >
-                          {opt}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">Demande spéciale</Label>
-                  <Textarea 
-                    placeholder="Sans oignon, peu salé..." 
-                    value={options.note || ''}
-                    onChange={(e) => setOptions({...options, note: e.target.value})}
-                    className="resize-none bg-zinc-50 border-zinc-200"
-                  />
-                </div>
-              </div>
+              {/* Subtitle/Category could go here if available */}
             </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-4 w-full justify-center">
+              <button 
+                onClick={() => setActiveTab('details')}
+                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-sm ${
+                  activeTab === 'details' 
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25' 
+                    : 'bg-white dark:bg-zinc-800 text-foreground hover:bg-zinc-50'
+                }`}
+              >
+                Details
+              </button>
+              <button 
+                onClick={() => setActiveTab('addons')}
+                className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-sm ${
+                  activeTab === 'addons' 
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25' 
+                    : 'bg-white dark:bg-zinc-800 text-foreground hover:bg-zinc-50'
+                }`}
+              >
+                Add-ons
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="w-full text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {activeTab === 'details' ? (
+                <div className="space-y-4">
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    {item.description}
+                  </p>
+                  {/* Additional details could go here */}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Cuisson</Label>
+                    <RadioGroup 
+                      value={options.cuisson} 
+                      onValueChange={(v) => setOptions({...options, cuisson: v})}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {['Saignant', 'À point', 'Bien cuit'].map((opt) => (
+                        <div key={opt}>
+                          <RadioGroupItem value={opt} id={`c-${opt}`} className="peer sr-only" />
+                          <Label
+                            htmlFor={`c-${opt}`}
+                            className="flex items-center justify-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary cursor-pointer"
+                          >
+                            {opt}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Sauce</Label>
+                    <RadioGroup 
+                      value={options.sauce} 
+                      onValueChange={(v) => setOptions({...options, sauce: v})}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {['Barbecue', 'Mayonnaise', 'Piment'].map((opt) => (
+                        <div key={opt}>
+                          <RadioGroupItem value={opt} id={`s-${opt}`} className="peer sr-only" />
+                          <Label
+                            htmlFor={`s-${opt}`}
+                            className="flex items-center justify-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary cursor-pointer"
+                          >
+                            {opt}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Note</Label>
+                    <Textarea 
+                      placeholder="Sans oignon, peu salé..." 
+                      value={options.note || ''}
+                      onChange={(e) => setOptions({...options, note: e.target.value})}
+                      className="resize-none bg-zinc-50 border-zinc-200 min-h-[80px] rounded-xl"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         </ScrollArea>
+      </div>
 
-        {/* Sticky Footer */}
-        <div className="p-4 border-t bg-background/80 backdrop-blur-sm absolute bottom-0 left-0 right-0 z-10">
-          <div className="flex items-center gap-4 max-w-md mx-auto">
-            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 rounded-full p-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm"
+      {/* Bottom Action Bar */}
+      <div className="absolute bottom-8 left-6 right-6 z-20">
+        <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.12)] flex items-center justify-between pl-2 pr-2 gap-4">
+           
+           {/* Qty Selector */}
+           <div className="flex items-center gap-4 bg-transparent p-1.5 pl-2 pr-2">
+              <button 
                 onClick={() => setQty(Math.max(1, qty - 1))}
+                className="w-10 h-10 rounded-full bg-primary text-white shadow-md shadow-primary/20 flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
               >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="font-bold w-8 text-center">{qty}</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-white dark:hover:bg-zinc-700 shadow-sm"
+                <Minus className="h-5 w-5" />
+              </button>
+              <span className="font-bold w-6 text-center text-xl">{qty}</span>
+              <button 
                 onClick={() => setQty(qty + 1)}
+                className="w-10 h-10 rounded-full bg-primary text-white shadow-md shadow-primary/20 flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
               >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button className="flex-1 h-12 rounded-full text-lg shadow-lg shadow-primary/20" onClick={onAddToCart}>
-              Ajouter {(item.price * qty).toLocaleString()}
-            </Button>
-          </div>
+                <Plus className="h-5 w-5" />
+              </button>
+           </div>
+
+           {/* Add to Cart Button */}
+           <Button 
+            className="flex-1 h-14 rounded-[1.5rem] text-lg font-bold shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-white" 
+            onClick={onAddToCart}
+           >
+             Add to Cart
+           </Button>
         </div>
       </div>
     </div>
@@ -193,7 +242,7 @@ export function ItemDetail({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="sm:max-w-4xl p-0 bg-transparent border-none shadow-none overflow-visible" 
+          className="sm:max-w-4xl p-0 bg-transparent border-none shadow-none overflow-visible duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95" 
           showCloseButton={false}
         >
           <div className="relative w-full">
@@ -202,7 +251,7 @@ export function ItemDetail({
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full bg-white/90 hover:bg-white dark:bg-zinc-800/90 dark:hover:bg-zinc-800 backdrop-blur-md h-10 w-10 shadow-lg transition-all hover:scale-105"
+                className="rounded-full bg-white/90 hover:bg-white dark:bg-zinc-800/90 dark:hover:bg-zinc-800 backdrop-blur-md h-10 w-10 shadow-lg transition-all hover:scale-105 active:scale-95"
                 onClick={() => onOpenChange(false)}
               >
                 <span className="sr-only">Fermer</span>
@@ -225,7 +274,7 @@ export function ItemDetail({
             </div>
 
             {/* Main Content Wrapper */}
-            <div className="flex flex-col md:flex-row h-full md:h-[600px] bg-background rounded-[2rem] overflow-hidden shadow-2xl">
+            <div className="relative w-full h-[85vh] max-h-[800px] bg-background rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
                <ItemDetailContent 
                 item={item} 
                 qty={qty} 
@@ -243,7 +292,8 @@ export function ItemDetail({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-[2rem] p-0 flex flex-col">
+      <SheetContent side="bottom" className="h-[92vh] rounded-t-[2.5rem] p-0 flex flex-col border-t-0 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] duration-500 ease-out overflow-hidden">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-zinc-300/50 dark:bg-zinc-700/50 rounded-full z-50" />
         <ItemDetailContent 
           item={item} 
           qty={qty} 

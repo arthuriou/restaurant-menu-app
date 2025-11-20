@@ -250,14 +250,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-dvh bg-background pb-24">
+    <div className="min-h-dvh bg-background flex flex-col">
       <Header 
         table={table} 
         orderType={orderType}
         onTableClick={() => setIsTableSelectorOpen(true)} 
       />
       
-      <main className="max-w-5xl mx-auto w-full">
+      <main className="max-w-5xl mx-auto w-full flex-1 pb-24">
         <Hero />
         
         <FeaturedItems items={displayItems} onAdd={openDetail} />
@@ -281,7 +281,7 @@ export default function Home() {
               Aucun plat disponible dans cette catégorie.
             </div>
           ) : (
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
               {filteredItems.map((item) => (
                 <MenuItemCard 
                   key={item.id} 

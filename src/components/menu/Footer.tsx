@@ -2,16 +2,16 @@ import { Facebook, Instagram, MapPin, Phone, Mail, Twitter } from "lucide-react"
 
 export function Footer() {
   return (
-    <footer className="bg-zinc-950 text-zinc-200 py-16">
+    <footer className="bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 py-12 border-t border-border/40">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           
           {/* Brand Section */}
           <div className="space-y-6">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent inline-block">
               Mon Restaurant
             </h3>
-            <p className="text-zinc-400 leading-relaxed">
+            <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed">
               Une expérience culinaire inoubliable, où tradition et modernité se rencontrent pour éveiller vos sens.
             </p>
             <div className="flex gap-4">
@@ -21,12 +21,10 @@ export function Footer() {
             </div>
           </div>
 
-
-
           {/* Contact Info */}
           <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-white">Nous trouver</h4>
-            <ul className="space-y-4 text-zinc-400">
+            <h4 className="text-lg font-semibold text-foreground">Nous trouver</h4>
+            <ul className="space-y-4 text-zinc-500 dark:text-zinc-400">
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-primary shrink-0 mt-1" />
                 <span>Cocody, Abidjan<br />Côte d'Ivoire</span>
@@ -44,26 +42,26 @@ export function Footer() {
 
           {/* Opening Hours */}
           <div className="space-y-6">
-            <h4 className="text-lg font-semibold text-white">Horaires</h4>
-            <ul className="space-y-3 text-zinc-400">
+            <h4 className="text-lg font-semibold text-foreground">Horaires</h4>
+            <ul className="space-y-3 text-zinc-500 dark:text-zinc-400">
               <li className="flex justify-between">
                 <span>Lun - Ven</span>
-                <span className="text-white">11:00 - 23:00</span>
+                <span className="text-foreground font-medium">11:00 - 23:00</span>
               </li>
               <li className="flex justify-between">
                 <span>Sam - Dim</span>
-                <span className="text-white">10:00 - 00:00</span>
+                <span className="text-foreground font-medium">10:00 - 00:00</span>
               </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
+        <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
           <p>© 2024 Mon Restaurant. Tous droits réservés.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
+            <a href="#" className="hover:text-primary transition-colors">Mentions légales</a>
+            <a href="#" className="hover:text-primary transition-colors">Confidentialité</a>
           </div>
         </div>
       </div>
@@ -75,7 +73,7 @@ function SocialLink({ icon, href }: { icon: React.ReactNode, href: string }) {
   return (
     <a 
       href={href} 
-      className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:bg-primary hover:text-white transition-all duration-300 hover:scale-110"
+      className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 hover:scale-110"
     >
       {icon}
     </a>

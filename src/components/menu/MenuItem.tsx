@@ -10,43 +10,48 @@ interface MenuItemProps {
 
 export function MenuItemCard({ item, onAdd }: MenuItemProps) {
   return (
-    <div className="group relative flex flex-col bg-card rounded-xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all duration-300">
-      {/* Image Container */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100">
-        {item.imageUrl ? (
-          <Image 
-            src={item.imageUrl} 
-            alt={item.name} 
-            fill 
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs">No image</div>
-        )}
-        {!item.available && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
-            <span className="text-white text-xs font-bold px-2 py-1 bg-red-500/80 rounded-full">Épuisé</span>
+    <div 
+      className="group relative flex flex-col bg-card rounded-[1.5rem] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-border/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-500 active:scale-[0.98] cursor-pointer"
+      onClick={onAdd}
+    >
+      <div className="flex flex-row items-center p-3 gap-4">
+        {/* Image Left - Circular */}
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full shadow-sm">
+          {item.imageUrl ? (
+            <Image 
+              src={item.imageUrl} 
+              alt={item.name} 
+              fill 
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
+              <span className="text-xs">No img</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content Middle */}
+        <div className="flex flex-col flex-1 min-w-0 space-y-1">
+          <h3 className="font-bold text-base leading-tight text-foreground line-clamp-1">{item.name}</h3>
+          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed opacity-90">{item.description}</p>
+          <div className="pt-1 font-bold text-base text-primary">
+            {item.price.toLocaleString()} <span className="text-[10px] font-medium text-muted-foreground">FCFA</span>
           </div>
-        )}
-      </div>
-      
-      <div className="flex flex-col justify-between flex-1 min-w-0 p-3">
-        <div>
-          <div className="flex justify-between items-start">
-            <h3 className="font-bold text-base truncate pr-2 text-foreground/90">{item.name}</h3>
-          </div>
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
         </div>
         
-        <div className="flex items-center justify-between mt-3">
-          <span className="font-bold text-lg text-primary">{item.price.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
+        {/* Action Right */}
+        <div className="shrink-0">
           <Button 
-            size="icon" 
-            className="h-9 w-9 rounded-full shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-transform active:scale-95" 
-            onClick={onAdd}
+            size="sm" 
+            className="h-9 px-4 rounded-full bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 font-bold text-xs transition-transform active:scale-95" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
             disabled={!item.available}
           >
-            <Plus className="h-5 w-5 text-white" />
+            Ajouter
           </Button>
         </div>
       </div>
