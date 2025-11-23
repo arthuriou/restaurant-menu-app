@@ -42,3 +42,48 @@ export type Order = {
   status: OrderStatus;
   createdAt: Timestamp;
 };
+
+// Invoice Types
+export type InvoiceType = "table" | "takeaway";
+export type PaymentMethod = "cash" | "card" | "mobile";
+export type InvoiceStatus = "pending" | "paid" | "cancelled";
+
+export type RestaurantInfo = {
+  name: string;
+  address: string;
+  phone: string;
+  email?: string;
+  taxId?: string;
+  logo?: string;
+};
+
+export type Invoice = {
+  id: string;
+  number: string;              // Format: INV-2024-XXXXX
+  type: InvoiceType;
+  
+  // Customer/Table info
+  tableId?: string;            // For type "table"
+  customerName?: string;       // For type "takeaway"
+  
+  // Order details
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;                 // TVA amount
+  taxRate: number;             // TVA percentage (e.g., 20 for 20%)
+  discount?: number;           // Optional discount
+  total: number;
+  
+  // Payment
+  status: InvoiceStatus;
+  paymentMethod?: PaymentMethod;
+  paidAt?: Timestamp;
+  
+  // Metadata
+  createdAt: Timestamp;
+  createdBy?: string;          // User ID who created
+  notes?: string;
+  
+  // Restaurant snapshot (immutable)
+  restaurantInfo: RestaurantInfo;
+};

@@ -96,6 +96,16 @@ type MenuStore = {
   placeOrder: (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   getItemsByCategory: (categoryId: string) => MenuItem[];
   getItemById: (id: string) => MenuItem | undefined;
+  // Categories CRUD
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, updates: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
+  reorderCategories: (categories: Category[]) => void;
+
+  // Items CRUD
+  addItem: (item: Omit<MenuItem, 'id'>) => void;
+  updateItem: (id: string, updates: Partial<MenuItem>) => void;
+  deleteItem: (id: string) => void;
 };
 
 export const useMenuStore = create<MenuStore>((set, get) => ({
@@ -137,11 +147,16 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
       // Simulation d'appel réseau
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      set({ 
-        categories: DEMO_CATEGORIES, 
-        items: DEMO_ITEMS, 
-        isLoading: false 
-      });
+      // Only load demo data if store is empty
+      if (get().categories.length === 0) {
+        set({ 
+          categories: DEMO_CATEGORIES, 
+          items: DEMO_ITEMS, 
+          isLoading: false 
+        });
+      } else {
+        set({ isLoading: false });
+      }
     } catch (error) {
       console.error('Erreur de chargement du menu:', error);
       set({ 
@@ -169,5 +184,39 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   
   getItemById: (id: string) => {
     return get().items.find((item: MenuItem) => item.id === id);
-  }
+  },
+
+  // Categories Actions
+  addCategory: (category) => set((state) => ({
+    categories: [...state.categories, { ...category, id: `cat_${Date.now()}` }]
+  })),
+
+  updateCategory: (id, updates) => set((state) => ({
+    categories: state.categories.map((cat) => 
+      cat.id === id ? { ...cat, ...updates } : cat
+    )
+  })),
+
+  deleteCategory: (id) => set((state) => ({
+    categories: state.categories.filter((cat) => cat.id !== id),
+    // Optionally remove items in this category or move them
+    items: state.items.filter((item) => item.categoryId !== id)
+  })),
+
+  reorderCategories: (categories) => set({ categories }),
+
+  // Items Actions
+  addItem: (item) => set((state) => ({
+    items: [...state.items, { ...item, id: `item_${Date.now()}` }]
+  })),
+
+  updateItem: (id, updates) => set((state) => ({
+    items: state.items.map((item) => 
+      item.id === id ? { ...item, ...updates } : item
+    )
+  })),
+
+  deleteItem: (id) => set((state) => ({
+    items: state.items.filter((item) => item.id !== id)
+  }))
 }));

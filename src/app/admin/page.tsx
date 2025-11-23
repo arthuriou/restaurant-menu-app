@@ -1,140 +1,218 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, CreditCard, Activity, TrendingUp } from "lucide-react";
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  DollarSign, Users, CreditCard, Activity, TrendingUp, 
+  Plus, UtensilsCrossed, QrCode, ArrowRight, Clock, ChefHat
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useOrderStore } from "@/stores/orders";
+import { useEffect } from "react";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+
+  const { stats, calculateStats, orders } = useOrderStore();
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
+
+  // Real Data from Store
+  const dashboardStats = [
+    {
+      title: "Chiffre d'affaires",
+      value: `${stats.totalRevenue.toLocaleString()} FCFA`,
+      trend: "+0%", // To be implemented with history
+      trendUp: true,
+      icon: DollarSign,
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
+    },
+    {
+      title: "Commandes",
+      value: stats.totalOrders.toString(),
+      trend: "+0%",
+      trendUp: true,
+      icon: CreditCard,
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+    },
+    {
+      title: "Ticket Moyen",
+      value: `${stats.averageTicket.toLocaleString()} FCFA`,
+      trend: "+0%",
+      trendUp: true,
+      icon: Activity,
+      color: "text-orange-500",
+      bgColor: "bg-orange-500/10",
+    },
+    {
+      title: "Commandes Actives",
+      value: stats.activeOrders.toString(),
+      trend: "En cours",
+      trendUp: true,
+      icon: Users,
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
+    },
+  ];
+
+  const quickActions = [
+    {
+      label: "Nouvelle Commande",
+      icon: Plus,
+      onClick: () => router.push("/admin/orders"),
+      color: "bg-primary text-primary-foreground hover:bg-primary/90",
+    },
+    {
+      label: "Ajouter un Plat",
+      icon: UtensilsCrossed,
+      onClick: () => router.push("/admin/menu"),
+      color: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
+    },
+    {
+      label: "Gérer les Tables",
+      icon: QrCode,
+      onClick: () => router.push("/admin/tables"),
+      color: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
+    },
+  ];
+
+  const recentOrders = [
+    { id: "CMD-001", table: "Table 4", items: "2x Burger, 1x Coca", status: "preparing", time: "Il y a 5 min" },
+    { id: "CMD-002", table: "Table 2", items: "1x Poulet Braisé", status: "ready", time: "Il y a 12 min" },
+    { id: "CMD-003", table: "Emporter", items: "3x Shawarma", status: "pending", time: "Il y a 2 min" },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Vue d'ensemble de votre activité aujourd'hui.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Tableau de Bord
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Bienvenue ! Voici ce qui se passe dans votre restaurant aujourd'hui.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-3 w-3 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+          </span>
+          <span className="text-sm font-medium text-green-600 dark:text-green-400">Service en cours</span>
         </div>
       </div>
       
+      {/* KPI Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="rounded-xl shadow-sm hover:shadow-md transition-all border-zinc-200 dark:border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Revenu Total
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45,231 FCFA</div>
-            <p className="text-xs text-green-600 flex items-center mt-1 font-medium">
-              <TrendingUp className="w-3 h-3 mr-1" /> +20.1% ce mois
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl shadow-sm hover:shadow-md transition-all border-zinc-200 dark:border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Commandes
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,350</div>
-            <p className="text-xs text-blue-600 flex items-center mt-1 font-medium">
-              <TrendingUp className="w-3 h-3 mr-1" /> +180.1% ce mois
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl shadow-sm hover:shadow-md transition-all border-zinc-200 dark:border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ventes</CardTitle>
-            <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-              <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12,234</div>
-            <p className="text-xs text-orange-600 flex items-center mt-1 font-medium">
-              <TrendingUp className="w-3 h-3 mr-1" /> +19% ce mois
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl shadow-sm hover:shadow-md transition-all border-zinc-200 dark:border-zinc-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Clients Actifs
-            </CardTitle>
-            <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">573</div>
-            <p className="text-xs text-purple-600 flex items-center mt-1 font-medium">
-              <TrendingUp className="w-3 h-3 mr-1" /> +201 cette heure
-            </p>
-          </CardContent>
-        </Card>
+        {dashboardStats.map((stat, index) => (
+          <Card key={index} className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative group">
+            <div className={`absolute right-0 top-0 w-24 h-24 rounded-bl-full opacity-10 transition-transform group-hover:scale-110 ${stat.color.replace('text-', 'bg-')}`} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className={`h-10 w-10 rounded-xl ${stat.bgColor} flex items-center justify-center transition-colors group-hover:bg-opacity-80`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent className="relative z-10">
+              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
+              <p className={`text-xs flex items-center mt-1 font-medium ${stat.trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600'}`}>
+                {stat.trendUp ? <TrendingUp className="w-3 h-3 mr-1" /> : null} 
+                {stat.trend} <span className="text-muted-foreground ml-1 font-normal">vs hier</span>
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 rounded-xl shadow-sm border-zinc-200 dark:border-zinc-800">
+      <div className="grid gap-6 md:grid-cols-7">
+        {/* Main Chart Section (Placeholder for now) */}
+        <Card className="col-span-4 rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
           <CardHeader>
-            <CardTitle>Aperçu des ventes</CardTitle>
+            <CardTitle>Aperçu des Ventes</CardTitle>
+            <CardDescription>Évolution du chiffre d'affaires sur la semaine.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 m-2">
-              Graphique des ventes (À venir)
+            <div className="h-[300px] w-full bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-950 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center text-muted-foreground gap-4 group cursor-pointer hover:border-primary/50 transition-colors">
+              <div className="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover:scale-110 transition-transform duration-500">
+                <Activity className="w-8 h-8 text-zinc-400" />
+              </div>
+              <p className="text-sm font-medium">Le graphique des ventes sera disponible bientôt</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3 rounded-xl shadow-sm border-zinc-200 dark:border-zinc-800">
-          <CardHeader>
-            <CardTitle>Ventes Récentes</CardTitle>
-            <div className="text-sm text-muted-foreground">
-              Vous avez réalisé 265 ventes ce mois-ci.
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              <div className="flex items-center">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                  OM
-                </div>
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">Olivia Martin</p>
-                  <p className="text-sm text-muted-foreground">
-                    olivia.martin@email.com
-                  </p>
-                </div>
-                <div className="ml-auto font-bold text-primary">+1,999 FCFA</div>
+
+        {/* Right Column: Quick Actions & Live Feed */}
+        <div className="col-span-3 space-y-6">
+          
+          {/* Quick Actions */}
+          <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Actions Rapides</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {quickActions.map((action, idx) => (
+                <Button 
+                  key={idx}
+                  variant="ghost"
+                  className={`w-full justify-start h-14 rounded-xl px-4 text-base font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${action.color}`}
+                  onClick={action.onClick}
+                >
+                  <div className="p-2 rounded-lg bg-white/20 mr-3">
+                    <action.icon className="w-5 h-5" />
+                  </div>
+                  {action.label}
+                  <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Recent Orders Preview */}
+          <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg">En Cuisine</CardTitle>
+              <Link href="/admin/orders" className="text-xs font-medium text-primary hover:underline">
+                Voir tout
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...orders.pending, ...orders.preparing, ...orders.ready].slice(0, 3).map((order, i) => (
+                  <div key={i} className="flex items-start gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0">
+                    <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                      order.status === 'ready' ? 'bg-green-100 text-green-600' : 
+                      order.status === 'preparing' ? 'bg-orange-100 text-orange-600' : 
+                      'bg-zinc-100 text-zinc-600'
+                    }`}>
+                      <ChefHat className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-semibold truncate">{order.table}</p>
+                        <span className="text-[10px] text-muted-foreground flex items-center bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3 mr-1" /> {order.time}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{order.itemCount} articles</p>
+                    </div>
+                  </div>
+                ))}
+                {([...orders.pending, ...orders.preparing, ...orders.ready].length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Aucune commande en cours</p>
+                )}
               </div>
-              <div className="flex items-center">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                  JL
-                </div>
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">Jackson Lee</p>
-                  <p className="text-sm text-muted-foreground">
-                    jackson.lee@email.com
-                  </p>
-                </div>
-                <div className="ml-auto font-bold text-primary">+39 FCFA</div>
-              </div>
-              <div className="flex items-center">
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                  IN
-                </div>
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">Isabella Nguyen</p>
-                  <p className="text-sm text-muted-foreground">
-                    isabella.nguyen@email.com
-                  </p>
-                </div>
-                <div className="ml-auto font-bold text-primary">+299 FCFA</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+        </div>
       </div>
     </div>
   );

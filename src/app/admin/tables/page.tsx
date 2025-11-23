@@ -1,36 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, QrCode, Trash2, Download, Copy, Armchair, Users } from "lucide-react";
+import { Plus, QrCode, Trash2, Download, Copy, Users, Pencil, Receipt } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Mock Data
-const initialTables = [
-  { id: "t1", label: "1", status: "available", seats: 2, shape: "circle" },
-  { id: "t2", label: "2", status: "occupied", seats: 4, shape: "square" },
-  { id: "t3", label: "3", status: "available", seats: 4, shape: "square" },
-  { id: "t4", label: "4", status: "reserved", seats: 6, shape: "rectangle" },
-  { id: "t5", label: "5", status: "available", seats: 2, shape: "circle" },
-  { id: "t6", label: "6", status: "available", seats: 8, shape: "rectangle" },
-];
+import { useTableStore, Table } from "@/stores/tables";
 
 export default function AdminTablesPage() {
-  const [tables, setTables] = useState(initialTables);
+  const { tables, addTable, updateTable, deleteTable } = useTableStore();
   const [qrOpen, setQrOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<{id: string, label: string} | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [baseUrl] = useState("https://restaurant-app.com"); // Replace with actual domain
+  
+  // Form states
+  const [newTableLabel, setNewTableLabel] = useState("");
+  const [newTableSeats, setNewTableSeats] = useState("4");
 
-  const handleOpenQr = (table: {id: string, label: string}) => {
+  const handleOpenQr = (table: Table) => {
     setSelectedTable(table);
     setQrOpen(true);
+  };
+
+  const handleEdit = (table: Table) => {
+    setSelectedTable(table);
+    setNewTableLabel(table.label);
+    setNewTableSeats(table.seats.toString());
+    setEditOpen(true);
+  };
+
+  const handleDelete = (tableId: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette table ?")) {
+      deleteTable(tableId);
+      toast.success("Table supprimée");
+    }
+  };
+
+  const handleAddTable = () => {
+    if (!newTableLabel.trim()) {
+      toast.error("Le numéro de table est requis");
+      return;
+    }
+    
+    addTable({
+      label: newTableLabel,
+      seats: parseInt(newTableSeats) || 4,
+      status: 'available'
+    });
+    
+    setNewTableLabel("");
+    setNewTableSeats("4");
+    setAddOpen(false);
+    toast.success("Table ajoutée avec succès");
+  };
+
+  const handleUpdateTable = () => {
+    if (!selectedTable) return;
+    
+    updateTable(selectedTable.id, {
+      label: newTableLabel,
+      seats: parseInt(newTableSeats) || 4
+    });
+
+    setEditOpen(false);
+    toast.success("Table mise à jour");
   };
 
   const getQrUrl = () => {
@@ -40,7 +80,7 @@ export default function AdminTablesPage() {
 
   const downloadQr = () => {
     const svg = document.getElementById("qr-code-svg");
-    if (svg) {
+    if (svg && selectedTable) {
       const svgData = new XMLSerializer().serializeToString(svg);
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -54,7 +94,7 @@ export default function AdminTablesPage() {
           ctx.drawImage(img, 0, 0);
           const pngFile = canvas.toDataURL("image/png");
           const downloadLink = document.createElement("a");
-          downloadLink.download = `QR-Table-${selectedTable?.label}.png`;
+          downloadLink.download = `QR-Table-${selectedTable.label}.png`;
           downloadLink.href = pngFile;
           downloadLink.click();
         }
@@ -64,132 +104,254 @@ export default function AdminTablesPage() {
     }
   };
 
+  const downloadAllQrs = () => {
+    toast.info("Téléchargement de tous les QR codes...");
+    // This would need to be implemented with a zip library
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Plan de Salle</h2>
-          <p className="text-muted-foreground mt-1">Gérez la disposition et les QR codes de vos tables.</p>
-        </div>
-        <Button onClick={() => setAddOpen(true)} className="rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" /> Ajouter une table
-        </Button>
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">Tables & QR Codes</h2>
+        <p className="text-muted-foreground mt-1">Gérez vos tables et générez les QR codes pour vos clients.</p>
       </div>
 
-      <div className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 min-h-[600px]">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-          {tables.map((table) => (
-            <div key={table.id} className="relative group flex flex-col items-center justify-center gap-3">
-              {/* Table Shape Visual */}
-              <div 
-                onClick={() => handleOpenQr(table)}
-                className={`
-                  relative flex items-center justify-center cursor-pointer transition-all duration-300
-                  ${table.shape === 'circle' ? 'rounded-full w-24 h-24' : table.shape === 'rectangle' ? 'rounded-xl w-32 h-20' : 'rounded-2xl w-24 h-24'}
-                  ${table.status === 'available' ? 'bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 hover:border-primary hover:shadow-lg hover:shadow-primary/10' : ''}
-                  ${table.status === 'occupied' ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800' : ''}
-                  ${table.status === 'reserved' ? 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-800' : ''}
-                `}
-              >
-                <span className={`text-xl font-bold ${
-                  table.status === 'available' ? 'text-zinc-700 dark:text-zinc-200' : 
-                  table.status === 'occupied' ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'
-                }`}>
-                  {table.label}
-                </span>
-                
-                {/* Seats Indicators */}
-                <div className="absolute -bottom-2 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-[10px] font-medium text-muted-foreground border border-zinc-200 dark:border-zinc-700 flex items-center gap-1">
-                  <Users className="w-3 h-3" /> {table.seats}
-                </div>
+      {/* Actions Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          {tables.length} table{tables.length > 1 ? 's' : ''} configurée{tables.length > 1 ? 's' : ''}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={downloadAllQrs}
+            className="rounded-xl"
+          >
+            <Download className="w-4 h-4 mr-2" /> Télécharger tous les QR
+          </Button>
+          <Button 
+            onClick={() => setAddOpen(true)} 
+            className="rounded-xl shadow-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Ajouter une table
+          </Button>
+        </div>
+      </div>
 
-                {/* Hover Actions */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 backdrop-blur-[1px] rounded-[inherit]">
-                  <QrCode className="w-6 h-6 text-primary" />
+      {/* Tables Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {tables.map((table) => (
+          <Card 
+            key={table.id} 
+            className="group relative overflow-hidden rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-lg transition-all duration-300"
+          >
+            <CardContent className="p-6">
+              {/* Table Info */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground">Table {table.label}</h3>
+                  <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm">{table.seats} places</span>
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => handleEdit(table)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                    onClick={() => handleDelete(table.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
 
-              {/* Status Badge */}
-              <Badge variant="secondary" className={`
-                text-[10px] uppercase tracking-wider font-semibold
-                ${table.status === 'available' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                ${table.status === 'occupied' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
-                ${table.status === 'reserved' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : ''}
-              `}>
-                {table.status === 'available' ? 'Libre' : table.status === 'occupied' ? 'Occupée' : 'Réservée'}
-              </Badge>
-            </div>
-          ))}
-        </div>
+              {/* QR Code Preview */}
+              <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 mb-4 border border-zinc-100 dark:border-zinc-700">
+                <div className="flex items-center justify-center">
+                  <QRCodeSVG 
+                    value={`${baseUrl}?table=Table ${table.label}`}
+                    size={120}
+                    level="M"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => handleOpenQr(table)}
+                >
+                  <QrCode className="w-4 h-4 mr-1.5" /> Voir
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => {
+                    setSelectedTable(table);
+                    setTimeout(downloadQr, 100);
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1.5" /> Télécharger
+                </Button>
+              </div>
+              
+              <Button
+                className="w-full mt-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                onClick={() => {
+                  toast.info(`Génération de la facture consolidée pour la Table ${table.label}...`);
+                  // Simulation: In real app, fetch all unpaid orders for this table
+                  // const orders = await getOrdersForTable(table.id);
+                  // const invoice = generateConsolidatedInvoice(orders, restaurantInfo);
+                  // router.push(`/admin/invoices/${invoice.id}`);
+                }}
+              >
+                <Receipt className="w-4 h-4 mr-2" />
+                Facturer la table
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* QR Code Dialog */}
+      {/* QR Code Detail Dialog */}
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">
               Table {selectedTable?.label}
             </DialogTitle>
             <DialogDescription className="text-center">
-              QR Code unique pour cette table.
+              QR Code unique pour cette table
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-8 bg-white rounded-xl border border-zinc-100 shadow-inner my-4">
+          <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 my-4">
             <QRCodeSVG 
               id="qr-code-svg"
               value={getQrUrl()} 
-              size={200}
+              size={240}
               level="H"
               includeMargin={true}
-              imageSettings={{
-                src: "/logo-placeholder.png",
-                x: undefined,
-                y: undefined,
-                height: 24,
-                width: 24,
-                excavate: true,
-              }}
             />
-            <p className="mt-4 text-xs text-muted-foreground font-mono bg-zinc-100 px-3 py-1 rounded-full">
+            <p className="mt-6 text-xs text-muted-foreground font-mono bg-zinc-100 dark:bg-zinc-800 px-3 py-2 rounded-lg max-w-full break-all">
               {getQrUrl()}
             </p>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" className="w-full sm:w-auto rounded-xl" onClick={() => {
-              navigator.clipboard.writeText(getQrUrl());
-              toast.success("Lien copié !");
-            }}>
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto rounded-xl" 
+              onClick={() => {
+                navigator.clipboard.writeText(getQrUrl());
+                toast.success("Lien copié !");
+              }}
+            >
               <Copy className="w-4 h-4 mr-2" /> Copier Lien
             </Button>
-            <Button className="w-full sm:w-auto rounded-xl" onClick={downloadQr}>
+            <Button 
+              className="w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90" 
+              onClick={downloadQr}
+            >
               <Download className="w-4 h-4 mr-2" /> Télécharger PNG
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Table Dialog (Mock) */}
+      {/* Add Table Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle>Ajouter une table</DialogTitle>
-            <DialogDescription>Configurez la nouvelle table.</DialogDescription>
+            <DialogDescription>Créez une nouvelle table pour votre restaurant.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Numéro</Label>
-              <Input id="name" defaultValue="7" className="col-span-3" />
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="table-number">Numéro de table</Label>
+              <Input 
+                id="table-number" 
+                placeholder="Ex: 12" 
+                className="rounded-xl"
+                value={newTableLabel}
+                onChange={(e) => setNewTableLabel(e.target.value)}
+              />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="seats" className="text-right">Places</Label>
-              <Input id="seats" defaultValue="4" className="col-span-3" />
+            <div className="grid gap-2">
+              <Label htmlFor="table-seats">Nombre de places</Label>
+              <Input 
+                id="table-seats" 
+                type="number" 
+                placeholder="4" 
+                className="rounded-xl"
+                value={newTableSeats}
+                onChange={(e) => setNewTableSeats(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={() => {
-              toast.success("Table ajoutée");
-              setAddOpen(false);
-            }}>Enregistrer</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)} className="rounded-xl">
+              Annuler
+            </Button>
+            <Button onClick={handleAddTable} className="rounded-xl bg-primary hover:bg-primary/90">
+              Ajouter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Table Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Modifier la table</DialogTitle>
+            <DialogDescription>Modifiez les informations de la table.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-table-number">Numéro de table</Label>
+              <Input 
+                id="edit-table-number" 
+                placeholder="Ex: 12" 
+                className="rounded-xl"
+                value={newTableLabel}
+                onChange={(e) => setNewTableLabel(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-table-seats">Nombre de places</Label>
+              <Input 
+                id="edit-table-seats" 
+                type="number" 
+                placeholder="4" 
+                className="rounded-xl"
+                value={newTableSeats}
+                onChange={(e) => setNewTableSeats(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl">
+              Annuler
+            </Button>
+            <Button onClick={handleUpdateTable} className="rounded-xl bg-primary hover:bg-primary/90">
+              Enregistrer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

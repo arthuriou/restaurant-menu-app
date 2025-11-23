@@ -25,6 +25,20 @@ interface RestaurantStore {
   };
   specialHours: { date: string; open: string; close: string; closed: boolean; label: string }[];
   
+  // Invoice settings
+  invoiceSettings: {
+    companyName: string;
+    companyAddress: string;
+    companyPhone: string;
+    companyEmail: string;
+    taxId: string;
+    logoUrl?: string;
+    taxRate: number;
+    footerMessage: string;
+    showLogo: boolean;
+    showTaxId: boolean;
+  };
+  
   addSpecialOffer: (offer: Omit<SpecialOffer, 'id'>) => void;
   removeSpecialOffer: (id: string) => void;
   updateSpecialOffer: (id: string, data: Partial<SpecialOffer>) => void;
@@ -33,6 +47,7 @@ interface RestaurantStore {
   updateOpeningHours: (day: string, hours: { open: string; close: string; closed: boolean }) => void;
   addSpecialHour: (date: string, hours: { open: string; close: string; closed: boolean; label: string }) => void;
   removeSpecialHour: (index: number) => void;
+  updateInvoiceSettings: (settings: Partial<RestaurantStore['invoiceSettings']>) => void;
 }
 
 export const useRestaurantStore = create<RestaurantStore>()(
@@ -50,59 +65,72 @@ export const useRestaurantStore = create<RestaurantStore>()(
         {
           id: '2',
           enabled: true,
-          title: "BURGER\nSUPREME",
-          subtitle: "Nouveauté",
-          discount: "HOT",
-          imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1899&auto=format&fit=crop",
-        }
+          title: "AFRICAN PLEASURE",
+          subtitle: "NOUVEAU",
+          discount: "TRY IT",
+          imageUrl: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?q=80&w=2070&auto=format&fit=crop",
+        },
       ],
       chefSpecial: {
         enabled: true,
-        title: "Spécial du Chef",
+        title: "Spécialité du chef",
         itemId: "chicken_01",
       },
-      primaryColor: "hsl(0 72.2% 50.6%)",
+      primaryColor: "hsl(142.1 76.2% 36.3%)",
       openingHours: {
-        monday: { open: '11:00', close: '23:00', closed: false },
-        tuesday: { open: '11:00', close: '23:00', closed: false },
-        wednesday: { open: '11:00', close: '23:00', closed: false },
-        thursday: { open: '11:00', close: '23:00', closed: false },
-        friday: { open: '11:00', close: '00:00', closed: false },
-        saturday: { open: '10:00', close: '00:00', closed: false },
-        sunday: { open: '10:00', close: '23:00', closed: false },
+        monday: { open: "09:00", close: "22:00", closed: false },
+        tuesday: { open: "09:00", close: "22:00", closed: false },
+        wednesday: { open: "09:00", close: "22:00", closed: false },
+        thursday: { open: "09:00", close: "22:00", closed: false },
+        friday: { open: "09:00", close: "23:00", closed: false },
+        saturday: { open: "10:00", close: "23:00", closed: false },
+        sunday: { open: "10:00", close: "21:00", closed: false },
       },
       specialHours: [],
-
-      addSpecialOffer: (offer) =>
-        set((state) => ({
-          specialOffers: [
-            ...state.specialOffers,
-            { ...offer, id: Math.random().toString(36).substring(7) }
-          ],
-        })),
-      removeSpecialOffer: (id) =>
-        set((state) => ({
-          specialOffers: state.specialOffers.filter((o) => o.id !== id),
-        })),
-      updateSpecialOffer: (id, data) =>
-        set((state) => ({
-          specialOffers: state.specialOffers.map((o) =>
-            o.id === id ? { ...o, ...data } : o
-          ),
-        })),
-      updateChefSpecial: (data) =>
-        set((state) => ({
-          chefSpecial: { ...state.chefSpecial, ...data },
-        })),
+      
+      // Default invoice settings
+      invoiceSettings: {
+        companyName: "Restaurant Le Gourmet",
+        companyAddress: "123 Avenue des Saveurs, Abidjan, Côte d'Ivoire",
+        companyPhone: "+225 27 XX XX XX XX",
+        companyEmail: "contact@legourmet.ci",
+        taxId: "CI-123456789",
+        logoUrl: undefined,
+        taxRate: 20,
+        footerMessage: "Merci de votre visite ! À bientôt.",
+        showLogo: true,
+        showTaxId: true,
+      },
+      
+      addSpecialOffer: (offer) => set((state) => ({
+        specialOffers: [...state.specialOffers, { ...offer, id: Date.now().toString() }],
+      })),
+      removeSpecialOffer: (id) => set((state) => ({
+        specialOffers: state.specialOffers.filter((o) => o.id !== id),
+      })),
+      updateSpecialOffer: (id, data) => set((state) => ({
+        specialOffers: state.specialOffers.map((o) => 
+          o.id === id ? { ...o, ...data } : o
+        ),
+      })),
+      updateChefSpecial: (data) => set((state) => ({
+        chefSpecial: { ...state.chefSpecial, ...data },
+      })),
       setPrimaryColor: (color) => set({ primaryColor: color }),
       updateOpeningHours: (day, hours) => set((state) => ({
-        openingHours: { ...state.openingHours, [day]: hours }
+        openingHours: {
+          ...state.openingHours,
+          [day]: hours,
+        },
       })),
       addSpecialHour: (date, hours) => set((state) => ({
-        specialHours: [...state.specialHours, { ...hours, date }]
+        specialHours: [...state.specialHours, { date, ...hours }],
       })),
       removeSpecialHour: (index) => set((state) => ({
-        specialHours: state.specialHours.filter((_, i) => i !== index)
+        specialHours: state.specialHours.filter((_, i) => i !== index),
+      })),
+      updateInvoiceSettings: (settings) => set((state) => ({
+        invoiceSettings: { ...state.invoiceSettings, ...settings },
       })),
     }),
     {

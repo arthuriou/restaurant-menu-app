@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UtensilsCrossed, ListOrdered, Settings, LogOut, Menu as MenuIcon, ChefHat, Users, Grid3X3 } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, ListOrdered, Settings, LogOut, Menu as MenuIcon, ChefHat, Users, Grid3X3, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminThemeProvider } from "@/components/admin-theme-provider";
+import ProtectedLayout from "@/components/auth/ProtectedLayout";
 
 export default function AdminLayout({
   children,
@@ -34,6 +35,11 @@ export default function AdminLayout({
       label: "Tables & QR",
       icon: Grid3X3,
       href: "/admin/tables",
+    },
+    {
+      label: "Factures",
+      icon: Receipt,
+      href: "/admin/invoices",
     },
     {
       label: "Commandes",
@@ -93,33 +99,35 @@ export default function AdminLayout({
   );
 
   return (
-    <AdminThemeProvider>
-      <div className="h-full relative bg-zinc-50 dark:bg-black">
-        {/* Desktop Sidebar */}
-        <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
-          <SidebarContent />
+    <ProtectedLayout allowedRoles={['admin']}>
+      <AdminThemeProvider>
+        <div className="h-full relative bg-zinc-50 dark:bg-black">
+          {/* Desktop Sidebar */}
+          <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
+            <SidebarContent />
+          </div>
+          
+          {/* Mobile Sidebar */}
+          <main className="md:pl-72 min-h-screen">
+            <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="-ml-2">
+                    <MenuIcon className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-72">
+                  <SidebarContent />
+                </SheetContent>
+              </Sheet>
+              <span className="font-bold ml-2">Administration</span>
+            </div>
+            <div className="p-8 max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
         </div>
-        
-        {/* Mobile Sidebar */}
-        <main className="md:pl-72 min-h-screen">
-          <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="-ml-2">
-                  <MenuIcon className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72">
-                <SidebarContent />
-              </SheetContent>
-            </Sheet>
-            <span className="font-bold ml-2">Administration</span>
-          </div>
-          <div className="p-8 max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
-    </AdminThemeProvider>
+      </AdminThemeProvider>
+    </ProtectedLayout>
   );
 }
