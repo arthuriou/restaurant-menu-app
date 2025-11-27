@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Save, Store, Palette, Megaphone, QrCode, Copy, ExternalLink, Download, Check, Plus, Trash2 } from "lucide-react";
+import { Save, Store, Palette, Megaphone, QrCode, Copy, ExternalLink, Download, Check, Plus, Trash2, Receipt, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { useRestaurantStore } from "@/stores/restaurant";
@@ -38,7 +38,8 @@ export default function AdminSettingsPage() {
     specialOffers, addSpecialOffer, removeSpecialOffer, updateSpecialOffer,
     chefSpecial, updateChefSpecial,
     openingHours, updateOpeningHours,
-    specialHours, addSpecialHour, removeSpecialHour
+    specialHours, addSpecialHour, removeSpecialHour,
+    invoiceSettings, updateInvoiceSettings
   } = useRestaurantStore();
 
   const { items } = useMenuStore();
@@ -96,6 +97,9 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="marketing" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm">
             <Megaphone className="w-4 h-4 mr-2" /> Marketing
           </TabsTrigger>
+          <TabsTrigger value="billing" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm">
+            <Receipt className="w-4 h-4 mr-2" /> Facturation
+          </TabsTrigger>
           <TabsTrigger value="qrcode" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm">
             <QrCode className="w-4 h-4 mr-2" /> QR Code & Accès
           </TabsTrigger>
@@ -107,9 +111,97 @@ export default function AdminSettingsPage() {
               <CardTitle>Informations du Restaurant</CardTitle>
               <CardDescription>Ces informations seront visibles sur votre menu numérique.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Logo Upload */}
+              <div className="space-y-2">
+                <Label>Logo du Restaurant</Label>
+                <div className="flex items-start gap-4">
+                  {invoiceSettings.logoUrl && (
+                    <div className="relative group">
+                      <img 
+                        src={invoiceSettings.logoUrl} 
+                        alt="Logo" 
+                        className="h-24 w-24 object-contain border rounded-lg bg-white shadow-sm" 
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => updateInvoiceSettings({ logoUrl: undefined })}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        className="cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 1024 * 1024) {
+                              toast.error("L'image est trop volumineuse (max 1Mo)");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              updateInvoiceSettings({ logoUrl: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format recommandé : PNG ou JPG (fond transparent). Max 1Mo.
+                      Ce logo sera affiché sur l'en-tête du site et les factures.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Nom du Restaurant</Label>
+                  <Input 
+                    value={invoiceSettings.companyName}
+                    onChange={(e) => updateInvoiceSettings({ companyName: e.target.value })}
+                    placeholder="Ex: Chez Koffi"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email de contact</Label>
+                  <Input 
+                    value={invoiceSettings.companyEmail}
+                    onChange={(e) => updateInvoiceSettings({ companyEmail: e.target.value })}
+                    placeholder="contact@restaurant.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Téléphone</Label>
+                  <Input 
+                    value={invoiceSettings.companyPhone}
+                    onChange={(e) => updateInvoiceSettings({ companyPhone: e.target.value })}
+                    placeholder="+225 ..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Adresse</Label>
+                  <Input 
+                    value={invoiceSettings.companyAddress}
+                    onChange={(e) => updateInvoiceSettings({ companyAddress: e.target.value })}
+                    placeholder="Adresse complète"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="grid gap-2">
-                <Label htmlFor="url">URL du Site</Label>
+                <Label htmlFor="url">URL du Site (Technique)</Label>
                 <div className="flex gap-2">
                   <Input 
                     id="url" 
@@ -124,7 +216,6 @@ export default function AdminSettingsPage() {
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">L'adresse web où vos clients pourront accéder au menu.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,21 +227,10 @@ export default function AdminSettingsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="XOF">FCFA (XOF)</SelectItem>
-                      <SelectItem value="XAF">FCFA (XAF)</SelectItem>
                       <SelectItem value="EUR">Euro (€)</SelectItem>
                       <SelectItem value="USD">Dollar ($)</SelectItem>
-                      <SelectItem value="GBP">Livre (£)</SelectItem>
-                      <SelectItem value="GHS">Cedi (GHS)</SelectItem>
-                      <SelectItem value="NGN">Naira (NGN)</SelectItem>
-                      <SelectItem value="KES">Shilling (KES)</SelectItem>
-                      <SelectItem value="ZAR">Rand (ZAR)</SelectItem>
-                      <SelectItem value="MAD">Dirham (MAD)</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input id="phone" placeholder="+225 07 00 00 00 00" />
                 </div>
               </div>
 
@@ -483,6 +563,61 @@ export default function AdminSettingsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <Card className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader>
+              <CardTitle>Configuration Facturation</CardTitle>
+              <CardDescription>Gérez les informations légales et fiscales de vos factures.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Numéro Fiscal (CC / N° Compte Contribuable)</Label>
+                  <Input 
+                    value={invoiceSettings.taxId}
+                    onChange={(e) => updateInvoiceSettings({ taxId: e.target.value })}
+                    placeholder="CI-123456789"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Taux de TVA (%)</Label>
+                  <div className="relative">
+                    <Input 
+                      type="number"
+                      value={invoiceSettings.taxRate}
+                      onChange={(e) => updateInvoiceSettings({ taxRate: Number(e.target.value) })}
+                      placeholder="0"
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Mettez 0 si vous n'êtes pas assujetti à la TVA.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Message de pied de page</Label>
+                <Input 
+                  value={invoiceSettings.footerMessage}
+                  onChange={(e) => updateInvoiceSettings({ footerMessage: e.target.value })}
+                  placeholder="Merci de votre visite !"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Afficher le logo</Label>
+                  <p className="text-sm text-muted-foreground">Inclure le logo sur les factures imprimées.</p>
+                </div>
+                <Switch 
+                  checked={invoiceSettings.showLogo}
+                  onCheckedChange={(checked) => updateInvoiceSettings({ showLogo: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="qrcode">

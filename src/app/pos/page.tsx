@@ -112,13 +112,10 @@ export default function POSPage() {
     const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
     addOrder({
-      id: `ord-${Date.now()}`,
       table: `Table ${tableLabel}`,
       items: cart,
       itemCount: cart.reduce((acc, item) => acc + item.qty, 0),
       total: total,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'pending',
       customer: "Client"
     });
 
@@ -362,10 +359,8 @@ export default function POSPage() {
                 key={table.id}
                 className={cn(
                   "cursor-pointer transition-all hover:scale-105 active:scale-95 border-2",
-                  table.status === 'occupied' 
+                  table.status !== 'available'
                     ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50" 
-                    : table.status === 'reserved'
-                    ? "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/50"
                     : "bg-white border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:border-primary/50"
                 )}
                 onClick={() => handleTableSelect(table.id)}
@@ -373,8 +368,7 @@ export default function POSPage() {
                 <CardContent className="p-6 flex flex-col items-center justify-center aspect-square">
                   <span className={cn(
                     "text-3xl font-bold mb-2",
-                    table.status === 'occupied' ? "text-red-600" : 
-                    table.status === 'reserved' ? "text-orange-600" : "text-zinc-900 dark:text-zinc-100"
+                    table.status !== 'available' ? "text-red-600" : "text-zinc-900 dark:text-zinc-100"
                   )}>
                     {table.label}
                   </span>
@@ -384,12 +378,11 @@ export default function POSPage() {
                   </div>
                   <span className={cn(
                     "mt-3 text-xs font-medium px-2 py-1 rounded-full",
-                    table.status === 'occupied' ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" : 
-                    table.status === 'reserved' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" : 
-                    "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                    table.status !== 'available' 
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" 
+                      : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                   )}>
-                    {table.status === 'occupied' ? 'Occupée' : 
-                     table.status === 'reserved' ? 'Réservée' : 'Libre'}
+                    {table.status !== 'available' ? 'Occupée' : 'Libre'}
                   </span>
                 </CardContent>
               </Card>

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bell, HelpCircle, Receipt as ReceiptIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useMenuStore } from "@/stores/menu";
+import { useTableStore } from "@/stores/tables";
+import { useOrderStore } from "@/stores/orders";
 import type { Category, MenuItem, OrderItem } from "@/types";
 
 import { Header } from "@/components/menu/Header";
@@ -120,6 +123,35 @@ export default function Home() {
     activeOrderId,
   } = useMenuStore();
   
+  const { incrementTableScans, requestService } = useTableStore();
+  const scanProcessed = useRef(false);
+
+  // Call Server State
+  const [callServerOpen, setCallServerOpen] = useState(false);
+
+  const handleCallServer = (type: 'assistance' | 'bill') => {
+    if (!table) {
+      toast.error("Veuillez scanner le QR code de votre table");
+      return;
+    }
+
+    // Find table ID from label
+    const tableId = `t${table.label}`;
+    requestService(tableId, type);
+    
+    setCallServerOpen(false);
+    
+    if (type === 'assistance') {
+      toast.success("🔔 Serveur appelé ! Il arrive dans quelques instants.", {
+        duration: 4000,
+      });
+    } else {
+      toast.success("💳 Demande d'addition envoyée ! Le serveur prépare votre note.", {
+        duration: 4000,
+      });
+    }
+  };
+
   // Handle URL params for QR codes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -128,16 +160,18 @@ export default function Home() {
     if (tableParam) {
       setTableId(tableParam);
       setOrderType('dine-in');
-      setTable({ id: "qr", label: tableParam }); // Keep existing setTable logic for UI
+      setTable({ id: "qr", label: tableParam }); 
+      
+      // Track scan in this session
+      if (!scanProcessed.current) {
+        incrementTableScans(tableParam);
+        scanProcessed.current = true;
+      }
     } else {
-      // Default to takeaway if no table is specified, without opening the dialog
       setOrderType('takeaway');
-      setTable({ id: "takeaway", label: "À emporter" }); // Keep existing setTable logic for UI
+      setTable({ id: "takeaway", label: "À emporter" });
     }
-    
-    // We no longer automatically open the dialog if no table is present
-    // setIsDialogOpen(true); 
-  }, [setTableId, setOrderType, setTable]); // Add new dependencies
+  }, [setTableId, setOrderType, setTable, incrementTableScans]);
   // State
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -318,9 +352,56 @@ export default function Home() {
           </Button>
         </div>
       )}
-      
+
+      {/* Call Server Button */}
+      {table && (
+        <div className="fixed bottom-20 right-4 z-40">
+          <Button 
+            onClick={() => setCallServerOpen(true)}
+            className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white w-14 h-14 flex items-center justify-center animate-in slide-in-from-bottom-10 hover:scale-110 transition-transform"
+            title="Appeler le serveur"
+          >
+            <Bell className="w-6 h-6 animate-pulse" />
+          </Button>
+        </div>
+      )}
       
       <Footer />
+
+      {/* Call Server Dialog */}
+      <Dialog open={callServerOpen} onOpenChange={setCallServerOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Bell className="w-6 h-6 text-primary" />
+              Appeler le Serveur
+            </DialogTitle>
+            <DialogDescription>
+              Comment pouvons-nous vous aider ?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <Button
+              onClick={() => handleCallServer('assistance')}
+              className="h-24 text-lg font-semibold rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg flex flex-col items-center justify-center gap-2"
+            >
+              <HelpCircle className="w-8 h-8" />
+              <span>J'ai besoin d'aide</span>
+              <span className="text-xs font-normal opacity-90">Question ou demande spéciale</span>
+            </Button>
+
+            <Button
+              onClick={() => handleCallServer('bill')}
+              className="h-24 text-lg font-semibold rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg flex flex-col items-center justify-center gap-2"
+            >
+              <ReceiptIcon className="w-8 h-8" />
+              <span>Demander l'addition</span>
+              <span className="text-xs font-normal opacity-90">Prêt à régler</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <TableSelector 
         open={isTableSelectorOpen} 

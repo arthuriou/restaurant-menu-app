@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, QrCode, Trash2, Download, Copy, Users, Pencil, Receipt } from "lucide-react";
+import { Plus, QrCode, Trash2, Download, Copy, Users, Pencil, ScanLine } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,8 +51,7 @@ export default function AdminTablesPage() {
     
     addTable({
       label: newTableLabel,
-      seats: parseInt(newTableSeats) || 4,
-      status: 'available'
+      seats: parseInt(newTableSeats) || 4
     });
     
     setNewTableLabel("");
@@ -144,87 +143,79 @@ export default function AdminTablesPage() {
         {tables.map((table) => (
           <Card 
             key={table.id} 
-            className="group relative overflow-hidden rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-lg transition-all duration-300"
+            className="group relative overflow-hidden rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-xl transition-all duration-300"
           >
-            <CardContent className="p-6">
-              {/* Table Info */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-2xl font-bold text-foreground">Table {table.label}</h3>
-                  <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm">{table.seats} places</span>
+            {/* Top Bar with Status & Actions */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${table.status === 'occupied' ? 'bg-red-500' : 'bg-green-500'} ring-4 ring-white dark:ring-zinc-900`} />
+                <span className="text-xs font-medium bg-white/90 dark:bg-zinc-900/90 backdrop-blur px-2 py-1 rounded-full shadow-sm">
+                  {table.status === 'occupied' ? 'Occupée' : 'Libre'}
+                </span>
+              </div>
+              
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-[-10px] group-hover:translate-y-0 duration-200">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 rounded-full shadow-sm"
+                  onClick={() => handleEdit(table)}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-8 w-8 rounded-full shadow-sm"
+                  onClick={() => handleDelete(table.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <CardContent className="p-0">
+              {/* Main Visual Area */}
+              <div className="pt-16 pb-8 px-6 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-50/50 to-transparent dark:from-zinc-900/50">
+                <div className="relative mb-4 group-hover:scale-105 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="bg-white dark:bg-zinc-950 p-3 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 relative">
+                    <QRCodeSVG 
+                      value={`${baseUrl}?table=Table ${table.label}`}
+                      size={100}
+                      level="M"
+                    />
                   </div>
                 </div>
                 
-                {/* Quick Actions */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => handleEdit(table)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                    onClick={() => handleDelete(table.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <h3 className="text-3xl font-black text-foreground tracking-tight mb-1">
+                  {table.label}
+                </h3>
+                
+                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{table.seats}</span>
+                  </div>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="flex items-center gap-1">
+                    <ScanLine className="w-4 h-4" />
+                    <span>{table.scans || 0}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* QR Code Preview */}
-              <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 mb-4 border border-zinc-100 dark:border-zinc-700">
-                <div className="flex items-center justify-center">
-                  <QRCodeSVG 
-                    value={`${baseUrl}?table=Table ${table.label}`}
-                    size={120}
-                    level="M"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Bottom Actions */}
+              <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="rounded-xl"
+                  className="w-full rounded-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                   onClick={() => handleOpenQr(table)}
                 >
-                  <QrCode className="w-4 h-4 mr-1.5" /> Voir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={() => {
-                    setSelectedTable(table);
-                    setTimeout(downloadQr, 100);
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-1.5" /> Télécharger
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR Code
                 </Button>
               </div>
-              
-              <Button
-                className="w-full mt-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-                onClick={() => {
-                  toast.info(`Génération de la facture consolidée pour la Table ${table.label}...`);
-                  // Simulation: In real app, fetch all unpaid orders for this table
-                  // const orders = await getOrdersForTable(table.id);
-                  // const invoice = generateConsolidatedInvoice(orders, restaurantInfo);
-                  // router.push(`/admin/invoices/${invoice.id}`);
-                }}
-              >
-                <Receipt className="w-4 h-4 mr-2" />
-                Facturer la table
-              </Button>
             </CardContent>
           </Card>
         ))}

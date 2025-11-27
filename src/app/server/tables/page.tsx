@@ -3,214 +3,342 @@
 import { useState } from "react";
 import { useTableStore } from "@/stores/tables";
 import { useOrderStore } from "@/stores/orders";
+import { useInvoiceStore } from "@/stores/invoices";
+import { useRestaurantStore } from "@/stores/restaurant";
+import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
-  Users, ChevronLeft, Receipt, CheckCircle2, Printer, CreditCard
+  Users, ChevronLeft, Receipt, Printer, CreditCard,
+  Bell, Check, BanknoteIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  generateInvoiceNumber, 
+  calculateTax, 
+  calculateTotal, 
+  getRestaurantInfo 
+} from "@/lib/invoice-utils";
+import { Invoice } from "@/types";
 
 export default function ServerTablesPage() {
-  const { tables } = useTableStore();
+  const { tables, resolveServiceRequest, closeTable } = useTableStore();
   const { orders } = useOrderStore();
+  const { addInvoice } = useInvoiceStore();
+  const { invoiceSettings } = useRestaurantStore();
+  const { user } = useAuthStore();
   
-  // Views: 'tables' | 'invoice'
-  const [view, setView] = useState<'tables' | 'invoice'>('tables');
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [generatedInvoice, setGeneratedInvoice] = useState<Invoice | null>(null);
 
-  const handleTableSelect = (tableId: string) => {
-    setSelectedTable(tableId);
-    // Check if table has active orders
-    const tableLabel = tables.find(t => t.id === tableId)?.label;
-    const hasActiveOrders = Object.values(orders).flat().some(o => o.table === `Table ${tableLabel}` && o.status !== 'paid');
-    
-    if (hasActiveOrders) {
-      setView('invoice'); // Go to invoice view if occupied
-    } else {
-      toast.info("Cette table est libre. Aucune action requise.");
+  const getTableStatusConfig = (status: string) => {
+    switch (status) {
+      case 'available':
+        return { 
+          label: 'Libre', 
+          bgColor: 'bg-green-50 dark:bg-green-950/20', 
+          borderColor: 'border-green-200 dark:border-green-900/50',
+          textColor: 'text-green-700 dark:text-green-300',
+          badgeBg: 'bg-green-100 dark:bg-green-900/50'
+        };
+      case 'occupied':
+        return { 
+          label: 'Occupée', 
+          bgColor: 'bg-blue-50 dark:bg-blue-950/20', 
+          borderColor: 'border-blue-200 dark:border-blue-900/50',
+          textColor: 'text-blue-700 dark:text-blue-300',
+          badgeBg: 'bg-blue-100 dark:bg-blue-900/50'
+        };
+      case 'needs_service':
+        return { 
+          label: 'Service', 
+          bgColor: 'bg-amber-50 dark:bg-amber-950/20', 
+          borderColor: 'border-amber-400 dark:border-amber-600',
+          textColor: 'text-amber-700 dark:text-amber-300',
+          badgeBg: 'bg-amber-100 dark:bg-amber-900/50',
+          pulse: true
+        };
+      case 'requesting_bill':
+        return { 
+          label: 'Addition', 
+          bgColor: 'bg-red-50 dark:bg-red-950/20', 
+          borderColor: 'border-red-400 dark:border-red-600',
+          textColor: 'text-red-700 dark:text-red-300',
+          badgeBg: 'bg-red-100 dark:bg-red-900/50',
+          pulse: true
+        };
+      default:
+        return { 
+          label: 'Inconnue', 
+          bgColor: 'bg-gray-50', 
+          borderColor: 'border-gray-200',
+          textColor: 'text-gray-700',
+          badgeBg: 'bg-gray-100'
+        };
     }
   };
 
-  const handlePrintInvoice = () => {
-    toast.success("Facture imprimée !");
-    // Logic to trigger print would go here
+  const handleTableClick = (tableId: string, status: string) => {
+    const table = tables.find(t => t.id === tableId);
+    if (!table) return;
+
+    if (status === 'available') {
+      toast.info("Cette table est libre.");
+      return;
+    }
+
+    if (status === 'needs_service') {
+      resolveServiceRequest(tableId);
+      toast.success(`Service rendu à la Table ${table.label}`);
+      return;
+    }
+
+    if (status === 'requesting_bill') {
+      setSelectedTable(tableId);
+      setGeneratedInvoice(null); // Reset previous invoice
+      setShowInvoiceDialog(true);
+      return;
+    }
+
+    // For occupied tables, just show info
+    if (status === 'occupied') {
+      toast.info(`Table ${table.label} occupée par ${table.occupants} personne(s)`);
+    }
   };
 
-  const handlePayment = () => {
-    // Logic to process payment and close session
-    toast.success("Paiement accepté. Table libérée.");
-    setView('tables');
-    // In a real app, this would update the order statuses to 'paid'
-  };
-
-  if (view === 'tables') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mes Tables</h1>
-          <p className="text-muted-foreground">Vue d'ensemble des tables et gestion des additions.</p>
-        </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {tables.map((table) => {
-            // Calculate status based on active orders
-            const hasActiveOrders = Object.values(orders).flat().some(o => o.table === `Table ${table.label}` && o.status !== 'paid');
-            const status = hasActiveOrders ? 'occupied' : 'available'; 
-
-            // Mock "Payment Requested" status for demo (randomly for occupied tables)
-            const paymentRequested = status === 'occupied' && Math.random() > 0.7;
-
-            return (
-              <Card 
-                key={table.id}
-                className={cn(
-                  "cursor-pointer transition-all hover:scale-105 active:scale-95 border-2 relative overflow-hidden",
-                  paymentRequested ? "bg-orange-50 border-orange-500 animate-pulse" :
-                  status === 'occupied' 
-                    ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/50" 
-                    : "bg-white border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 hover:border-primary/50"
-                )}
-                onClick={() => handleTableSelect(table.id)}
-              >
-                {paymentRequested && (
-                  <div className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">
-                    ADDITION !
-                  </div>
-                )}
-                <CardContent className="p-6 flex flex-col items-center justify-center aspect-square">
-                  <span className={cn(
-                    "text-3xl font-bold mb-2",
-                    status === 'occupied' ? "text-blue-600" : "text-zinc-900 dark:text-zinc-100"
-                  )}>
-                    {table.label}
-                  </span>
-                  <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                    <Users className="w-3 h-3" />
-                    <span>{table.seats}</span>
-                  </div>
-                  <span className={cn(
-                    "mt-3 text-xs font-medium px-2 py-1 rounded-full",
-                    status === 'occupied' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" : 
-                    "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                  )}>
-                    {status === 'occupied' ? 'Occupée' : 'Libre'}
-                  </span>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  if (view === 'invoice') {
+  const handleGenerateInvoice = () => {
     const table = tables.find(t => t.id === selectedTable);
-    const tableOrders = Object.values(orders).flat().filter(o => o.table === `Table ${table?.label}`);
-    const totalSession = tableOrders.reduce((acc, o) => acc + o.total, 0);
+    if (!table) return;
 
-    return (
-      <div className="flex flex-col h-[calc(100vh-8rem)]">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => setView('tables')}>
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Table {table?.label}</h1>
-            <p className="text-muted-foreground">Gestion de l'addition</p>
-          </div>
-        </div>
-        
-        <div className="flex-1 flex gap-6 overflow-hidden">
-          {/* Left: Session Details */}
-          <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-            <h2 className="text-xl font-bold">Détail de la consommation</h2>
-
-            <ScrollArea className="flex-1">
-              <div className="space-y-4 pb-20">
-                {tableOrders.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">Aucune commande active</div>
-                ) : (
-                  tableOrders.map((order) => (
-                    <Card key={order.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">#{order.id.split('-')[1]}</span>
-                              <span className="text-xs text-muted-foreground">{order.time}</span>
-                            </div>
-                            <Badge variant="outline" className={cn(
-                              "mt-1",
-                              order.status === 'pending' ? "text-orange-600 border-orange-200 bg-orange-50" :
-                              order.status === 'preparing' ? "text-blue-600 border-blue-200 bg-blue-50" :
-                              order.status === 'ready' ? "text-green-600 border-green-200 bg-green-50" :
-                              "text-zinc-600"
-                            )}>
-                              {order.status === 'pending' ? 'En attente' :
-                               order.status === 'preparing' ? 'En préparation' :
-                               order.status === 'ready' ? 'Prêt' : 'Servi'}
-                            </Badge>
-                          </div>
-                          <span className="font-bold">{order.total.toLocaleString()} FCFA</span>
-                        </div>
-                        <div className="space-y-1">
-                          {order.items.map((item: any, idx: number) => (
-                            <div key={idx} className="text-sm flex justify-between">
-                              <span>{item.qty}x {item.name}</span>
-                              <span className="text-muted-foreground">{(item.price * item.qty).toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Right: Invoice Actions */}
-          <div className="w-[400px] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col shadow-xl">
-            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Receipt className="w-5 h-5" />
-                Total à régler
-              </h2>
-            </div>
-            
-            <div className="flex-1 p-6 flex flex-col justify-center items-center text-center space-y-2">
-               <span className="text-muted-foreground text-lg">Montant Total</span>
-               <span className="font-bold text-5xl text-primary">{totalSession.toLocaleString()} <span className="text-2xl text-muted-foreground">FCFA</span></span>
-            </div>
-
-            <div className="p-6 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full h-12 text-lg font-medium" 
-                onClick={handlePrintInvoice}
-                disabled={totalSession === 0}
-              >
-                <Printer className="w-5 h-5 mr-2" />
-                Imprimer Note
-              </Button>
-              <Button 
-                className="w-full h-14 text-xl font-bold bg-green-600 hover:bg-green-700" 
-                onClick={handlePayment}
-                disabled={totalSession === 0}
-              >
-                <CreditCard className="w-6 h-6 mr-2" />
-                Encaisser (Cash/CB)
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    // 1. Gather orders
+    const tableOrders = Object.values(orders).flat().filter(
+      o => o.table === `Table ${table.label}`
     );
-  }
 
-  return null;
+    if (tableOrders.length === 0) {
+      toast.error("Aucune commande trouvée pour cette table");
+      return;
+    }
+
+    // 2. Consolidate items
+    const allItems: any[] = [];
+    tableOrders.forEach(order => {
+      order.items.forEach((item: any) => {
+        allItems.push({
+          menuId: item.id || 'unknown',
+          name: item.name,
+          price: item.price,
+          qty: item.qty,
+          imageUrl: item.image
+        });
+      });
+    });
+
+    // 3. Calculate totals
+    const subtotal = tableOrders.reduce((acc, o) => acc + o.total, 0);
+    const taxRate = invoiceSettings.taxRate;
+    const tax = calculateTax(subtotal, taxRate);
+    const total = calculateTotal(subtotal, taxRate);
+
+    // 4. Create Invoice Object
+    const newInvoice: Invoice = {
+      id: `inv_${Date.now()}`,
+      number: generateInvoiceNumber(),
+      type: 'table',
+      tableId: `Table ${table.label}`,
+      items: allItems,
+      subtotal,
+      tax,
+      taxRate,
+      total,
+      status: 'paid',
+      paymentMethod: 'cash',
+      serverName: user?.name, // Add server name
+      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+      paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+      restaurantInfo: getRestaurantInfo()
+    };
+
+    // 5. Add to store
+    addInvoice(newInvoice);
+
+    // 6. Feedback & Update UI
+    toast.success(`Facture ${newInvoice.number} générée !`);
+    closeTable(selectedTable!);
+    setGeneratedInvoice(newInvoice);
+    // Do not close dialog, let user print
+  };
+
+  const handlePrint = () => {
+    if (generatedInvoice) {
+      window.open(`/admin/invoices/${generatedInvoice.id}/print`, '_blank');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Mes Tables</h1>
+        <p className="text-muted-foreground">Vue d'ensemble et gestion des demandes clients.</p>
+      </div>
+      
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {tables.map((table) => {
+          const statusConfig = getTableStatusConfig(table.status);
+
+          return (
+            <Card 
+              key={table.id}
+              className={cn(
+                "cursor-pointer transition-all hover:scale-105 active:scale-95 border-2 relative overflow-hidden",
+                statusConfig.bgColor,
+                statusConfig.borderColor,
+                statusConfig.pulse && "animate-pulse"
+              )}
+              onClick={() => handleTableClick(table.id, table.status)}
+            >
+              {/* Alert Badge for urgent statuses */}
+              {(table.status === 'needs_service' || table.status === 'requesting_bill') && (
+                <div className={cn(
+                  "absolute top-0 right-0 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg flex items-center gap-1",
+                  table.status === 'needs_service' ? 'bg-amber-500' : 'bg-red-500'
+                )}>
+                  {table.status === 'needs_service' ? (
+                    <><Bell className="w-3 h-3" /> SERVICE</>
+                  ) : (
+                    <><Receipt className="w-3 h-3" /> ADDITION</>
+                  )}
+                </div>
+              )}
+
+              <CardContent className="p-6 flex flex-col items-center justify-center aspect-square">
+                <span className={cn("text-3xl font-bold mb-2", statusConfig.textColor)}>
+                  {table.label}
+                </span>
+                
+                <div className="flex items-center gap-1 text-muted-foreground text-sm mb-2">
+                  <Users className="w-3 h-3" />
+                  <span>{table.seats}</span>
+                </div>
+
+                {table.occupants && (
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {table.occupants} personne{table.occupants > 1 ? 's' : ''}
+                  </div>
+                )}
+
+                <span className={cn(
+                  "mt-2 text-xs font-medium px-2 py-1 rounded-full",
+                  statusConfig.badgeBg,
+                  statusConfig.textColor
+                )}>
+                  {statusConfig.label}
+                </span>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Invoice Generation Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">
+              {generatedInvoice ? 'Facture Générée' : 'Générer l\'Addition'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-6">
+            {generatedInvoice ? (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8" />
+                </div>
+                <p className="text-lg font-medium">Paiement enregistré avec succès !</p>
+                <p className="text-muted-foreground">
+                  Facture #{generatedInvoice.number}
+                </p>
+              </div>
+            ) : (
+              selectedTable && (() => {
+                const table = tables.find(t => t.id === selectedTable);
+                const tableOrders = Object.values(orders).flat().filter(
+                  o => o.table === `Table ${table?.label}`
+                );
+                const total = tableOrders.reduce((acc, o) => acc + o.total, 0);
+
+                return (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <p className="text-muted-foreground mb-2">Table {table?.label}</p>
+                      <p className="text-4xl font-bold text-primary">
+                        {total.toLocaleString()} <span className="text-xl text-muted-foreground">FCFA</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {tableOrders.length} commande(s) • {table?.occupants} personne(s)
+                      </p>
+                    </div>
+
+                    <div className="bg-zinc-50 dark:bg-zinc-900 rounded-xl p-4 space-y-2">
+                      <h4 className="font-semibold text-sm">Détail des commandes :</h4>
+                      {tableOrders.map((order) => (
+                        <div key={order.id} className="text-sm flex justify-between">
+                          <span>#{order.id.split('-')[1]}</span>
+                          <span className="font-medium">{order.total.toLocaleString()} FCFA</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-center">
+            {generatedInvoice ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowInvoiceDialog(false)}
+                  className="rounded-xl"
+                >
+                  Fermer
+                </Button>
+                <Button 
+                  onClick={handlePrint}
+                  className="rounded-xl"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimer
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowInvoiceDialog(false)}
+                  className="rounded-xl"
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleGenerateInvoice}
+                  className="rounded-xl bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Générer & Encaisser
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

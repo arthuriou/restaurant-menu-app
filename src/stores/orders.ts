@@ -1,110 +1,179 @@
 import { create } from 'zustand';
-import { Order } from '@/types';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  doc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  Timestamp,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { OrderStatus } from '@/types';
 
-type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served';
+export type DashboardOrder = {
+  id: string;
+  table: string;
+  items: any[];
+  itemCount: number;
+  total: number;
+  time: string;
+  status: OrderStatus;
+  customer?: string;
+  createdAt?: any;
+};
 
 export interface OrderState {
-  orders: Record<OrderStatus, any[]>;
-  addOrder: (order: any) => void;
-  updateOrderStatus: (orderId: string, newStatus: OrderStatus, oldStatus: OrderStatus) => void;
-  moveOrder: (orderId: string, sourceStatus: OrderStatus, destStatus: OrderStatus, newIndex: number, oldIndex: number) => void;
+  orders: Record<OrderStatus, DashboardOrder[]>;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  subscribeToOrders: () => () => void;
+  addOrder: (order: Omit<DashboardOrder, 'id' | 'time' | 'status'>) => Promise<void>;
+  updateOrderStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
+  
+  // Stats
   stats: {
     totalRevenue: number;
     totalOrders: number;
     averageTicket: number;
     activeOrders: number;
+    totalDishesServed: number;
+    scanCount: number;
   };
-  calculateStats: () => void;
+  
+  topItems: { name: string; count: number }[];
+  salesByHour: Record<number, number>;
 }
 
-// Initial mock data moved from page.tsx
-const initialOrders: Record<OrderStatus, any[]> = {
-  pending: [
-    { id: "ord-1", table: "T-4", items: [{}], itemCount: 3, total: 12500, time: "12:30", status: "pending", customer: "Client" },
-    { id: "ord-2", table: "T-2", items: [{}], itemCount: 1, total: 4500, time: "12:32", status: "pending", customer: "Client" },
-  ],
-  preparing: [
-    { id: "ord-3", table: "T-8", items: [{}], itemCount: 5, total: 28000, time: "12:15", status: "preparing", customer: "Client" },
-  ],
-  ready: [
-    { id: "ord-4", table: "T-1", items: [{}], itemCount: 2, total: 8900, time: "12:10", status: "ready", customer: "Client" },
-  ],
-  served: [
-    { id: "ord-5", table: "T-5", items: [{}], itemCount: 4, total: 15600, time: "11:45", status: "served", customer: "Client" },
-  ]
-};
-
 export const useOrderStore = create<OrderState>((set, get) => ({
-  orders: initialOrders,
-
+  orders: {
+    pending: [],
+    preparing: [],
+    ready: [],
+    served: []
+  },
+  isLoading: false,
+  error: null,
+  
   stats: {
     totalRevenue: 0,
     totalOrders: 0,
     averageTicket: 0,
     activeOrders: 0,
+    totalDishesServed: 0,
+    scanCount: 0,
   },
+  topItems: [],
+  salesByHour: {},
 
-  addOrder: (order) => set((state) => {
-    const newOrders = { ...state.orders, pending: [order, ...state.orders.pending] };
-    get().calculateStats();
-    return { orders: newOrders };
-  }),
-
-  updateOrderStatus: (orderId, newStatus, oldStatus) => set((state) => {
-    // Implementation for simple status update if needed
-    return state;
-  }),
-
-  moveOrder: (orderId, sourceStatus, destStatus, newIndex, oldIndex) => set((state) => {
-    const sourceColumn = [...state.orders[sourceStatus]];
-    const destColumn = sourceStatus === destStatus ? sourceColumn : [...state.orders[destStatus]];
+  subscribeToOrders: () => {
+    if (!db) return () => {};
     
-    // Remove from source
-    const [movedOrder] = sourceColumn.splice(oldIndex, 1);
-    const updatedOrder = { ...movedOrder, status: destStatus };
-
-    // Add to dest
-    if (sourceStatus === destStatus) {
-      sourceColumn.splice(newIndex, 0, updatedOrder);
-      return { 
-        orders: { ...state.orders, [sourceStatus]: sourceColumn } 
+    set({ isLoading: true });
+    
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const orders: Record<OrderStatus, DashboardOrder[]> = {
+        pending: [],
+        preparing: [],
+        ready: [],
+        served: []
       };
-    } else {
-      destColumn.splice(newIndex, 0, updatedOrder);
-      const newState = {
-        orders: { 
-          ...state.orders, 
-          [sourceStatus]: sourceColumn,
-          [destStatus]: destColumn
+      
+      let totalRev = 0;
+      let count = 0;
+      let active = 0;
+      let dishes = 0;
+      const salesByHour: Record<number, number> = {};
+      const itemCounts: Record<string, number> = {};
+
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data() as any;
+        const order: DashboardOrder = {
+          id: doc.id,
+          ...data,
+          time: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Now'
+        };
+        
+        if (orders[order.status]) {
+          orders[order.status].push(order);
         }
-      };
-      // Recalculate stats might be needed if we track "served" vs "pending" revenue differently
-      // For now, revenue is based on all orders
-      return newState;
-    }
-  }),
 
-  calculateStats: () => {
-    const state = get();
-    let totalRev = 0;
-    let count = 0;
-    let active = 0;
-
-    Object.values(state.orders).forEach(list => {
-      list.forEach(order => {
-        totalRev += order.total;
+        // Stats calculation
+        totalRev += order.total || 0;
         count++;
         if (order.status !== 'served') active++;
+        dishes += order.itemCount || 0;
+
+        // Sales by hour
+        if (data.createdAt?.toDate) {
+          const hour = data.createdAt.toDate().getHours();
+          salesByHour[hour] = (salesByHour[hour] || 0) + 1;
+        }
+
+        // Top items
+        order.items?.forEach((item: any) => {
+          itemCounts[item.name] = (itemCounts[item.name] || 0) + (item.qty || 1);
+        });
       });
+
+      // Process Top Items
+      const topItems = Object.entries(itemCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      set({
+        orders,
+        isLoading: false,
+        stats: {
+          totalRevenue: totalRev,
+          totalOrders: count,
+          averageTicket: count > 0 ? Math.round(totalRev / count) : 0,
+          activeOrders: active,
+          totalDishesServed: dishes,
+          scanCount: get().stats.scanCount // Keep local for now or fetch from elsewhere
+        },
+        salesByHour,
+        topItems
+      });
+    }, (error) => {
+      console.error("Error fetching orders:", error);
+      set({ error: error.message, isLoading: false });
     });
 
-    set({
-      stats: {
-        totalRevenue: totalRev,
-        totalOrders: count,
-        averageTicket: count > 0 ? Math.round(totalRev / count) : 0,
-        activeOrders: active
-      }
-    });
+    return unsubscribe;
+  },
+
+  addOrder: async (orderData) => {
+    try {
+      await addDoc(collection(db, 'orders'), {
+        ...orderData,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      });
+    } catch (error) {
+      console.error("Error adding order:", error);
+      throw error;
+    }
+  },
+
+  updateOrderStatus: async (orderId, newStatus) => {
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, {
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      throw error;
+    }
   }
 }));

@@ -35,10 +35,10 @@ export default function ProtectedLayout({ children, allowedRoles }: ProtectedLay
     // console.log("ProtectedLayout Check:", { isAuthenticated, userRole: user?.role, allowedRoles, pathname: window.location.pathname });
 
     if (!isAuthenticated) {
-      // console.log("Redirecting to login");
+      console.log("ProtectedLayout: Not authenticated, redirecting to login");
       router.push("/login");
     } else if (user && !allowedRoles.includes(user.role)) {
-      // console.log("Redirecting based on role", user.role);
+      console.log(`ProtectedLayout: Role mismatch. User: ${user.role}, Allowed: ${allowedRoles.join(', ')}. Redirecting...`);
       // Redirect to appropriate dashboard based on role
       switch (user.role) {
         case 'admin':

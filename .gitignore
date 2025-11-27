@@ -30,8 +30,16 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files - Configuration locale active
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Configurations spécifiques aux restaurants (contiennent les vraies clés API)
+envs/*
+# Exception: garder le template versionné (ne contient pas de vraies clés)
+!envs/template.env
 
 # vercel
 .vercel

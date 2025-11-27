@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { ModeToggle } from "@/components/mode-toggle";
+import { UserAvatar } from "@/components/user-avatar";
 
 const columns = {
   pending: { title: "À Faire", icon: BellRing, color: "text-orange-600", bg: "bg-orange-50/50 dark:bg-orange-950/10", border: "border-orange-100 dark:border-orange-900/20" },
@@ -23,7 +24,7 @@ const columns = {
 
 export default function KitchenPage() {
   const { user, logout } = useAuthStore();
-  const { orders, moveOrder, updateOrderStatus } = useOrderStore();
+  const { orders, updateOrderStatus } = useOrderStore();
   const router = useRouter();
   const [enabled, setEnabled] = useState(false);
 
@@ -37,41 +38,27 @@ export default function KitchenPage() {
     router.push('/login');
   };
 
-  const onDragEnd = (result: any) => {
+
+  const onDragEnd = async (result: any) => {
     if (!result.destination) return;
     const { source, destination } = result;
 
-    if (source.droppableId !== destination.droppableId || source.index !== destination.index) {
-      moveOrder(
-        result.draggableId,
-        source.droppableId,
-        destination.droppableId,
-        destination.index,
-        source.index
-      );
-      
-      // Notify if status changed
-      if (source.droppableId !== destination.droppableId) {
-        toast.success(`Commande passée en ${columns[destination.droppableId as keyof typeof columns].title}`);
-      }
+    // Only update if status changed (moved to different column)
+    if (source.droppableId !== destination.droppableId) {
+      await updateOrderStatus(result.draggableId, destination.droppableId);
+      toast.success(`Commande passée en ${columns[destination.droppableId as keyof typeof columns].title}`);
     }
   };
 
-  const advanceOrder = (orderId: string, currentStatus: string) => {
+  const advanceOrder = async (orderId: string, currentStatus: string) => {
     let nextStatus = '';
     if (currentStatus === 'pending') nextStatus = 'preparing';
     else if (currentStatus === 'preparing') nextStatus = 'ready';
     else if (currentStatus === 'ready') nextStatus = 'served';
 
     if (nextStatus) {
-      // Find the order index
-      const currentList = orders[currentStatus as keyof typeof orders];
-      const orderIndex = currentList.findIndex(o => o.id === orderId);
-      
-      if (orderIndex !== -1) {
-        moveOrder(orderId, currentStatus as any, nextStatus as any, 0, orderIndex);
-        toast.success("Statut mis à jour");
-      }
+      await updateOrderStatus(orderId, nextStatus as any);
+      toast.success("Statut mis à jour");
     }
   };
 
@@ -80,20 +67,22 @@ export default function KitchenPage() {
   return (
     <div className="h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* Header */}
+
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-            {user?.avatar || "C"}
-          </div>
+          <UserAvatar user={user} size="md" />
           <div>
             <h1 className="font-bold text-lg leading-none">Cuisine</h1>
             <p className="text-xs text-muted-foreground mt-1">{user?.name}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
-          <LogOut className="w-4 h-4 mr-2" />
-          Déconnexion
-        </Button>
+        <div className="flex items-center gap-2">
+          <ModeToggle />
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
       </header>
 
       {/* Kanban Board */}
@@ -123,7 +112,7 @@ export default function KitchenPage() {
                 {/* Droppable Area */}
                 <Droppable droppableId={columnId}>
                   {(provided, snapshot) => (
-                    <ScrollArea className="flex-1">
+                    <div className="flex-1 overflow-y-auto min-h-0">
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
@@ -144,36 +133,45 @@ export default function KitchenPage() {
                                   ${snapshot.isDragging ? "shadow-2xl rotate-2 scale-105 z-50 ring-2 ring-primary/20" : ""}
                                 `}
                               >
-                                <CardContent className="p-5">
+                                <CardContent className="p-3">
                                   {/* Card Header */}
-                                  <div className="flex justify-between items-start mb-4">
+                                  <div className="flex justify-between items-center mb-3">
                                     <Badge 
                                       variant="outline" 
-                                      className="text-lg font-bold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-3 py-1 rounded-lg"
+                                      className="text-base font-bold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-2 py-0.5 rounded-md"
                                     >
                                       {order.table}
                                     </Badge>
-                                    <span className="text-sm font-medium text-muted-foreground flex items-center bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">
-                                      <Clock className="w-4 h-4 mr-1.5" /> {order.time}
+                                    <span className="text-xs font-medium text-muted-foreground flex items-center bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
+                                      <Clock className="w-3 h-3 mr-1" /> {order.time}
                                     </span>
                                   </div>
                                   
                                   {/* Items List */}
-                                  <div className="space-y-2 mb-5">
+                                  <div className="space-y-2 mb-3">
                                     {order.items && order.items.map((item: any, idx: number) => (
                                       <div key={idx} className="flex items-start gap-2 text-sm">
-                                        <span className="font-bold bg-zinc-100 dark:bg-zinc-800 px-1.5 rounded text-zinc-700 dark:text-zinc-300 min-w-[24px] text-center">
-                                          {item.qty}x
-                                        </span>
-                                        <div className="flex-1">
-                                          <span className="font-medium">{item.name}</span>
+                                        {item.image && (
+                                          <img 
+                                            src={item.image} 
+                                            alt={item.name} 
+                                            className="w-8 h-8 rounded-md object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800" 
+                                          />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <span className="font-medium truncate text-sm">{item.name}</span>
+                                            <span className="font-bold bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300 min-w-[24px] text-center shrink-0 text-xs">
+                                              {item.qty}x
+                                            </span>
+                                          </div>
                                           {item.options && Object.values(item.options).some(Boolean) && (
-                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                                               {Object.values(item.options).filter(Boolean).join(', ')}
                                             </p>
                                           )}
                                           {item.note && (
-                                            <p className="text-xs text-orange-600 italic mt-0.5">
+                                            <p className="text-[10px] text-orange-600 italic mt-0.5">
                                               Note: {item.note}
                                             </p>
                                           )}
@@ -184,27 +182,27 @@ export default function KitchenPage() {
 
                                   {/* Action Button */}
                                   <Button 
-                                    className="w-full font-bold" 
-                                    size="lg"
+                                    className="w-full font-bold h-8 text-xs" 
+                                    size="sm"
                                     variant={columnId === 'pending' ? 'default' : columnId === 'preparing' ? 'secondary' : 'outline'}
                                     onClick={() => advanceOrder(order.id, columnId)}
                                   >
                                     {columnId === 'pending' && (
                                       <>
-                                        Lancer la préparation
-                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                        Lancer
+                                        <ArrowRight className="w-3 h-3 ml-1.5" />
                                       </>
                                     )}
                                     {columnId === 'preparing' && (
                                       <>
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                        Prêt à servir
+                                        <CheckCircle2 className="w-3 h-3 mr-1.5" />
+                                        Prêt
                                       </>
                                     )}
                                     {columnId === 'ready' && (
                                       <>
-                                        <Utensils className="w-4 h-4 mr-2" />
-                                        Marquer comme servi
+                                        <Utensils className="w-3 h-3 mr-1.5" />
+                                        Servi
                                       </>
                                     )}
                                   </Button>
@@ -215,7 +213,7 @@ export default function KitchenPage() {
                         ))}
                         {provided.placeholder}
                       </div>
-                    </ScrollArea>
+                    </div>
                   )}
                 </Droppable>
               </div>

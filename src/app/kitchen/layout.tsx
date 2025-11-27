@@ -1,6 +1,8 @@
 "use client";
 
 import ProtectedLayout from "@/components/auth/ProtectedLayout";
+import { ThemeProvider } from "@/components/theme-provider";
+import { OrdersListener } from "@/components/orders-listener";
 
 export default function KitchenLayout({
   children,
@@ -9,7 +11,10 @@ export default function KitchenLayout({
 }) {
   return (
     <ProtectedLayout allowedRoles={['kitchen', 'admin']}>
-      {children}
+      <ThemeProvider storageKey="theme-kitchen">
+        <OrdersListener />
+        {children}
+      </ThemeProvider>
     </ProtectedLayout>
   );
 }

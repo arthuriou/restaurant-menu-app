@@ -1,72 +1,17 @@
 import { create } from 'zustand';
-// import { collection, getDocs, addDoc, query, orderBy, where } from 'firebase/firestore';
-// import { db } from '@/lib/firebase';
-import type { Category, MenuItem, Order, OrderStatus, OrderItem } from '@/types';
-
-// Données de démonstration
-const DEMO_CATEGORIES: Category[] = [
-  { id: 'cat_grill', name: 'Grillades', order: 1 },
-  { id: 'cat_entrees', name: 'Entrées', order: 2 },
-  { id: 'cat_boissons', name: 'Boissons', order: 3 },
-  { id: 'cat_desserts', name: 'Desserts', order: 4 },
-];
-
-const DEMO_ITEMS: MenuItem[] = [
-  {
-    id: "chicken_01",
-    categoryId: "cat_grill",
-    name: "Poulet braisé",
-    description: "Poulet mariné aux épices du chef, grillé lentement à la braise pour un goût fumé unique.",
-    price: 4500,
-    imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "steak_01",
-    categoryId: "cat_grill",
-    name: "Steak Frites",
-    description: "Bœuf tendre de première qualité, servi avec nos frites maison croustillantes.",
-    price: 6500,
-    imageUrl: "https://images.unsplash.com/photo-1600891964092-4316c288032e?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "burger_01",
-    categoryId: "cat_grill",
-    name: "Classic Burger",
-    description: "Pain brioché, steak haché frais, cheddar fondant, salade, tomate, oignons rouges.",
-    price: 3500,
-    imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1899&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "salad_01",
-    categoryId: "cat_entrees",
-    name: "Salade César",
-    description: "Laitue romaine, croûtons à l'ail, parmesan, sauce César onctueuse.",
-    price: 2500,
-    imageUrl: "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "soda_01",
-    categoryId: "cat_boissons",
-    name: "Coca Cola",
-    description: "Bouteille en verre 33cl, servi bien frais avec une tranche de citron.",
-    price: 1000,
-    imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "cocktail_01",
-    categoryId: "cat_boissons",
-    name: "Mojito Virgin",
-    description: "Menthe fraîche, citron vert, eau gazeuse, glace pilée. Sans alcool.",
-    price: 2000,
-    imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=1887&auto=format&fit=crop",
-    available: true,
-  },
-];
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  doc, 
+  getDocs,
+  query, 
+  orderBy,
+  where
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Category, MenuItem, Order, OrderItem } from '@/types';
 
 type MenuStore = {
   categories: Category[];
@@ -96,16 +41,17 @@ type MenuStore = {
   placeOrder: (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   getItemsByCategory: (categoryId: string) => MenuItem[];
   getItemById: (id: string) => MenuItem | undefined;
+  
   // Categories CRUD
-  addCategory: (category: Omit<Category, 'id'>) => void;
-  updateCategory: (id: string, updates: Partial<Category>) => void;
-  deleteCategory: (id: string) => void;
-  reorderCategories: (categories: Category[]) => void;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  reorderCategories: (categories: Category[]) => Promise<void>;
 
   // Items CRUD
-  addItem: (item: Omit<MenuItem, 'id'>) => void;
-  updateItem: (id: string, updates: Partial<MenuItem>) => void;
-  deleteItem: (id: string) => void;
+  addItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  deleteItem: (id: string) => Promise<void>;
 };
 
 export const useMenuStore = create<MenuStore>((set, get) => ({
@@ -142,22 +88,21 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   clearCart: () => set({ cart: [] }),
   
   loadMenu: async () => {
+    if (!db) return;
     set({ isLoading: true, error: null });
     try {
-      // Simulation d'appel réseau
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Only load demo data if store is empty
-      if (get().categories.length === 0) {
-        set({ 
-          categories: DEMO_CATEGORIES, 
-          items: DEMO_ITEMS, 
-          isLoading: false 
-        });
-      } else {
-        set({ isLoading: false });
-      }
-    } catch (error) {
+      // Load Categories
+      const catQuery = query(collection(db, 'categories'), orderBy('order'));
+      const catSnap = await getDocs(catQuery);
+      const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+
+      // Load Items
+      const itemQuery = query(collection(db, 'products'), where('available', '==', true));
+      const itemSnap = await getDocs(itemQuery);
+      const items = itemSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+
+      set({ categories, items, isLoading: false });
+    } catch (error: any) {
       console.error('Erreur de chargement du menu:', error);
       set({ 
         error: 'Impossible de charger le menu.', 
@@ -166,16 +111,23 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
     }
   },
   
-  placeOrder: async (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => {
-    // Simulation d'envoi de commande
-    return new Promise((resolve) => {
-      console.log('Commande passée (MOCK):', order);
-      const newOrderId = `demo-order-${Date.now()}`;
-      setTimeout(() => {
-        set({ activeOrderId: newOrderId, cart: [] });
-        resolve(newOrderId);
-      }, 1000);
-    });
+  placeOrder: async (orderData) => {
+    // This calls useOrderStore logic implicitly via UI or we can call Firestore directly here.
+    // Usually, placeOrder creates the order in Firestore.
+    // Let's implement it to write to 'orders' collection.
+    try {
+      const { addDoc, serverTimestamp } = await import('firebase/firestore');
+      const docRef = await addDoc(collection(db, 'orders'), {
+        ...orderData,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      set({ activeOrderId: docRef.id, cart: [] });
+      return docRef.id;
+    } catch (error) {
+      console.error("Error placing order:", error);
+      throw error;
+    }
   },
   
   getItemsByCategory: (categoryId: string) => {
@@ -187,36 +139,77 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   },
 
   // Categories Actions
-  addCategory: (category) => set((state) => ({
-    categories: [...state.categories, { ...category, id: `cat_${Date.now()}` }]
-  })),
+  addCategory: async (category) => {
+    try {
+      await addDoc(collection(db, 'categories'), category);
+      get().loadMenu(); // Reload to refresh
+    } catch (error) {
+      console.error("Error adding category:", error);
+    }
+  },
 
-  updateCategory: (id, updates) => set((state) => ({
-    categories: state.categories.map((cat) => 
-      cat.id === id ? { ...cat, ...updates } : cat
-    )
-  })),
+  updateCategory: async (id, updates) => {
+    try {
+      await updateDoc(doc(db, 'categories', id), updates);
+      get().loadMenu();
+    } catch (error) {
+      console.error("Error updating category:", error);
+    }
+  },
 
-  deleteCategory: (id) => set((state) => ({
-    categories: state.categories.filter((cat) => cat.id !== id),
-    // Optionally remove items in this category or move them
-    items: state.items.filter((item) => item.categoryId !== id)
-  })),
+  deleteCategory: async (id) => {
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      get().loadMenu();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    }
+  },
 
-  reorderCategories: (categories) => set({ categories }),
+  reorderCategories: async (categories) => {
+    // Optimistic update
+    set({ categories });
+    // Batch update order in Firestore
+    // For simplicity, we just update one by one or use batch if needed.
+    // Leaving as TODO or simple loop
+    try {
+      const { writeBatch } = await import('firebase/firestore');
+      const batch = writeBatch(db);
+      categories.forEach((cat, index) => {
+        const ref = doc(db, 'categories', cat.id);
+        batch.update(ref, { order: index + 1 });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Error reordering categories:", error);
+    }
+  },
 
   // Items Actions
-  addItem: (item) => set((state) => ({
-    items: [...state.items, { ...item, id: `item_${Date.now()}` }]
-  })),
+  addItem: async (item) => {
+    try {
+      await addDoc(collection(db, 'products'), item);
+      get().loadMenu();
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
+  },
 
-  updateItem: (id, updates) => set((state) => ({
-    items: state.items.map((item) => 
-      item.id === id ? { ...item, ...updates } : item
-    )
-  })),
+  updateItem: async (id, updates) => {
+    try {
+      await updateDoc(doc(db, 'products', id), updates);
+      get().loadMenu();
+    } catch (error) {
+      console.error("Error updating item:", error);
+    }
+  },
 
-  deleteItem: (id) => set((state) => ({
-    items: state.items.filter((item) => item.id !== id)
-  }))
+  deleteItem: async (id) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      get().loadMenu();
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
+  }
 }));

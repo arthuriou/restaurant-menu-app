@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "setup": "node ./setup/install.js"
+    "setup": "node ./setup/install.js",
+    "env:dev": "node scripts/set-env.js dev",
+    "env:set": "node scripts/set-env.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

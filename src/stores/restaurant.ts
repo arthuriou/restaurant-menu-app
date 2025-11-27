@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export interface SpecialOffer {
   id: string;
@@ -39,6 +41,8 @@ interface RestaurantStore {
     showTaxId: boolean;
   };
   
+  isLoading: boolean;
+  
   addSpecialOffer: (offer: Omit<SpecialOffer, 'id'>) => void;
   removeSpecialOffer: (id: string) => void;
   updateSpecialOffer: (id: string, data: Partial<SpecialOffer>) => void;
@@ -47,12 +51,14 @@ interface RestaurantStore {
   updateOpeningHours: (day: string, hours: { open: string; close: string; closed: boolean }) => void;
   addSpecialHour: (date: string, hours: { open: string; close: string; closed: boolean; label: string }) => void;
   removeSpecialHour: (index: number) => void;
-  updateInvoiceSettings: (settings: Partial<RestaurantStore['invoiceSettings']>) => void;
+  updateInvoiceSettings: (settings: Partial<RestaurantStore['invoiceSettings']>) => Promise<void>;
+  
+  loadSettings: () => Promise<void>;
 }
 
 export const useRestaurantStore = create<RestaurantStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       specialOffers: [
         {
           id: '1',
@@ -88,7 +94,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       },
       specialHours: [],
       
-      // Default invoice settings
+      // Default invoice settings (Fallback if Firestore empty)
       invoiceSettings: {
         companyName: "Restaurant Le Gourmet",
         companyAddress: "123 Avenue des Saveurs, Abidjan, Côte d'Ivoire",
@@ -102,6 +108,30 @@ export const useRestaurantStore = create<RestaurantStore>()(
         showTaxId: true,
       },
       
+      isLoading: false,
+      
+      loadSettings: async () => {
+        if (!db) return;
+        set({ isLoading: true });
+        try {
+          const docRef = doc(db, 'settings', 'general');
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            set((state) => ({
+              invoiceSettings: { ...state.invoiceSettings, ...data },
+              primaryColor: data.primaryColor || state.primaryColor,
+              // Load other settings if needed
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading settings:", error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
       addSpecialOffer: (offer) => set((state) => ({
         specialOffers: [...state.specialOffers, { ...offer, id: Date.now().toString() }],
       })),
@@ -129,9 +159,21 @@ export const useRestaurantStore = create<RestaurantStore>()(
       removeSpecialHour: (index) => set((state) => ({
         specialHours: state.specialHours.filter((_, i) => i !== index),
       })),
-      updateInvoiceSettings: (settings) => set((state) => ({
-        invoiceSettings: { ...state.invoiceSettings, ...settings },
-      })),
+      updateInvoiceSettings: async (settings) => {
+        set((state) => ({
+          invoiceSettings: { ...state.invoiceSettings, ...settings },
+        }));
+        
+        // Sync to Firestore
+        if (db) {
+          try {
+            const docRef = doc(db, 'settings', 'general');
+            await setDoc(docRef, settings, { merge: true });
+          } catch (error) {
+            console.error("Error saving settings:", error);
+          }
+        }
+      },
     }),
     {
       name: 'restaurant-storage',

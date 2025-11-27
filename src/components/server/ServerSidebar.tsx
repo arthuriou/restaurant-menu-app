@@ -13,10 +13,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth";
+import { ModeToggle } from "@/components/mode-toggle";
+import { UserAvatar } from "@/components/user-avatar";
+
 
 export function ServerSidebar() {
   const pathname = usePathname();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
 
   const routes = [
     {
@@ -65,7 +68,19 @@ export function ServerSidebar() {
           ))}
         </div>
       </div>
-      <div className="mt-auto p-6 border-t border-zinc-100 dark:border-zinc-900">
+
+      <div className="mt-auto p-6 border-t border-zinc-100 dark:border-zinc-900 space-y-4">
+        <div className="flex items-center gap-3 px-2">
+          <UserAvatar user={user} size="md" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{user?.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Thème</span>
+          <ModeToggle />
+        </div>
         <Button 
           variant="ghost" 
           className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/10" 

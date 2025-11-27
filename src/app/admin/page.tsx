@@ -4,28 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { 
   DollarSign, Users, CreditCard, Activity, TrendingUp, 
-  Plus, UtensilsCrossed, QrCode, ArrowRight, Clock, ChefHat
+  Plus, UtensilsCrossed, QrCode, ArrowRight, Clock, ChefHat, ScanLine, BarChart3
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOrderStore } from "@/stores/orders";
-import { useEffect } from "react";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
 
-  const { stats, calculateStats, orders } = useOrderStore();
-
-  useEffect(() => {
-    calculateStats();
-  }, [calculateStats]);
+  const { stats, topItems, salesByHour } = useOrderStore();
 
   // Real Data from Store
   const dashboardStats = [
     {
       title: "Chiffre d'affaires",
       value: `${stats.totalRevenue.toLocaleString()} FCFA`,
-      trend: "+0%", // To be implemented with history
+      trend: "+12%", // Mock trend
       trendUp: true,
       icon: DollarSign,
       color: "text-green-500",
@@ -34,58 +29,40 @@ export default function AdminDashboardPage() {
     {
       title: "Commandes",
       value: stats.totalOrders.toString(),
-      trend: "+0%",
+      trend: "+5%",
       trendUp: true,
       icon: CreditCard,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
-      title: "Ticket Moyen",
-      value: `${stats.averageTicket.toLocaleString()} FCFA`,
-      trend: "+0%",
+      title: "Plats Servis",
+      value: stats.totalDishesServed.toString(),
+      trend: "+8%",
       trendUp: true,
-      icon: Activity,
+      icon: UtensilsCrossed,
       color: "text-orange-500",
       bgColor: "bg-orange-500/10",
     },
     {
-      title: "Commandes Actives",
-      value: stats.activeOrders.toString(),
-      trend: "En cours",
+      title: "Scans QR Code",
+      value: stats.scanCount.toString(),
+      trend: "+24%",
       trendUp: true,
-      icon: Users,
+      icon: ScanLine,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
     },
   ];
 
-  const quickActions = [
-    {
-      label: "Nouvelle Commande",
-      icon: Plus,
-      onClick: () => router.push("/admin/orders"),
-      color: "bg-primary text-primary-foreground hover:bg-primary/90",
-    },
-    {
-      label: "Ajouter un Plat",
-      icon: UtensilsCrossed,
-      onClick: () => router.push("/admin/menu"),
-      color: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
-    },
-    {
-      label: "Gérer les Tables",
-      icon: QrCode,
-      onClick: () => router.push("/admin/tables"),
-      color: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
-    },
-  ];
 
-  const recentOrders = [
-    { id: "CMD-001", table: "Table 4", items: "2x Burger, 1x Coca", status: "preparing", time: "Il y a 5 min" },
-    { id: "CMD-002", table: "Table 2", items: "1x Poulet Braisé", status: "ready", time: "Il y a 12 min" },
-    { id: "CMD-003", table: "Emporter", items: "3x Shawarma", status: "pending", time: "Il y a 2 min" },
-  ];
+
+  // Mock Rush Hours Data if empty
+  const rushHoursData = Object.keys(salesByHour).length > 0 ? salesByHour : {
+    11: 10, 12: 45, 13: 60, 14: 30, 18: 20, 19: 55, 20: 80, 21: 40, 22: 15
+  };
+  
+  const maxRush = Math.max(...Object.values(rushHoursData));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -96,7 +73,7 @@ export default function AdminDashboardPage() {
             Tableau de Bord
           </h2>
           <p className="text-muted-foreground mt-1">
-            Bienvenue ! Voici ce qui se passe dans votre restaurant aujourd'hui.
+            Bienvenue ! Voici les performances de votre restaurant aujourd'hui.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -132,85 +109,83 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-7">
-        {/* Main Chart Section (Placeholder for now) */}
-        <Card className="col-span-4 rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-          <CardHeader>
-            <CardTitle>Aperçu des Ventes</CardTitle>
-            <CardDescription>Évolution du chiffre d'affaires sur la semaine.</CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[300px] w-full bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-950 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center text-muted-foreground gap-4 group cursor-pointer hover:border-primary/50 transition-colors">
-              <div className="p-4 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover:scale-110 transition-transform duration-500">
-                <Activity className="w-8 h-8 text-zinc-400" />
-              </div>
-              <p className="text-sm font-medium">Le graphique des ventes sera disponible bientôt</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Right Column: Quick Actions & Live Feed */}
-        <div className="col-span-3 space-y-6">
+      <div className="grid gap-6 grid-cols-1">
+        
+        {/* Charts & Stats */}
+        <div className="space-y-6">
           
-          {/* Quick Actions */}
-          <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Actions Rapides</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {quickActions.map((action, idx) => (
-                <Button 
-                  key={idx}
-                  variant="ghost"
-                  className={`w-full justify-start h-14 rounded-xl px-4 text-base font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${action.color}`}
-                  onClick={action.onClick}
-                >
-                  <div className="p-2 rounded-lg bg-white/20 mr-3">
-                    <action.icon className="w-5 h-5" />
-                  </div>
-                  {action.label}
-                  <ArrowRight className="w-4 h-4 ml-auto opacity-50" />
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Recent Orders Preview */}
-          <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">En Cuisine</CardTitle>
-              <Link href="/admin/orders" className="text-xs font-medium text-primary hover:underline">
-                Voir tout
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...orders.pending, ...orders.preparing, ...orders.ready].slice(0, 3).map((order, i) => (
-                  <div key={i} className="flex items-start gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0">
-                    <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
-                      order.status === 'ready' ? 'bg-green-100 text-green-600' : 
-                      order.status === 'preparing' ? 'bg-orange-100 text-orange-600' : 
-                      'bg-zinc-100 text-zinc-600'
-                    }`}>
-                      <ChefHat className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-semibold truncate">{order.table}</p>
-                        <span className="text-[10px] text-muted-foreground flex items-center bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
-                          <Clock className="w-3 h-3 mr-1" /> {order.time}
-                        </span>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Rush Hours Chart */}
+            <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  Heures d'Affluence
+                </CardTitle>
+                <CardDescription>Répartition des commandes par heure (24h)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] w-full flex items-end justify-between gap-2 pt-4">
+                  {[11, 12, 13, 14, 18, 19, 20, 21, 22].map((hour) => {
+                    const value = rushHoursData[hour as keyof typeof rushHoursData] || 0;
+                    const height = maxRush > 0 ? (value / maxRush) * 100 : 0;
+                    return (
+                      <div key={hour} className="flex flex-col items-center gap-2 group w-full">
+                        <div className="relative w-full bg-zinc-100 dark:bg-zinc-800 rounded-t-lg overflow-hidden h-[150px] flex items-end">
+                           <div 
+                             className="w-full bg-primary/80 group-hover:bg-primary transition-all duration-500 rounded-t-md"
+                             style={{ height: `${height}%` }}
+                           />
+                           {/* Tooltip */}
+                           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                             {value} cmds
+                           </div>
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">{hour}h</span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{order.itemCount} articles</p>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Items */}
+            <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-orange-500" />
+                  Plats les plus populaires
+                </CardTitle>
+                <CardDescription>Top 5 des plats les plus commandés</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {topItems.slice(0, 5).map((item, i) => (
+                    <div key={i} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 font-bold text-sm text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                          {i + 1}
+                        </div>
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-24 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-orange-500 rounded-full" 
+                            style={{ width: `${(item.count / (topItems[0]?.count || 1)) * 100}%` }} 
+                          />
+                        </div>
+                        <span className="text-sm font-semibold w-12 text-right">{item.count}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {([...orders.pending, ...orders.preparing, ...orders.ready].length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">Aucune commande en cours</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {topItems.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Aucune donnée disponible.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
         </div>
       </div>

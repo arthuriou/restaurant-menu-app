@@ -16,6 +16,7 @@ import { useMenuStore } from "@/stores/menu";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CldUploadWidget } from 'next-cloudinary';
 
 export default function AdminMenuPage() {
   const { 
@@ -485,15 +486,41 @@ export default function AdminMenuPage() {
               </div>
             </div>
 
-            {/* Image Upload Placeholder */}
+            {/* Image Upload */}
             <div className="space-y-2">
               <Label className="text-zinc-300">Image</Label>
-              <div className="border-2 border-dashed border-zinc-800 rounded-2xl p-6 text-center hover:bg-zinc-900 transition-colors cursor-pointer group">
-                <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
-                  <Plus className="w-8 h-8" />
-                  <span className="text-sm">Cliquez pour ajouter une photo</span>
-                </div>
-              </div>
+              <CldUploadWidget 
+                uploadPreset="restaurant_menu" 
+                onSuccess={(result: any) => {
+                  setNewItem({ ...newItem, imageUrl: result.info.secure_url });
+                }}
+              >
+                {({ open }) => (
+                  <div 
+                    onClick={() => open()}
+                    className="border-2 border-dashed border-zinc-800 rounded-2xl p-6 text-center hover:bg-zinc-900 transition-colors cursor-pointer group relative overflow-hidden"
+                  >
+                    {newItem.imageUrl ? (
+                      <div className="relative h-40 w-full">
+                        <Image 
+                          src={newItem.imageUrl} 
+                          alt="Preview" 
+                          fill 
+                          className="object-cover rounded-xl"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-white font-medium">Changer l'image</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
+                        <Plus className="w-8 h-8" />
+                        <span className="text-sm">Cliquez pour ajouter une photo</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CldUploadWidget>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">

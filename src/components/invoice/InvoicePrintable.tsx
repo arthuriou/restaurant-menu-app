@@ -24,7 +24,7 @@ export const InvoicePrintable = forwardRef<HTMLDivElement, InvoicePrintableProps
                 <img 
                   src={restaurantInfo.logo} 
                   alt={restaurantInfo.name}
-                  className="h-16 w-auto mb-4"
+                  className="h-20 w-auto mb-4 object-contain"
                 />
               )}
               <h1 className="text-3xl font-bold mb-2">{restaurantInfo.name}</h1>
@@ -46,6 +46,11 @@ export const InvoicePrintable = forwardRef<HTMLDivElement, InvoicePrintableProps
               <p className="text-sm text-gray-600">
                 {format(new Date(invoice.createdAt.seconds * 1000), 'p', { locale: fr })}
               </p>
+              {invoice.serverName && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Serveur: <span className="font-semibold">{invoice.serverName}</span>
+                </p>
+              )}
             </div>
           </div>
         </div>

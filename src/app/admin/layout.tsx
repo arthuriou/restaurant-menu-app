@@ -37,14 +37,9 @@ export default function AdminLayout({
       href: "/admin/tables",
     },
     {
-      label: "Factures",
+      label: "Comptabilité",
       icon: Receipt,
       href: "/admin/invoices",
-    },
-    {
-      label: "Commandes",
-      icon: ListOrdered,
-      href: "/admin/orders",
     },
     {
       label: "Équipe",

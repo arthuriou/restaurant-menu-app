@@ -1,5 +1,6 @@
- import type { Timestamp } from "firebase/firestore";
-export type Role = "admin" | "server";
+import type { Timestamp } from "firebase/firestore";
+
+export type Role = "admin" | "server" | "kitchen";
 
 export type Category = {
   id: string;
@@ -77,6 +78,7 @@ export type Invoice = {
   // Payment
   status: InvoiceStatus;
   paymentMethod?: PaymentMethod;
+  serverName?: string;
   paidAt?: Timestamp;
   
   // Metadata
@@ -86,4 +88,13 @@ export type Invoice = {
   
   // Restaurant snapshot (immutable)
   restaurantInfo: RestaurantInfo;
+};
+
+export type StaffMember = {
+  id: string;
+  name: string;
+  role: Role;
+  pin: string;
+  active: boolean;
+  createdAt: number;
 };

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type StaffRole = 'manager' | 'server' | 'kitchen';
+export type StaffRole = 'admin' | 'server' | 'cook';
 
 export interface StaffMember {
   id: string;
@@ -9,8 +9,7 @@ export interface StaffMember {
   pin: string;
   active: boolean;
   avatar?: string;
-  email?: string; // Optional now
-  phone?: string; // Optional now
+  email?: string;
 }
 
 interface StaffState {
@@ -23,9 +22,10 @@ interface StaffState {
 
 // Mock Data
 const initialStaff: StaffMember[] = [
-  { id: '1', name: "Jean Dupont", role: "manager", pin: "1234", active: true, email: "jean@restaurant.com", phone: "+225 07 07 07 07", avatar: "JD" },
-  { id: '2', name: "Marie Koné", role: "server", pin: "0000", active: true, email: "marie@restaurant.com", phone: "+225 05 05 05 05", avatar: "MK" },
-  { id: '3', name: "Paul Kouassi", role: "server", pin: "1111", active: false, email: "paul@restaurant.com", phone: "+225 01 01 01 01", avatar: "PK" },
+  { id: '1', name: "Jean Dupont", role: "admin", pin: "1234", active: true, email: "jean@restaurant.com", avatar: "JD" },
+  { id: '2', name: "Marie Koné", role: "server", pin: "0000", active: true, email: "marie@restaurant.com", avatar: "MK" },
+  { id: '3', name: "Paul Kouassi", role: "server", pin: "1111", active: false, email: "paul@restaurant.com", avatar: "PK" },
+  { id: '4', name: "Chef Moussa", role: "cook", pin: "2222", active: true, email: "moussa@restaurant.com", avatar: "CM" },
 ];
 
 export const useStaffStore = create<StaffState>((set, get) => ({
