@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Loader2, Bell, HelpCircle, Receipt as ReceiptIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -101,7 +101,6 @@ type DetailState = {
 
 export default function Home() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { 
     categories, 
     items, 
