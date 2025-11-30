@@ -55,17 +55,19 @@ export function Header({ table, orderType, onTableClick }: HeaderProps) {
             </Button>
           )}
 
-          <div 
-            className="flex flex-col items-end cursor-pointer active:opacity-70 transition-opacity"
-            onClick={onTableClick}
-          >
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-              {orderType === 'takeaway' ? 'Mode' : 'Table'}
-            </span>
-            <span className="text-sm font-bold text-primary leading-none">
-              {orderType === 'takeaway' ? 'À emporter' : (table?.label || "---")}
-            </span>
-          </div>
+          {orderType !== 'takeaway' && (
+            <div 
+              className="flex flex-col items-end cursor-pointer active:opacity-70 transition-opacity"
+              onClick={onTableClick}
+            >
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                Table
+              </span>
+              <span className="text-sm font-bold text-primary leading-none">
+                {table?.label || "---"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </header>

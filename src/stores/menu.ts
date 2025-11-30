@@ -29,7 +29,9 @@ type MenuStore = {
   setTableId: (id: string) => void;
 
   activeOrderId: string | null;
+  activeOrderIds: string[];
   setActiveOrderId: (id: string | null) => void;
+  removeActiveOrderId: (id: string) => void;
   
   cart: OrderItem[];
   addToCart: (item: OrderItem) => void;
@@ -71,7 +73,20 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   setTableId: (id) => set({ table: { id, label: `Table ${id}` } }),
 
   activeOrderId: null,
+  activeOrderIds: [],
   setActiveOrderId: (id) => set({ activeOrderId: id }),
+  removeActiveOrderId: (id) => set((state) => {
+    const newIds = state.activeOrderIds.filter(oid => oid !== id);
+    // If the removed ID was the active one, switch to the last one in the list, or null
+    const newActiveId = state.activeOrderId === id 
+      ? (newIds.length > 0 ? newIds[newIds.length - 1] : null) 
+      : state.activeOrderId;
+      
+    return {
+      activeOrderIds: newIds,
+      activeOrderId: newActiveId
+    };
+  }),
   
   cart: [],
   addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
@@ -112,17 +127,54 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
   },
   
   placeOrder: async (orderData) => {
-    // This calls useOrderStore logic implicitly via UI or we can call Firestore directly here.
-    // Usually, placeOrder creates the order in Firestore.
-    // Let's implement it to write to 'orders' collection.
+    // Sanitize items to keep only defined, non-null, non-empty values
+    const sanitizedItems = orderData.items.map(item => {
+      const sanitized: Record<string, any> = {
+        menuId: item.menuId,
+        name: item.name,
+        price: item.price,
+        qty: item.qty || 1,
+      };
+      
+      // Only add imageUrl if it exists and is not undefined/null/empty
+      if (item.imageUrl !== undefined && item.imageUrl !== null && item.imageUrl !== '') {
+        sanitized.imageUrl = item.imageUrl;
+      }
+      
+      // Only add note if it exists
+      if (item.note !== undefined && item.note !== null && item.note !== '') {
+        sanitized.note = item.note;
+      }
+      
+      // Clean and add options object if it exists
+      if (item.options && typeof item.options === 'object') {
+        const cleanOptions: Record<string, any> = {};
+        Object.entries(item.options).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            cleanOptions[key] = value;
+          }
+        });
+        if (Object.keys(cleanOptions).length > 0) {
+          sanitized.options = cleanOptions;
+        }
+      }
+      
+      return sanitized;
+    });
+
     try {
       const { addDoc, serverTimestamp } = await import('firebase/firestore');
       const docRef = await addDoc(collection(db, 'orders'), {
         ...orderData,
+        items: sanitizedItems,
         status: 'pending',
         createdAt: serverTimestamp()
       });
-      set({ activeOrderId: docRef.id, cart: [] });
+      set((state) => ({ 
+        activeOrderId: docRef.id, 
+        activeOrderIds: [...state.activeOrderIds, docRef.id],
+        cart: [] 
+      }));
       return docRef.id;
     } catch (error) {
       console.error("Error placing order:", error);
@@ -170,8 +222,6 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
     // Optimistic update
     set({ categories });
     // Batch update order in Firestore
-    // For simplicity, we just update one by one or use batch if needed.
-    // Leaving as TODO or simple loop
     try {
       const { writeBatch } = await import('firebase/firestore');
       const batch = writeBatch(db);

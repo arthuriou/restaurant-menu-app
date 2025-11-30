@@ -18,7 +18,7 @@ export default function AdminTablesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [baseUrl] = useState("https://restaurant-app.com"); // Replace with actual domain
+  const [baseUrl] = useState("http://192.168.1.79:3000"); // Replace with actual domain
   
   // Form states
   const [newTableLabel, setNewTableLabel] = useState("");

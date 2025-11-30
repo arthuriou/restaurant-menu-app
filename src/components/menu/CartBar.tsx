@@ -18,15 +18,15 @@ export function CartBar({ itemCount, total, onViewCart }: CartBarProps) {
           onClick={onViewCart}
         >
           <div className="flex flex-col items-start gap-0.5">
-            <span className="text-[10px] font-bold tracking-widest uppercase opacity-90">{itemCount} ITEMS</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase opacity-90">{itemCount} ARTICLE{itemCount > 1 ? 'S' : ''}</span>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-bold text-xl tracking-tight">${(total / 655).toFixed(2)}</span>
-              <span className="text-[10px] font-medium opacity-80">Including Taxes</span>
+              <span className="font-bold text-xl tracking-tight">{total.toLocaleString()}</span>
+              <span className="text-[10px] font-medium opacity-80">FCFA</span>
             </div>
           </div>
           
           <div className="flex items-center gap-2 pl-4">
-            <span className="font-bold text-sm">View Cart</span>
+            <span className="font-bold text-sm">Voir le Panier</span>
             <div className="bg-white text-[#D32F2F] rounded-full p-1">
               <ChevronRight className="h-3 w-3 stroke-[4]" />
             </div>

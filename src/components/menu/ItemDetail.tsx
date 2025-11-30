@@ -5,9 +5,8 @@ import Image from "next/image";
 import { Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { MenuItem } from "@/types";
@@ -31,11 +30,7 @@ interface ItemDetailProps {
   item: (MenuItem & { available: boolean }) | null;
   qty: number;
   setQty: (qty: number) => void;
-  options: {
-    cuisson?: string;
-    sauce?: string;
-    note?: string;
-  };
+  options: Record<string, any>;
   setOptions: (options: any) => void;
   onAddToCart: () => void;
 }
@@ -44,11 +39,7 @@ interface ItemDetailContentProps {
   item: MenuItem & { available: boolean };
   qty: number;
   setQty: (qty: number) => void;
-  options: {
-    cuisson?: string;
-    sauce?: string;
-    note?: string;
-  };
+  options: Record<string, any>;
   setOptions: (options: any) => void;
   onAddToCart: () => void;
   onClose: () => void;
@@ -56,6 +47,12 @@ interface ItemDetailContentProps {
 
 function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart, onClose }: ItemDetailContentProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'addons'>('details');
+
+  // Calculate dynamic price with options
+  const optionsTotal = item.options?.reduce((acc, opt) => {
+    return acc + (options[opt.name] ? opt.price : 0);
+  }, 0) || 0;
+  const unitPrice = item.price + optionsTotal;
 
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
@@ -85,7 +82,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                 className="object-cover scale-110 hover:scale-105 transition-transform duration-700"
               />
             ) : (
-              <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-400">No Image</div>
+              <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-400">Pas d'image</div>
             )}
           </div>
         </div>
@@ -100,9 +97,8 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
             <div className="space-y-2 w-full">
               <div className="flex items-center justify-between">
                  <h2 className="text-2xl font-bold text-foreground text-left">{item.name}</h2>
-                 <span className="text-xl font-bold text-primary whitespace-nowrap">{item.price.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">FCFA</span></span>
+                 <span className="text-xl font-bold text-primary whitespace-nowrap">{unitPrice.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">FCFA</span></span>
               </div>
-              {/* Subtitle/Category could go here if available */}
             </div>
 
             {/* Tabs */}
@@ -115,7 +111,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                     : 'bg-white dark:bg-zinc-800 text-foreground hover:bg-zinc-50'
                 }`}
               >
-                Details
+                Détails
               </button>
               <button 
                 onClick={() => setActiveTab('addons')}
@@ -125,7 +121,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                     : 'bg-white dark:bg-zinc-800 text-foreground hover:bg-zinc-50'
                 }`}
               >
-                Add-ons
+                Options
               </button>
             </div>
 
@@ -136,52 +132,51 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                   <p className="text-base text-muted-foreground leading-relaxed">
                     {item.description}
                   </p>
-                  {/* Additional details could go here */}
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">Cuisson</Label>
-                    <RadioGroup 
-                      value={options.cuisson} 
-                      onValueChange={(v) => setOptions({...options, cuisson: v})}
-                      className="flex flex-wrap gap-2"
-                    >
-                      {['Saignant', 'À point', 'Bien cuit'].map((opt) => (
-                        <div key={opt}>
-                          <RadioGroupItem value={opt} id={`c-${opt}`} className="peer sr-only" />
-                          <Label
-                            htmlFor={`c-${opt}`}
-                            className="flex items-center justify-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary cursor-pointer"
-                          >
-                            {opt}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
+                  {/* Options du plat si elles existent */}
+                  {item.options && item.options.length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Options disponibles</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {item.options.map((option, idx) => {
+                          const isSelected = !!options[option.name];
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                const newOptions = { ...options };
+                                if (isSelected) {
+                                  delete newOptions[option.name];
+                                } else {
+                                  newOptions[option.name] = true;
+                                }
+                                setOptions(newOptions);
+                              }}
+                              className={`flex flex-col items-center rounded-xl border-2 px-4 py-3 text-sm font-medium cursor-pointer transition-all duration-200 select-none ${
+                                isSelected 
+                                  ? "border-primary bg-primary/10 text-primary" 
+                                  : "border-zinc-200 dark:border-zinc-800 bg-background hover:border-primary/50"
+                              }`}
+                            >
+                              <span className="font-semibold">{option.name}</span>
+                              {option.price > 0 && (
+                                <span className={`text-xs font-bold ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                                  +{option.price.toLocaleString()} FCFA
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 Les options avec supplément seront ajoutées au prix total
+                      </p>
+                    </div>
+                  )}
 
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">Sauce</Label>
-                    <RadioGroup 
-                      value={options.sauce} 
-                      onValueChange={(v) => setOptions({...options, sauce: v})}
-                      className="flex flex-wrap gap-2"
-                    >
-                      {['Barbecue', 'Mayonnaise', 'Piment'].map((opt) => (
-                        <div key={opt}>
-                          <RadioGroupItem value={opt} id={`s-${opt}`} className="peer sr-only" />
-                          <Label
-                            htmlFor={`s-${opt}`}
-                            className="flex items-center justify-center rounded-full border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-all hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary cursor-pointer"
-                          >
-                            {opt}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-
+                  {/* Note (toujours disponible) */}
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Note</Label>
                     <Textarea 
@@ -225,7 +220,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
             className="flex-1 h-14 rounded-[1.5rem] text-lg font-bold shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-white" 
             onClick={onAddToCart}
            >
-             Add to Cart
+             Ajouter au panier
            </Button>
         </div>
       </div>
@@ -254,6 +249,7 @@ export function ItemDetail({
           className="sm:max-w-4xl p-0 bg-transparent border-none shadow-none overflow-visible duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95" 
           showCloseButton={false}
         >
+          <DialogTitle className="sr-only">{item.name}</DialogTitle>
           <div className="relative w-full">
             {/* Close Button - Moved outside/corner */}
             <div className="absolute -top-12 right-0 md:-right-12 z-50">

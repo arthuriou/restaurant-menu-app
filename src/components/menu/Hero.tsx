@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRestaurantStore } from "@/stores/restaurant";
 
 export function Hero() {
-  const { specialOffers } = useRestaurantStore();
+  const { specialOffers, invoiceSettings } = useRestaurantStore();
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +47,7 @@ export function Hero() {
   return (
     <div className="pt-2 pb-4 space-y-3 relative group/hero">
       <div className="px-5">
-        <h1 className="text-2xl font-bold tracking-tight">Bienvenue chez <span className="text-primary">Panaroma</span> 👋</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Bienvenue chez <span className="text-primary">{invoiceSettings.companyName}</span> 👋</h1>
       </div>
       
       {/* Desktop Navigation Arrows */}

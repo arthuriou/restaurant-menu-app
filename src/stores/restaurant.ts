@@ -53,12 +53,14 @@ interface RestaurantStore {
   removeSpecialHour: (index: number) => void;
   updateInvoiceSettings: (settings: Partial<RestaurantStore['invoiceSettings']>) => Promise<void>;
   
+  saveSettings: () => Promise<void>;
   loadSettings: () => Promise<void>;
 }
 
 export const useRestaurantStore = create<RestaurantStore>()(
   persist(
     (set, get) => ({
+      // ... (initial state remains same, handled by persist/merge)
       specialOffers: [
         {
           id: '1',
@@ -120,15 +122,37 @@ export const useRestaurantStore = create<RestaurantStore>()(
           if (docSnap.exists()) {
             const data = docSnap.data();
             set((state) => ({
-              invoiceSettings: { ...state.invoiceSettings, ...data },
+              invoiceSettings: { ...state.invoiceSettings, ...data.invoiceSettings },
               primaryColor: data.primaryColor || state.primaryColor,
-              // Load other settings if needed
+              openingHours: data.openingHours || state.openingHours,
+              specialHours: data.specialHours || state.specialHours,
+              specialOffers: data.specialOffers || state.specialOffers,
+              chefSpecial: data.chefSpecial || state.chefSpecial,
             }));
           }
         } catch (error) {
           console.error("Error loading settings:", error);
         } finally {
           set({ isLoading: false });
+        }
+      },
+
+      saveSettings: async () => {
+        if (!db) return;
+        const state = get();
+        try {
+          const docRef = doc(db, 'settings', 'general');
+          await setDoc(docRef, {
+            invoiceSettings: state.invoiceSettings,
+            primaryColor: state.primaryColor,
+            openingHours: state.openingHours,
+            specialHours: state.specialHours,
+            specialOffers: state.specialOffers,
+            chefSpecial: state.chefSpecial,
+          }, { merge: true });
+        } catch (error) {
+          console.error("Error saving settings:", error);
+          throw error;
         }
       },
 

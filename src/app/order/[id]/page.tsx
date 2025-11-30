@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, CheckCircle2, Clock, ChefHat, UtensilsCrossed, XCircle, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, Clock, ChefHat, UtensilsCrossed, XCircle, AlertCircle, Bell, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import type { Order, OrderStatus as OrderStatusType } from "@/types";
 import { useMenuStore } from "@/stores/menu";
+import { useTableStore } from "@/stores/tables";
 
 // Status configuration
 const STATUS_CONFIG = {
@@ -46,63 +47,87 @@ export default function OrderPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
-  const { setActiveOrderId } = useMenuStore();
+  const { setActiveOrderId, removeActiveOrderId } = useMenuStore();
+  const { requestService } = useTableStore();
 
   // Track previous status for notifications
   const [prevStatus, setPrevStatus] = useState<OrderStatusType | null>(null);
+
+  const [otherOrders, setOtherOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     if (!params.id) return;
 
     const orderId = params.id as string;
 
-    // Mode Démo : Si l'ID commence par "demo-order-", on affiche une fausse commande
-    if (orderId.startsWith("demo-order-")) {
-      const demoOrder: Order = {
-        id: orderId,
-        tableId: "Table 12",
-        items: [
-          { menuId: "chicken_01", name: "Poulet braisé", price: 4500, qty: 2, options: { cuisson: "Bien cuit" } },
-          { menuId: "soda_01", name: "Coca Cola", price: 1000, qty: 2 }
-        ],
-        total: 11000,
-        status: "pending",
-        createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any
-      };
-      setOrder(demoOrder);
-      setLoading(false);
-      
-      // Simulation de changement de statut pour démo (optionnel)
-      let currentStatus: OrderStatusType = "pending";
-      const statuses: OrderStatusType[] = ["pending", "preparing", "ready", "served"];
-      let statusIndex = 0;
-      
-      const interval = setInterval(() => {
-        statusIndex++;
-        if (statusIndex < statuses.length) {
-          currentStatus = statuses[statusIndex];
-          setOrder(prev => prev ? { ...prev, status: currentStatus } : null);
-        } else {
-          clearInterval(interval);
+    // Charger la commande depuis Firestore
+    const loadOrder = async () => {
+      try {
+        const { doc, getDoc, onSnapshot, collection, query, where, limit, getDocs } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        
+        if (!db) {
+          toast.error("Firebase n'est pas configuré");
+          setLoading(false);
+          return;
         }
-      }, 10000); // Change status every 10 seconds for demo
-      
-      return () => clearInterval(interval);
-    }
 
-    // En l'absence de Firebase configuré, on affiche une commande de démo
-    setOrder({
-      id: orderId,
-      tableId: "Table 12",
-      items: [
-        { menuId: "chicken_01", name: "Poulet braisé", price: 4500, qty: 2 },
-        { menuId: "soda_01", name: "Coca Cola", price: 1000, qty: 2 }
-      ],
-      total: 11000,
-      status: "pending",
-      createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any
-    });
-    setLoading(false);
+        const orderRef = doc(db, 'orders', orderId);
+        
+        // Subscribe to real-time updates for current order
+        const unsubscribe = onSnapshot(orderRef, async (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const currentOrder = { id: docSnap.id, ...data } as Order;
+            setOrder(currentOrder);
+
+            // If table order, fetch other orders for this table
+            if (currentOrder.tableId) {
+              try {
+                // Simple query for table orders
+                // Removed orderBy to avoid needing a composite index
+                const q = query(
+                  collection(db, 'orders'), 
+                  where('tableId', '==', currentOrder.tableId),
+                  where('status', 'in', ['pending', 'preparing', 'ready', 'served']),
+                  limit(20)
+                );
+                
+                const querySnapshot = await getDocs(q);
+                const others = querySnapshot.docs
+                  .map(d => ({ id: d.id, ...d.data() } as Order))
+                  .filter(o => o.id !== currentOrder.id) // Exclude current
+                  .sort((a, b) => {
+                    // Sort by createdAt desc (handling Firestore Timestamp)
+                    const timeA = a.createdAt?.seconds || 0;
+                    const timeB = b.createdAt?.seconds || 0;
+                    return timeB - timeA;
+                  });
+                
+                setOtherOrders(others);
+              } catch (err) {
+                console.error("Error loading other orders:", err);
+              }
+            }
+
+          } else {
+            setOrder(null);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error loading order:", error);
+          toast.error("Erreur de chargement de la commande");
+          setLoading(false);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error("Error setting up order listener:", error);
+        setLoading(false);
+      }
+    };
+
+    loadOrder();
   }, [params.id]);
 
   // Notifications when status changes
@@ -134,28 +159,62 @@ export default function OrderPage() {
     }
   }, [order?.status, prevStatus]);
 
+  const handleCallServer = (type: 'assistance' | 'bill') => {
+    if (!order?.tableId) return;
+    
+    // Extract table number from "Table X" string if needed
+    const tableNum = order.tableId.replace(/[^0-9]/g, '');
+    const tableId = `t${tableNum}`;
+    
+    requestService(tableId, type);
+    
+    if (type === 'assistance') {
+      toast.success("🔔 Serveur appelé ! Il arrive dans quelques instants.");
+    } else {
+      toast.success("💳 Demande d'addition envoyée !");
+    }
+  };
+
   const handleCancelOrder = async () => {
     if (!order || order.status !== "pending") return;
     
     setCancelling(true);
     
     try {
-      // Simulation d'annulation (remplacer par appel Firebase)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+
+      if (!db) throw new Error("No DB");
+
+      // Update status to cancelled in Firebase
+      await updateDoc(doc(db, 'orders', order.id), {
+        status: 'cancelled'
+      });
       
       toast.success("Commande annulée", {
         description: "Votre commande a été annulée avec succès",
       });
       
-      // Clear active order from store
-      setActiveOrderId(null);
-      
-      // Redirect to menu after 1 second
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
+      // Remove this order from active list in store
+      removeActiveOrderId(order.id);
+
+      // Smart Navigation
+      if (otherOrders.length > 0) {
+        // If there are other orders, switch to the most recent one
+        const nextOrder = otherOrders[0];
+        setActiveOrderId(nextOrder.id);
+        // Navigate to the next order page immediately
+        router.push(`/order/${nextOrder.id}`);
+      } else {
+        // No other orders, go back to menu
+        setActiveOrderId(null);
+        setTimeout(() => {
+          router.push('/');
+        }, 1000);
+      }
       
     } catch (error) {
+      console.error("Error cancelling order:", error);
       toast.error("Erreur", {
         description: "Impossible d'annuler la commande",
       });
@@ -187,6 +246,9 @@ export default function OrderPage() {
   const StatusIcon = statusConfig.icon;
   const canCancel = order.status === "pending";
   const isCompleted = order.status === "served";
+
+  // Calculate session total (current + others)
+  const sessionTotal = (order ? order.total : 0) + otherOrders.reduce((acc, o) => acc + o.total, 0);
 
   return (
     <div className="min-h-dvh bg-gradient-to-br from-primary/5 via-background to-primary/10 flex flex-col overflow-x-hidden">
@@ -234,7 +296,7 @@ export default function OrderPage() {
         </div>
 
         {/* Order Items Card */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-lg animate-in fade-in slide-in-from-bottom-6 duration-500">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-lg animate-in fade-in slide-in-from-bottom-6 duration-500 mb-8">
           <h2 className="font-bold text-base md:text-lg mb-3 md:mb-4">Récapitulatif</h2>
           <div className="space-y-3 md:space-y-4">
             {order.items.map((item, idx) => (
@@ -246,9 +308,18 @@ export default function OrderPage() {
                     </span>
                     {item.name}
                   </p>
-                  {item.options && Object.values(item.options).filter(Boolean).length > 0 && (
+                  {item.options && Object.keys(item.options).length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1 ml-8">
-                      {Object.values(item.options).filter(Boolean).join(', ')}
+                      {Object.entries(item.options)
+                        .map(([key, value]) => {
+                          // If it's a boolean true, show the key (option name)
+                          if (value === true) return key;
+                          // If it's a string (like a note), show the value
+                          if (typeof value === 'string' && value) return value;
+                          return null;
+                        })
+                        .filter(Boolean)
+                        .join(', ')}
                     </p>
                   )}
                 </div>
@@ -266,8 +337,73 @@ export default function OrderPage() {
           </div>
         </div>
 
+        {/* Other Orders Section */}
+        {otherOrders.length > 0 && (
+          <div className="space-y-3 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <h3 className="font-bold text-lg px-1 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Historique de la session
+            </h3>
+            {otherOrders.map((other) => {
+              const otherStatus = STATUS_CONFIG[other.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
+              const OtherIcon = otherStatus.icon;
+              
+              return (
+                <div 
+                  key={other.id}
+                  onClick={() => router.push(`/order/${other.id}`)}
+                  className="bg-white dark:bg-zinc-900 rounded-xl p-4 shadow-sm border border-zinc-100 dark:border-zinc-800 flex justify-between items-center cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm">Commande #{other.id.slice(0, 4)}</span>
+                      <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${otherStatus.bgColor} ${otherStatus.color}`}>
+                        {otherStatus.label}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {other.items.length} articles • {other.total.toLocaleString()} FCFA
+                    </p>
+                  </div>
+                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Session Total Card */}
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/20 p-2 rounded-full">
+                <Wallet className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Total à payer</p>
+                <p className="text-xs text-muted-foreground">(Session complète)</p>
+              </div>
+            </div>
+            <span className="font-bold text-2xl text-primary">
+              {sessionTotal.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">FCFA</span>
+            </span>
+          </div>
+        </div>
+
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Call Server Button */}
+          {!isCompleted && (
+             <Button 
+               onClick={() => handleCallServer('assistance')}
+               variant="outline"
+               className="w-full rounded-full h-12 md:h-14 text-base md:text-lg font-bold shadow-sm border-primary/20 text-primary hover:bg-primary/5"
+             >
+               <Bell className="mr-2 h-5 w-5" />
+               Appeler le serveur
+             </Button>
+          )}
+
           {/* Cancel Button - Only show if order is pending */}
           {canCancel && (
             <Button 

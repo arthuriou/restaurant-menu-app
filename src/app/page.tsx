@@ -3,12 +3,14 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Bell, HelpCircle, Receipt as ReceiptIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useMenuStore } from "@/stores/menu";
 import { useTableStore } from "@/stores/tables";
 import { useOrderStore } from "@/stores/orders";
+import { useRestaurantStore } from "@/stores/restaurant";
 import type { Category, MenuItem, OrderItem } from "@/types";
 
 import { Header } from "@/components/menu/Header";
@@ -21,72 +23,6 @@ import { ItemDetail } from "@/components/menu/ItemDetail";
 import { TableSelector } from "@/components/menu/TableSelector";
 import { CartDrawer } from "@/components/menu/CartDrawer";
 import { Footer } from "@/components/menu/Footer";
-
-// TODO: Données de démonstration - À remplacer par les données de Firestore
-const mockCategories: Category[] = [
-  { id: "cat_all", name: "Tout", order: 0 },
-  { id: "cat_grill", name: "Grillades", order: 1 },
-  { id: "cat_entrees", name: "Entrées", order: 2 },
-  { id: "cat_boissons", name: "Boissons", order: 3 },
-  { id: "cat_desserts", name: "Desserts", order: 4 },
-];
-
-const mockItems: (MenuItem & { available: boolean })[] = [
-  {
-    id: "chicken_01",
-    categoryId: "cat_grill",
-    name: "Poulet braisé",
-    description: "Poulet mariné aux épices du chef, grillé lentement à la braise pour un goût fumé unique.",
-    price: 4500,
-    imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "steak_01",
-    categoryId: "cat_grill",
-    name: "Steak Frites",
-    description: "Bœuf tendre de première qualité, servi avec nos frites maison croustillantes.",
-    price: 6500,
-    imageUrl: "https://images.unsplash.com/photo-1600891964092-4316c288032e?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "burger_01",
-    categoryId: "cat_grill",
-    name: "Classic Burger",
-    description: "Pain brioché, steak haché frais, cheddar fondant, salade, tomate, oignons rouges.",
-    price: 3500,
-    imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1899&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "salad_01",
-    categoryId: "cat_entrees",
-    name: "Salade César",
-    description: "Laitue romaine, croûtons à l'ail, parmesan, sauce César onctueuse.",
-    price: 2500,
-    imageUrl: "https://images.unsplash.com/photo-1550304943-4f24f54ddde9?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "soda_01",
-    categoryId: "cat_boissons",
-    name: "Coca Cola",
-    description: "Bouteille en verre 33cl, servi bien frais avec une tranche de citron.",
-    price: 1000,
-    imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=2070&auto=format&fit=crop",
-    available: true,
-  },
-  {
-    id: "cocktail_01",
-    categoryId: "cat_boissons",
-    name: "Mojito Virgin",
-    description: "Menthe fraîche, citron vert, eau gazeuse, glace pilée. Sans alcool.",
-    price: 2000,
-    imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=1887&auto=format&fit=crop",
-    available: true,
-  },
-];
 
 type DetailState = {
   open: boolean;
@@ -101,6 +37,7 @@ type DetailState = {
 
 export default function Home() {
   const router = useRouter();
+  const { loadSettings } = useRestaurantStore();
   const { 
     categories, 
     items, 
@@ -121,6 +58,10 @@ export default function Home() {
     orderType,
     activeOrderId,
   } = useMenuStore();
+
+  // Data Resolution
+  const displayCategories = categories || [];
+  const displayItems = items || [];
   
   const { incrementTableScans, requestService } = useTableStore();
   const scanProcessed = useRef(false);
@@ -182,19 +123,19 @@ export default function Home() {
     options: {}
   });
 
-  // Load Menu
+  // Load Menu & Settings
   useEffect(() => {
     loadMenu();
-  }, [loadMenu]);
+    loadSettings();
+  }, [loadMenu, loadSettings]);
 
   // Handle Errors
   useEffect(() => {
     if (error && !isLoading) toast.error(error);
   }, [error, isLoading]);
 
-  // Data Resolution (Mock vs Real)
-  const displayCategories = (categories && categories.length > 0) ? categories : mockCategories;
-  const displayItems = (items && items.length > 0) ? items : mockItems;
+
+
 
   // Default Category Selection
   useEffect(() => {
@@ -233,10 +174,17 @@ export default function Home() {
   const handleAddToCart = () => {
     if (!detail.item) return;
     
+    // Calculate price with options
+    const optionsTotal = detail.item.options?.reduce((acc, opt) => {
+      const selectedOptions = detail.options as Record<string, any>;
+      return acc + (selectedOptions[opt.name] ? opt.price : 0);
+    }, 0) || 0;
+    const totalPrice = detail.item.price + optionsTotal;
+    
     const toAdd: OrderItem = {
       menuId: detail.item.id,
       name: detail.item.name,
-      price: detail.item.price,
+      price: totalPrice, // Use calculated price with options
       qty: detail.qty,
       note: detail.options.note?.trim(),
       options: detail.options,
@@ -252,15 +200,34 @@ export default function Home() {
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
     
-    if (!table) {
+    // Only require table for dine-in orders
+    if (orderType === 'dine-in' && !table) {
       setIsTableSelectorOpen(true);
-      toast.info("Veuillez indiquer votre numéro de table pour commander.");
+      toast.info("Veuillez scanner le QR code de votre table pour commander sur place.");
       return;
     }
 
     try {
+      // Vérifier la disponibilité de chaque plat avant de créer la commande
+      const unavailableItems: string[] = [];
+      
+      for (const cartItem of cart) {
+        const menuItem = items.find(item => item.id === cartItem.menuId);
+        if (!menuItem || !menuItem.available) {
+          unavailableItems.push(cartItem.name);
+        }
+      }
+
+      if (unavailableItems.length > 0) {
+        toast.error(`Certains articles ne sont plus disponibles : ${unavailableItems.join(', ')}`, {
+          description: "Veuillez les retirer de votre panier",
+          duration: 6000,
+        });
+        return;
+      }
+
       const orderId = await placeOrder({
-        tableId: table.label,
+        tableId: table ? table.label : 'À emporter',
         items: cart,
         total: total,
       });
@@ -271,6 +238,7 @@ export default function Home() {
       setCartOpen(false);
       router.push(`/order/${orderId}`);
     } catch (error) {
+      console.error("Order error:", error);
       toast.error("Erreur lors de la commande");
     }
   };
@@ -341,7 +309,7 @@ export default function Home() {
 
       {/* Active Order Floating Button */}
       {activeOrderId && (
-        <div className="fixed bottom-32 right-4 z-40">
+        <div className="fixed bottom-40 right-4 z-40">
           <Button 
             onClick={() => router.push(`/order/${activeOrderId}`)}
             className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white px-4 py-3 h-auto flex items-center gap-2 animate-in slide-in-from-bottom-10"

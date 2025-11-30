@@ -27,6 +27,8 @@ export function CartDrawer({
   onCheckout,
   total 
 }: CartDrawerProps) {
+  const totalQuantity = cart.reduce((acc, item) => acc + (item.qty || 1), 0);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent hideDefaultClose className="w-full sm:max-w-md flex flex-col h-full p-0 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-2xl border-l border-white/20">
@@ -66,7 +68,7 @@ export function CartDrawer({
                 {cart.map((item, idx) => (
                   <div key={idx} className="group bg-white dark:bg-zinc-900/80 rounded-xl p-3 shadow-sm border border-zinc-100 dark:border-zinc-800/50 flex gap-3 transition-all hover:shadow-md">
                     {/* Item Image */}
-                    <div className="relative h-20 w-20 shrink-0 rounded-lg overflow-hidden bg-zinc-100">
+                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-lg overflow-hidden bg-zinc-100">
                       {item.imageUrl ? (
                         <Image 
                           src={item.imageUrl} 
@@ -92,9 +94,17 @@ export function CartDrawer({
                         
                         {item.options && Object.keys(item.options).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
-                            {Object.entries(item.options).map(([k, v]) => (
-                              v && <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{v}</span>
-                            ))}
+                            {Object.entries(item.options).map(([k, v]) => {
+                              // If option is a boolean (true), display the key name
+                              if (v === true) {
+                                return <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{k}</span>;
+                              }
+                              // If option is a string (like a note), display the value
+                              if (typeof v === 'string' && v) {
+                                return <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{v}</span>;
+                              }
+                              return null;
+                            })}
                           </div>
                         )}
                       </div>
@@ -155,7 +165,7 @@ export function CartDrawer({
               className="w-full h-14 text-lg font-bold shadow-[0_8px_25px_-5px_rgba(var(--primary),0.4)] rounded-2xl bg-gradient-to-r from-primary to-primary/90 hover:to-primary hover:scale-[1.02] transition-all duration-300" 
               onClick={onCheckout}
             >
-              Commander ({cart.length})
+              Commander ({totalQuantity})
             </Button>
           </div>
         )}

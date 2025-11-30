@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { 
   Clock, CheckCircle2, ChefHat, Utensils, LogOut, 
-  ArrowRight, BellRing
+  ArrowRight, BellRing, AlertTriangle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -86,16 +86,16 @@ export default function KitchenPage() {
       </header>
 
       {/* Kanban Board */}
-      <div className="flex-1 p-6 overflow-hidden">
+      <div className="flex-1 p-4 md:p-6 overflow-hidden">
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {Object.entries(columns).map(([columnId, col]) => (
               <div 
                 key={columnId} 
-                className={`flex flex-col rounded-2xl border ${col.border} ${col.bg} h-full overflow-hidden`}
+                className={`flex flex-col rounded-2xl border ${col.border} ${col.bg} h-full overflow-hidden shadow-sm`}
               >
                 {/* Column Header */}
-                <div className="p-4 flex items-center justify-between bg-white/50 dark:bg-black/20 backdrop-blur-sm border-b border-zinc-200/50 dark:border-zinc-800/50">
+                <div className="p-3 md:p-4 flex items-center justify-between bg-white/50 dark:bg-black/20 backdrop-blur-sm border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0">
                   <div className="flex items-center gap-2.5">
                     <div className={`p-2 rounded-xl bg-white dark:bg-zinc-900 shadow-sm ${col.color}`}>
                       <col.icon className="w-5 h-5" />
@@ -112,11 +112,11 @@ export default function KitchenPage() {
                 {/* Droppable Area */}
                 <Droppable droppableId={columnId}>
                   {(provided, snapshot) => (
-                    <div className="flex-1 overflow-y-auto min-h-0">
+                    <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className={`p-4 space-y-4 min-h-[200px] transition-colors duration-200 ${
+                        className={`p-3 md:p-4 space-y-4 min-h-[200px] transition-colors duration-200 ${
                           snapshot.isDraggingOver ? "bg-black/5 dark:bg-white/5" : ""
                         }`}
                       >
@@ -129,84 +129,102 @@ export default function KitchenPage() {
                                 {...provided.dragHandleProps}
                                 className={`
                                   group rounded-xl border-zinc-200 dark:border-zinc-800 
-                                  shadow-sm hover:shadow-md transition-all duration-200
+                                  shadow-sm hover:shadow-md transition-all duration-200 bg-white dark:bg-zinc-900
                                   ${snapshot.isDragging ? "shadow-2xl rotate-2 scale-105 z-50 ring-2 ring-primary/20" : ""}
                                 `}
                               >
-                                <CardContent className="p-3">
-                                  {/* Card Header */}
-                                  <div className="flex justify-between items-center mb-3">
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-base font-bold border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 px-2 py-0.5 rounded-md"
-                                    >
-                                      {order.table}
-                                    </Badge>
-                                    <span className="text-xs font-medium text-muted-foreground flex items-center bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
-                                      <Clock className="w-3 h-3 mr-1" /> {order.time}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Items List */}
-                                  <div className="space-y-2 mb-3">
-                                    {order.items && order.items.map((item: any, idx: number) => (
-                                      <div key={idx} className="flex items-start gap-2 text-sm">
-                                        {item.image && (
-                                          <img 
-                                            src={item.image} 
-                                            alt={item.name} 
-                                            className="w-8 h-8 rounded-md object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800" 
-                                          />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-start justify-between gap-2">
-                                            <span className="font-medium truncate text-sm">{item.name}</span>
-                                            <span className="font-bold bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300 min-w-[24px] text-center shrink-0 text-xs">
-                                              {item.qty}x
-                                            </span>
-                                          </div>
-                                          {item.options && Object.values(item.options).some(Boolean) && (
-                                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                                              {Object.values(item.options).filter(Boolean).join(', ')}
-                                            </p>
+                                  <CardContent className="p-0">
+                                    {/* Card Header */}
+                                    <div className="flex justify-between items-center p-3 md:p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                                      <Badge 
+                                        variant="outline" 
+                                        className="text-base md:text-xl font-black border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg shadow-sm"
+                                      >
+                                        {order.table}
+                                      </Badge>
+                                      <span className="text-xs md:text-sm font-bold text-muted-foreground flex items-center bg-white dark:bg-zinc-800 px-2 md:px-2.5 py-1 md:py-1.5 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-1.5" /> {order.time}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Items List */}
+                                    <div className="p-3 md:p-4 space-y-3 md:space-y-4">
+                                      {order.items && order.items.map((item: any, idx: number) => (
+                                        <div key={idx} className="flex gap-2 md:gap-4">
+                                          {/* Image */}
+                                          {item.imageUrl && (
+                                            <div className="shrink-0">
+                                              <img 
+                                                src={item.imageUrl} 
+                                                alt={item.name} 
+                                                className="w-14 h-14 md:w-20 md:h-20 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-800" 
+                                              />
+                                            </div>
                                           )}
-                                          {item.note && (
-                                            <p className="text-[10px] text-orange-600 italic mt-0.5">
-                                              Note: {item.note}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
+                                          
+                                          {/* Content */}
+                                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                            <div className="flex items-start justify-between gap-2">
+                                              <span className="font-bold text-base md:text-xl leading-tight text-zinc-900 dark:text-zinc-100">
+                                                {item.name}
+                                              </span>
+                                              <Badge className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs md:text-sm h-6 md:h-7 min-w-[1.75rem] md:min-w-[2rem] flex items-center justify-center shrink-0">
+                                                {item.qty}
+                                              </Badge>
+                                            </div>
 
-                                  {/* Action Button */}
-                                  <Button 
-                                    className="w-full font-bold h-8 text-xs" 
-                                    size="sm"
-                                    variant={columnId === 'pending' ? 'default' : columnId === 'preparing' ? 'secondary' : 'outline'}
-                                    onClick={() => advanceOrder(order.id, columnId)}
-                                  >
-                                    {columnId === 'pending' && (
-                                      <>
-                                        Lancer
-                                        <ArrowRight className="w-3 h-3 ml-1.5" />
-                                      </>
-                                    )}
-                                    {columnId === 'preparing' && (
-                                      <>
-                                        <CheckCircle2 className="w-3 h-3 mr-1.5" />
-                                        Prêt
-                                      </>
-                                    )}
-                                    {columnId === 'ready' && (
-                                      <>
-                                        <Utensils className="w-3 h-3 mr-1.5" />
-                                        Servi
-                                      </>
-                                    )}
-                                  </Button>
-                                </CardContent>
+                                            {/* Options */}
+                                            {item.options && Object.values(item.options).some(Boolean) && (
+                                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {Object.keys(item.options).filter(k => item.options[k]).map((opt, i) => (
+                                                  <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                                                    {opt}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Note */}
+                                            {item.note && (
+                                              <div className="mt-2 flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium leading-snug">
+                                                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                                <span>{item.note}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <div className="p-3 md:p-4 pt-0">
+                                      <Button 
+                                        className="w-full font-bold h-12 md:h-14 text-base md:text-lg shadow-sm rounded-xl" 
+                                        size="lg"
+                                        variant={columnId === 'pending' ? 'default' : columnId === 'preparing' ? 'secondary' : 'outline'}
+                                        onClick={() => advanceOrder(order.id, columnId)}
+                                      >
+                                        {columnId === 'pending' && (
+                                          <>
+                                            Lancer la préparation
+                                            <ArrowRight className="w-5 h-5 ml-2" />
+                                          </>
+                                        )}
+                                        {columnId === 'preparing' && (
+                                          <>
+                                            <CheckCircle2 className="w-5 h-5 mr-2" />
+                                            Marquer comme Prêt
+                                          </>
+                                        )}
+                                        {columnId === 'ready' && (
+                                          <>
+                                            <Utensils className="w-5 h-5 mr-2" />
+                                            Marquer comme Servi
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </CardContent>
                               </Card>
                             )}
                           </Draggable>

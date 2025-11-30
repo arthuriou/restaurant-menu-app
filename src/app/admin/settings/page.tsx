@@ -39,7 +39,8 @@ export default function AdminSettingsPage() {
     chefSpecial, updateChefSpecial,
     openingHours, updateOpeningHours,
     specialHours, addSpecialHour, removeSpecialHour,
-    invoiceSettings, updateInvoiceSettings
+    invoiceSettings, updateInvoiceSettings,
+    saveSettings
   } = useRestaurantStore();
 
   const { items } = useMenuStore();
@@ -55,8 +56,13 @@ export default function AdminSettingsPage() {
     setMounted(true);
   }, []);
 
-  const handleSave = () => {
-    toast.success("Paramètres enregistrés avec succès");
+  const handleSave = async () => {
+    try {
+      await saveSettings();
+      toast.success("Paramètres enregistrés avec succès");
+    } catch (error) {
+      toast.error("Erreur lors de l'enregistrement");
+    }
   };
 
   const handleAddOffer = () => {

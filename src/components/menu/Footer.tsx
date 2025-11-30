@@ -1,6 +1,18 @@
 import { Facebook, Instagram, MapPin, Phone, Mail, Twitter } from "lucide-react";
 
+import { useRestaurantStore } from "@/stores/restaurant";
+
 export function Footer() {
+  const { invoiceSettings, openingHours } = useRestaurantStore();
+
+  const formatDay = (day: string) => {
+    const map: Record<string, string> = {
+      monday: 'Lundi', tuesday: 'Mardi', wednesday: 'Mercredi', thursday: 'Jeudi',
+      friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche'
+    };
+    return map[day] || day;
+  };
+
   return (
     <footer className="bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 py-12 border-t border-border/40">
       <div className="max-w-6xl mx-auto px-6">
@@ -9,15 +21,15 @@ export function Footer() {
           {/* Brand Section */}
           <div className="space-y-6">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent inline-block">
-              Mon Restaurant
+              {invoiceSettings.companyName}
             </h3>
             <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed">
-              Une expérience culinaire inoubliable, où tradition et modernité se rencontrent pour éveiller vos sens.
+              {invoiceSettings.footerMessage || "Une expérience culinaire inoubliable."}
             </p>
             <div className="flex gap-4">
               <SocialLink icon={<Facebook className="w-5 h-5" />} href="#" />
               <SocialLink icon={<Instagram className="w-5 h-5" />} href="#" />
-              <SocialLink icon={<Twitter className="w-5 h-5" />} href="#" />
+              {/* <SocialLink icon={<Twitter className="w-5 h-5" />} href="#" /> */}
             </div>
           </div>
 
@@ -27,15 +39,15 @@ export function Footer() {
             <ul className="space-y-4 text-zinc-500 dark:text-zinc-400">
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-primary shrink-0 mt-1" />
-                <span>Cocody, Abidjan<br />Côte d'Ivoire</span>
+                <span className="whitespace-pre-line">{invoiceSettings.companyAddress}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-primary shrink-0" />
-                <span>+225 07 07 07 07</span>
+                <span>{invoiceSettings.companyPhone}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-primary shrink-0" />
-                <span>contact@monrestaurant.com</span>
+                <span>{invoiceSettings.companyEmail}</span>
               </li>
             </ul>
           </div>
@@ -43,22 +55,22 @@ export function Footer() {
           {/* Opening Hours */}
           <div className="space-y-6">
             <h4 className="text-lg font-semibold text-foreground">Horaires</h4>
-            <ul className="space-y-3 text-zinc-500 dark:text-zinc-400">
-              <li className="flex justify-between">
-                <span>Lun - Ven</span>
-                <span className="text-foreground font-medium">11:00 - 23:00</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Sam - Dim</span>
-                <span className="text-foreground font-medium">10:00 - 00:00</span>
-              </li>
+            <ul className="space-y-2 text-zinc-500 dark:text-zinc-400 text-sm">
+              {Object.entries(openingHours).map(([day, hours]) => (
+                <li key={day} className="flex justify-between">
+                  <span>{formatDay(day)}</span>
+                  <span className="text-foreground font-medium">
+                    {hours.closed ? 'Fermé' : `${hours.open} - ${hours.close}`}
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
-          <p>© 2024 Mon Restaurant. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} {invoiceSettings.companyName}. Tous droits réservés.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-primary transition-colors">Mentions légales</a>
             <a href="#" className="hover:text-primary transition-colors">Confidentialité</a>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
-import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,36 +103,47 @@ export default function AdminMenuPage() {
     }
   };
 
-  // Mock data if store is empty
-  const displayItems = items?.length > 0 ? items : [
-    {
-      id: "1",
-      name: "Poulet Braisé",
-      price: 4500,
-      description: "Poulet mariné aux épices du chef, grillé lentement à la braise pour un goût fumé unique.",
-      imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?q=80&w=2070&auto=format&fit=crop",
-      available: true,
-      categoryId: "cat_grill"
-    },
-    {
-      id: "2",
-      name: "Burger Classic",
-      price: 3500,
-      description: "Steak haché, cheddar, salade, tomate, oignons rouges dans un pain brioché.",
-      imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1899&auto=format&fit=crop",
-      available: true,
-      categoryId: "cat_burger"
-    },
-    {
-      id: "3",
-      name: "Steak Frites",
-      price: 6500,
-      description: "Bœuf tendre de première qualité, servi avec nos frites maison croustillantes.",
-      imageUrl: "https://images.unsplash.com/photo-1600891964092-4316c288032e?q=80&w=2070&auto=format&fit=crop",
-      available: false,
-      categoryId: "cat_grill"
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'restaurant_menu');
+
+    try {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+      const data = await response.json();
+      
+      if (data.secure_url) {
+        setNewItem({ ...newItem, imageUrl: data.secure_url });
+        toast.success("Image téléversée avec succès !");
+      } else {
+        console.error("Cloudinary error:", data);
+        toast.error("Erreur d'upload. Vérifiez le preset 'restaurant_menu'.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Erreur lors de l'envoi de l'image.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  ];
+  };
+
+  // Display Items
+  const displayItems = items || [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -414,7 +425,7 @@ export default function AdminMenuPage() {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="rounded-lg border-zinc-700 text-xs h-7"
+                  className="rounded-lg border-zinc-700 text-xs h-7 hover:bg-zinc-800 hover:text-white"
                   onClick={() => {
                     const currentOptions = newItem.options || [];
                     setNewItem({
@@ -432,7 +443,7 @@ export default function AdminMenuPage() {
                   <div key={idx} className="flex items-center gap-2 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
                     <Input 
                       placeholder="Nom (ex: Sauce Blanche)" 
-                      className="h-8 text-sm bg-zinc-900 border-zinc-700"
+                      className="h-8 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
                       value={opt.name}
                       onChange={(e) => {
                         const newOpts = [...(newItem.options || [])];
@@ -443,7 +454,7 @@ export default function AdminMenuPage() {
                     <Input 
                       type="number" 
                       placeholder="Prix" 
-                      className="h-8 w-24 text-sm bg-zinc-900 border-zinc-700"
+                      className="h-8 w-24 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
                       value={opt.price}
                       onChange={(e) => {
                         const newOpts = [...(newItem.options || [])];
@@ -459,10 +470,10 @@ export default function AdminMenuPage() {
                         setNewItem({...newItem, options: newOpts});
                       }}
                     >
-                      <SelectTrigger className="h-8 w-28 text-xs bg-zinc-900 border-zinc-700">
+                      <SelectTrigger className="h-8 w-28 text-xs bg-zinc-900 border-zinc-700 text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                         <SelectItem value="addon">Supplément</SelectItem>
                         <SelectItem value="variant">Variante</SelectItem>
                       </SelectContent>
@@ -470,7 +481,7 @@ export default function AdminMenuPage() {
                     <Button 
                       size="icon" 
                       variant="ghost" 
-                      className="h-8 w-8 text-red-500 hover:bg-red-950/30"
+                      className="h-8 w-8 text-red-500 hover:bg-red-950/30 hover:text-red-400"
                       onClick={() => {
                         const newOpts = (newItem.options || []).filter((_: any, i: number) => i !== idx);
                         setNewItem({...newItem, options: newOpts});
@@ -486,41 +497,74 @@ export default function AdminMenuPage() {
               </div>
             </div>
 
-            {/* Image Upload */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">Image</Label>
-              <CldUploadWidget 
-                uploadPreset="restaurant_menu" 
-                onSuccess={(result: any) => {
-                  setNewItem({ ...newItem, imageUrl: result.info.secure_url });
-                }}
-              >
-                {({ open }) => (
-                  <div 
-                    onClick={() => open()}
-                    className="border-2 border-dashed border-zinc-800 rounded-2xl p-6 text-center hover:bg-zinc-900 transition-colors cursor-pointer group relative overflow-hidden"
+
+
+            {/* Image Upload Native */}
+            <div className="space-y-3 border-t border-zinc-800 pt-4">
+              <Label className="text-zinc-300">Image du plat</Label>
+              
+              <div className="flex gap-4 items-start">
+                {/* Preview Box */}
+                <div className="relative w-32 h-32 rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shrink-0">
+                  {newItem.imageUrl ? (
+                    <Image 
+                      src={newItem.imageUrl} 
+                      alt="Preview" 
+                      fill 
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                      {isUploading ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      ) : (
+                        <ImageIcon className="w-8 h-8 opacity-50" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex-1 space-y-3">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700"
                   >
-                    {newItem.imageUrl ? (
-                      <div className="relative h-40 w-full">
-                        <Image 
-                          src={newItem.imageUrl} 
-                          alt="Preview" 
-                          fill 
-                          className="object-cover rounded-xl"
-                        />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-white font-medium">Changer l'image</p>
-                        </div>
-                      </div>
+                    {isUploading ? (
+                      <>Envoi en cours...</>
                     ) : (
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
-                        <Plus className="w-8 h-8" />
-                        <span className="text-sm">Cliquez pour ajouter une photo</span>
-                      </div>
+                      <><Plus className="w-4 h-4 mr-2" /> Choisir une image</>
                     )}
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-zinc-800" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-zinc-950 px-2 text-zinc-500">ou URL</span>
+                    </div>
                   </div>
-                )}
-              </CldUploadWidget>
+
+                  <Input 
+                    placeholder="https://..." 
+                    className="bg-zinc-900 border-zinc-800 text-sm text-white placeholder:text-zinc-600"
+                    value={newItem.imageUrl || ''}
+                    onChange={(e) => setNewItem({...newItem, imageUrl: e.target.value})}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">
