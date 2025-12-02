@@ -49,10 +49,16 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
   const [activeTab, setActiveTab] = useState<'details' | 'addons'>('details');
 
   // Calculate dynamic price with options
-  const optionsTotal = item.options?.reduce((acc, opt) => {
-    return acc + (options[opt.name] ? opt.price : 0);
-  }, 0) || 0;
-  const unitPrice = item.price + optionsTotal;
+  // Si une variante est sélectionnée, utiliser son prix absolu
+  // Sinon, prix de base + suppléments
+  const selectedVariant = item.options?.find(opt => opt.type === 'variant' && options[opt.name]);
+  const basePrice = selectedVariant ? selectedVariant.price : item.price;
+  
+  // Inclure les options sans type dans le calcul (rétrocompatibilité)
+  const addonsTotal = item.options?.filter(opt => (opt.type === 'addon' || !opt.type) && options[opt.name])
+    .reduce((sum, opt) => sum + opt.price, 0) || 0;
+    
+  const unitPrice = basePrice + addonsTotal;
 
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
@@ -135,12 +141,73 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Options du plat si elles existent */}
-                  {item.options && item.options.length > 0 && (
+                  {/* Variantes (choix unique) */}
+                  {item.options && item.options.filter(opt => opt.type === 'variant').length > 0 && (
                     <div className="space-y-3">
-                      <Label className="text-base font-semibold">Options disponibles</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {item.options.map((option, idx) => {
+                      <Label className="text-base font-semibold">Choisissez votre variante</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {item.options.filter(opt => opt.type === 'variant').map((option, idx) => {
+                          const isSelected = !!options[option.name];
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                // Pour variantes : désélectionner toutes les autres variantes
+                                const newOptions = { ...options };
+                                // Supprimer toutes les variantes
+                                item.options?.filter(o => o.type === 'variant').forEach(o => {
+                                  delete newOptions[o.name];
+                                });
+                                // Ajouter celle-ci si elle n'était pas déjà sélectionnée
+                                if (!isSelected) {
+                                  newOptions[option.name] = true;
+                                }
+                                setOptions(newOptions);
+                              }}
+                              className={`flex flex-col items-center rounded-xl border-2 p-3 cursor-pointer transition-all duration-200 select-none ${
+                                isSelected 
+                                  ? "border-primary bg-primary/10" 
+                                  : "border-zinc-200 dark:border-zinc-800 bg-background hover:border-primary/50"
+                              }`}
+                            >
+                              {/* Image de la variante */}
+                              {option.imageUrl && (
+                                <div className="relative w-20 h-20 rounded-lg overflow-hidden mb-2">
+                                  <Image 
+                                    src={option.imageUrl} 
+                                    alt={option.name} 
+                                    fill 
+                                    className="object-cover"
+                                  />
+                                </div>
+                              )}
+                              <span className={`font-semibold text-sm text-center ${isSelected ? "text-primary" : ""}`}>
+                                {option.name}
+                              </span>
+                              {option.description && (
+                                <span className="text-xs text-muted-foreground text-center mt-1">
+                                  {option.description}
+                                </span>
+                              )}
+                              <span className={`text-xs font-bold mt-1 ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                                {option.price.toLocaleString()} FCFA
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 Le prix de la variante remplace le prix de base
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Suppléments (choix multiple) - Inclut aussi les options sans type (rétrocompatibilité) */}
+                  {item.options && item.options.filter(opt => opt.type === 'addon' || !opt.type).length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Suppléments</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {item.options.filter(opt => opt.type === 'addon' || !opt.type).map((option, idx) => {
                           const isSelected = !!options[option.name];
                           return (
                             <div
@@ -154,15 +221,33 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                                 }
                                 setOptions(newOptions);
                               }}
-                              className={`flex flex-col items-center rounded-xl border-2 px-4 py-3 text-sm font-medium cursor-pointer transition-all duration-200 select-none ${
+                              className={`flex flex-col items-center rounded-xl border-2 p-3 cursor-pointer transition-all duration-200 select-none ${
                                 isSelected 
-                                  ? "border-primary bg-primary/10 text-primary" 
+                                  ? "border-primary bg-primary/10" 
                                   : "border-zinc-200 dark:border-zinc-800 bg-background hover:border-primary/50"
                               }`}
                             >
-                              <span className="font-semibold">{option.name}</span>
+                              {/* Image du supplément */}
+                              {option.imageUrl && (
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden mb-2">
+                                  <Image 
+                                    src={option.imageUrl} 
+                                    alt={option.name} 
+                                    fill 
+                                    className="object-cover"
+                                  />
+                                </div>
+                              )}
+                              <span className={`font-semibold text-sm text-center ${isSelected ? "text-primary" : ""}`}>
+                                {option.name}
+                              </span>
+                              {option.description && (
+                                <span className="text-xs text-muted-foreground text-center mt-1">
+                                  {option.description}
+                                </span>
+                              )}
                               {option.price > 0 && (
-                                <span className={`text-xs font-bold ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                                <span className={`text-xs font-bold mt-1 ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
                                   +{option.price.toLocaleString()} FCFA
                                 </span>
                               )}
@@ -171,7 +256,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                         })}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        💡 Les options avec supplément seront ajoutées au prix total
+                        💡 Les suppléments s'ajoutent au prix total
                       </p>
                     </div>
                   )}

@@ -56,210 +56,214 @@ type MenuStore = {
   deleteItem: (id: string) => Promise<void>;
 };
 
-export const useMenuStore = create<MenuStore>((set, get) => ({
-  categories: [],
-  items: [],
-  isLoading: false,
-  error: null,
-  
-  selectedCategory: null,
-  setSelectedCategory: (id) => set({ selectedCategory: id }),
+import { persist } from 'zustand/middleware';
 
-  orderType: 'dine-in',
-  setOrderType: (type) => set({ orderType: type }),
-  
-  table: null,
-  setTable: (table) => set({ table }),
-  setTableId: (id) => set({ table: { id, label: `Table ${id}` } }),
+export const useMenuStore = create<MenuStore>()(
+  persist(
+    (set, get) => ({
+      categories: [],
+      items: [],
+      isLoading: false,
+      error: null,
+      
+      selectedCategory: null,
+      setSelectedCategory: (id) => set({ selectedCategory: id }),
 
-  activeOrderId: null,
-  activeOrderIds: [],
-  setActiveOrderId: (id) => set({ activeOrderId: id }),
-  removeActiveOrderId: (id) => set((state) => {
-    const newIds = state.activeOrderIds.filter(oid => oid !== id);
-    // If the removed ID was the active one, switch to the last one in the list, or null
-    const newActiveId = state.activeOrderId === id 
-      ? (newIds.length > 0 ? newIds[newIds.length - 1] : null) 
-      : state.activeOrderId;
+      orderType: 'dine-in',
+      setOrderType: (type) => set({ orderType: type }),
       
-    return {
-      activeOrderIds: newIds,
-      activeOrderId: newActiveId
-    };
-  }),
-  
-  cart: [],
-  addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
-  removeFromCart: (index) => set((state) => ({ cart: state.cart.filter((_, i) => i !== index) })),
-  updateQty: (index, delta) => set((state) => ({
-    cart: state.cart.map((item, i) => {
-      if (i === index) {
-        const newQty = Math.max(1, (item.qty || 1) + delta);
-        return { ...item, qty: newQty };
-      }
-      return item;
-    })
-  })),
-  clearCart: () => set({ cart: [] }),
-  
-  loadMenu: async () => {
-    if (!db) return;
-    set({ isLoading: true, error: null });
-    try {
-      // Load Categories
-      const catQuery = query(collection(db, 'categories'), orderBy('order'));
-      const catSnap = await getDocs(catQuery);
-      const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+      table: null,
+      setTable: (table) => set({ table }),
+      setTableId: (id) => set({ table: { id, label: id } }), // Removed "Table " prefix
 
-      // Load Items
-      const itemQuery = query(collection(db, 'products'), where('available', '==', true));
-      const itemSnap = await getDocs(itemQuery);
-      const items = itemSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
-
-      set({ categories, items, isLoading: false });
-    } catch (error: any) {
-      console.error('Erreur de chargement du menu:', error);
-      set({ 
-        error: 'Impossible de charger le menu.', 
-        isLoading: false 
-      });
-    }
-  },
-  
-  placeOrder: async (orderData) => {
-    // Sanitize items to keep only defined, non-null, non-empty values
-    const sanitizedItems = orderData.items.map(item => {
-      const sanitized: Record<string, any> = {
-        menuId: item.menuId,
-        name: item.name,
-        price: item.price,
-        qty: item.qty || 1,
-      };
+      activeOrderId: null,
+      activeOrderIds: [],
+      setActiveOrderId: (id) => set({ activeOrderId: id }),
+      removeActiveOrderId: (id) => set((state) => {
+        const newIds = state.activeOrderIds.filter(oid => oid !== id);
+        const newActiveId = state.activeOrderId === id 
+          ? (newIds.length > 0 ? newIds[newIds.length - 1] : null) 
+          : state.activeOrderId;
+          
+        return {
+          activeOrderIds: newIds,
+          activeOrderId: newActiveId
+        };
+      }),
       
-      // Only add imageUrl if it exists and is not undefined/null/empty
-      if (item.imageUrl !== undefined && item.imageUrl !== null && item.imageUrl !== '') {
-        sanitized.imageUrl = item.imageUrl;
-      }
-      
-      // Only add note if it exists
-      if (item.note !== undefined && item.note !== null && item.note !== '') {
-        sanitized.note = item.note;
-      }
-      
-      // Clean and add options object if it exists
-      if (item.options && typeof item.options === 'object') {
-        const cleanOptions: Record<string, any> = {};
-        Object.entries(item.options).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            cleanOptions[key] = value;
+      cart: [],
+      addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
+      removeFromCart: (index) => set((state) => ({ cart: state.cart.filter((_, i) => i !== index) })),
+      updateQty: (index, delta) => set((state) => ({
+        cart: state.cart.map((item, i) => {
+          if (i === index) {
+            const newQty = Math.max(1, (item.qty || 1) + delta);
+            return { ...item, qty: newQty };
           }
+          return item;
+        })
+      })),
+      clearCart: () => set({ cart: [] }),
+      
+      loadMenu: async () => {
+        if (!db) return;
+        set({ isLoading: true, error: null });
+        try {
+          const catQuery = query(collection(db, 'categories'), orderBy('order'));
+          const catSnap = await getDocs(catQuery);
+          const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+
+          const itemQuery = query(collection(db, 'products'), where('available', '==', true));
+          const itemSnap = await getDocs(itemQuery);
+          const items = itemSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+
+          set({ categories, items, isLoading: false });
+        } catch (error: any) {
+          console.error('Erreur de chargement du menu:', error);
+          set({ 
+            error: 'Impossible de charger le menu.', 
+            isLoading: false 
+          });
+        }
+      },
+      
+      placeOrder: async (orderData) => {
+        const sanitizedItems = orderData.items.map(item => {
+          const sanitized: Record<string, any> = {
+            menuId: item.menuId,
+            name: item.name,
+            price: item.price,
+            qty: item.qty || 1,
+          };
+          
+          if (item.imageUrl) sanitized.imageUrl = item.imageUrl;
+          if (item.note) sanitized.note = item.note;
+          
+          if (item.options && typeof item.options === 'object') {
+            const cleanOptions: Record<string, any> = {};
+            Object.entries(item.options).forEach(([key, value]) => {
+              if (value !== undefined && value !== null && value !== '') {
+                cleanOptions[key] = value;
+              }
+            });
+            if (Object.keys(cleanOptions).length > 0) {
+              sanitized.options = cleanOptions;
+            }
+          }
+          
+          return sanitized;
         });
-        if (Object.keys(cleanOptions).length > 0) {
-          sanitized.options = cleanOptions;
+
+        try {
+          const { addDoc, serverTimestamp } = await import('firebase/firestore');
+          const docRef = await addDoc(collection(db, 'orders'), {
+            ...orderData,
+            items: sanitizedItems,
+            status: 'pending',
+            createdAt: serverTimestamp()
+          });
+          set((state) => ({ 
+            activeOrderId: docRef.id, 
+            activeOrderIds: [...state.activeOrderIds, docRef.id],
+            cart: [] 
+          }));
+          return docRef.id;
+        } catch (error) {
+          console.error("Error placing order:", error);
+          throw error;
+        }
+      },
+      
+      getItemsByCategory: (categoryId: string) => {
+        return get().items.filter((item: MenuItem) => item.categoryId === categoryId);
+      },
+      
+      getItemById: (id: string) => {
+        return get().items.find((item: MenuItem) => item.id === id);
+      },
+
+      addCategory: async (category) => {
+        try {
+          await addDoc(collection(db, 'categories'), category);
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error adding category:", error);
+        }
+      },
+
+      updateCategory: async (id, updates) => {
+        try {
+          await updateDoc(doc(db, 'categories', id), updates);
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error updating category:", error);
+        }
+      },
+
+      deleteCategory: async (id) => {
+        try {
+          await deleteDoc(doc(db, 'categories', id));
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error deleting category:", error);
+        }
+      },
+
+      reorderCategories: async (categories) => {
+        set({ categories });
+        try {
+          const { writeBatch } = await import('firebase/firestore');
+          const batch = writeBatch(db);
+          categories.forEach((cat, index) => {
+            const ref = doc(db, 'categories', cat.id);
+            batch.update(ref, { order: index + 1 });
+          });
+          await batch.commit();
+        } catch (error) {
+          console.error("Error reordering categories:", error);
+        }
+      },
+
+      addItem: async (item) => {
+        try {
+          const sanitizedItem = JSON.parse(JSON.stringify(item));
+          await addDoc(collection(db, 'products'), sanitizedItem);
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error adding item:", error);
+          throw error;
+        }
+      },
+
+      updateItem: async (id, updates) => {
+        try {
+          const sanitizedUpdates = JSON.parse(JSON.stringify(updates));
+          await updateDoc(doc(db, 'products', id), sanitizedUpdates);
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error updating item:", error);
+          throw error;
+        }
+      },
+
+      deleteItem: async (id) => {
+        try {
+          await deleteDoc(doc(db, 'products', id));
+          get().loadMenu();
+        } catch (error) {
+          console.error("Error deleting item:", error);
         }
       }
-      
-      return sanitized;
-    });
-
-    try {
-      const { addDoc, serverTimestamp } = await import('firebase/firestore');
-      const docRef = await addDoc(collection(db, 'orders'), {
-        ...orderData,
-        items: sanitizedItems,
-        status: 'pending',
-        createdAt: serverTimestamp()
-      });
-      set((state) => ({ 
-        activeOrderId: docRef.id, 
-        activeOrderIds: [...state.activeOrderIds, docRef.id],
-        cart: [] 
-      }));
-      return docRef.id;
-    } catch (error) {
-      console.error("Error placing order:", error);
-      throw error;
+    }),
+    {
+      name: 'restaurant-menu-storage',
+      version: 1,
+      partialize: (state) => ({ 
+        table: state.table, 
+        orderType: state.orderType,
+        activeOrderId: state.activeOrderId,
+        activeOrderIds: state.activeOrderIds
+      }),
     }
-  },
-  
-  getItemsByCategory: (categoryId: string) => {
-    return get().items.filter((item: MenuItem) => item.categoryId === categoryId);
-  },
-  
-  getItemById: (id: string) => {
-    return get().items.find((item: MenuItem) => item.id === id);
-  },
-
-  // Categories Actions
-  addCategory: async (category) => {
-    try {
-      await addDoc(collection(db, 'categories'), category);
-      get().loadMenu(); // Reload to refresh
-    } catch (error) {
-      console.error("Error adding category:", error);
-    }
-  },
-
-  updateCategory: async (id, updates) => {
-    try {
-      await updateDoc(doc(db, 'categories', id), updates);
-      get().loadMenu();
-    } catch (error) {
-      console.error("Error updating category:", error);
-    }
-  },
-
-  deleteCategory: async (id) => {
-    try {
-      await deleteDoc(doc(db, 'categories', id));
-      get().loadMenu();
-    } catch (error) {
-      console.error("Error deleting category:", error);
-    }
-  },
-
-  reorderCategories: async (categories) => {
-    // Optimistic update
-    set({ categories });
-    // Batch update order in Firestore
-    try {
-      const { writeBatch } = await import('firebase/firestore');
-      const batch = writeBatch(db);
-      categories.forEach((cat, index) => {
-        const ref = doc(db, 'categories', cat.id);
-        batch.update(ref, { order: index + 1 });
-      });
-      await batch.commit();
-    } catch (error) {
-      console.error("Error reordering categories:", error);
-    }
-  },
-
-  // Items Actions
-  addItem: async (item) => {
-    try {
-      await addDoc(collection(db, 'products'), item);
-      get().loadMenu();
-    } catch (error) {
-      console.error("Error adding item:", error);
-    }
-  },
-
-  updateItem: async (id, updates) => {
-    try {
-      await updateDoc(doc(db, 'products', id), updates);
-      get().loadMenu();
-    } catch (error) {
-      console.error("Error updating item:", error);
-    }
-  },
-
-  deleteItem: async (id) => {
-    try {
-      await deleteDoc(doc(db, 'products', id));
-      get().loadMenu();
-    } catch (error) {
-      console.error("Error deleting item:", error);
-    }
-  }
-}));
+  )
+);

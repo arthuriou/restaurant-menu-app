@@ -34,9 +34,13 @@ export function Header({ table, orderType, onTableClick }: HeaderProps) {
               <UtensilsCrossed className="h-5 w-5 text-white" />
             </div>
           )}
-          <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-            {invoiceSettings.companyName || "Restaurant"}
-          </span>
+          {mounted ? (
+            <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+              {invoiceSettings.companyName || "Restaurant"}
+            </span>
+          ) : (
+            <div className="h-6 w-32 bg-muted/50 animate-pulse rounded-md" />
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -56,16 +60,17 @@ export function Header({ table, orderType, onTableClick }: HeaderProps) {
           )}
 
           {orderType !== 'takeaway' && (
-            <div 
-              className="flex flex-col items-end cursor-pointer active:opacity-70 transition-opacity"
-              onClick={onTableClick}
-            >
+            <div className="flex flex-col items-end">
               <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                 Table
               </span>
-              <span className="text-sm font-bold text-primary leading-none">
-                {table?.label || "---"}
-              </span>
+              {mounted ? (
+                <span className="text-sm font-bold text-primary leading-none">
+                  {table?.label?.replace('Table ', '') || "---"}
+                </span>
+              ) : (
+                <div className="h-4 w-8 bg-muted/50 animate-pulse rounded-md mt-1" />
+              )}
             </div>
           )}
         </div>

@@ -20,6 +20,8 @@ export type MenuItem = {
     name: string;
     price: number;
     type: 'addon' | 'variant';
+    imageUrl?: string; // Image de l'option/variante
+    description?: string; // Description optionnelle
   }[];
 };
 
@@ -33,7 +35,7 @@ export type OrderItem = {
   imageUrl?: string;
 };
 
-export type OrderStatus = "pending" | "preparing" | "ready" | "served";
+export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "cancelled";
 
 export type Order = {
   id: string;

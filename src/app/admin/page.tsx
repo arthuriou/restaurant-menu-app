@@ -1,19 +1,31 @@
 "use client";
 
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { 
-  DollarSign, Users, CreditCard, Activity, TrendingUp, 
-  Plus, UtensilsCrossed, QrCode, ArrowRight, Clock, ChefHat, ScanLine, BarChart3
+  DollarSign, Users, CreditCard, TrendingUp, 
+  UtensilsCrossed, ScanLine, BarChart3, Clock
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useOrderStore } from "@/stores/orders";
+import { useTableStore } from "@/stores/tables";
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
+  const { stats, topItems, salesByHour, subscribeToOrders } = useOrderStore();
+  const { tables, subscribeToTables } = useTableStore();
 
-  const { stats, topItems, salesByHour } = useOrderStore();
+  // Subscribe to real-time data
+  useEffect(() => {
+    const unsubOrders = subscribeToOrders();
+    const unsubTables = subscribeToTables();
+    
+    return () => {
+      unsubOrders();
+      unsubTables();
+    };
+  }, [subscribeToOrders, subscribeToTables]);
+
+  // Calculate total scans from tables
+  const totalScans = tables.reduce((acc, table) => acc + (table.scans || 0), 0);
 
   // Real Data from Store
   const dashboardStats = [
@@ -42,11 +54,11 @@ export default function AdminDashboardPage() {
       trendUp: true,
       icon: UtensilsCrossed,
       color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
+      bgColor: "bg-orange-50/10",
     },
     {
       title: "Scans QR Code",
-      value: stats.scanCount.toString(),
+      value: totalScans.toString(),
       trend: "+24%",
       trendUp: true,
       icon: ScanLine,
@@ -55,14 +67,10 @@ export default function AdminDashboardPage() {
     },
   ];
 
-
-
-  // Mock Rush Hours Data if empty
-  const rushHoursData = Object.keys(salesByHour).length > 0 ? salesByHour : {
-    11: 10, 12: 45, 13: 60, 14: 30, 18: 20, 19: 55, 20: 80, 21: 40, 22: 15
-  };
+  // Use real rush hours data (no more mock fallback)
+  const rushHoursData = salesByHour;
   
-  const maxRush = Math.max(...Object.values(rushHoursData));
+  const maxRush = Math.max(...Object.values(rushHoursData), 1); // Avoid division by 0
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -75,13 +83,6 @@ export default function AdminDashboardPage() {
           <p className="text-muted-foreground mt-1">
             Bienvenue ! Voici les performances de votre restaurant aujourd'hui.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="flex h-3 w-3 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-          <span className="text-sm font-medium text-green-600 dark:text-green-400">Service en cours</span>
         </div>
       </div>
       

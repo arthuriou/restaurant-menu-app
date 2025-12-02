@@ -54,7 +54,7 @@ export default function KitchenPage() {
     let nextStatus = '';
     if (currentStatus === 'pending') nextStatus = 'preparing';
     else if (currentStatus === 'preparing') nextStatus = 'ready';
-    else if (currentStatus === 'ready') nextStatus = 'served';
+    // REMOVED: ready => served (Le serveur s'en charge)
 
     if (nextStatus) {
       await updateOrderStatus(orderId, nextStatus as any);
@@ -173,14 +173,25 @@ export default function KitchenPage() {
                                               </Badge>
                                             </div>
 
+
                                             {/* Options */}
                                             {item.options && Object.values(item.options).some(Boolean) && (
                                               <div className="flex flex-wrap gap-1.5 mt-2">
-                                                {Object.keys(item.options).filter(k => item.options[k]).map((opt, i) => (
-                                                  <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                                                    {opt}
-                                                  </span>
-                                                ))}
+                                                {Object.entries(item.options).map(([key, value]) => {
+                                                  // Skip 'note' key as it's displayed separately
+                                                  if (key === 'note') return null;
+                                                  // Only show if value is truthy
+                                                  if (!value) return null;
+                                                  
+                                                  return (
+                                                    <span 
+                                                      key={key} 
+                                                      className="inline-flex items-center px-2 py-1 rounded-md text-xs md:text-sm font-semibold bg-primary/15 text-primary dark:bg-primary/25 border-2 border-primary/40"
+                                                    >
+                                                      {typeof value === 'boolean' ? key : value}
+                                                    </span>
+                                                  );
+                                                })}
                                               </div>
                                             )}
 
@@ -198,31 +209,32 @@ export default function KitchenPage() {
 
                                     {/* Action Button */}
                                     <div className="p-3 md:p-4 pt-0">
-                                      <Button 
-                                        className="w-full font-bold h-12 md:h-14 text-base md:text-lg shadow-sm rounded-xl" 
-                                        size="lg"
-                                        variant={columnId === 'pending' ? 'default' : columnId === 'preparing' ? 'secondary' : 'outline'}
-                                        onClick={() => advanceOrder(order.id, columnId)}
-                                      >
-                                        {columnId === 'pending' && (
-                                          <>
-                                            Lancer la préparation
-                                            <ArrowRight className="w-5 h-5 ml-2" />
-                                          </>
-                                        )}
-                                        {columnId === 'preparing' && (
-                                          <>
-                                            <CheckCircle2 className="w-5 h-5 mr-2" />
-                                            Marquer comme Prêt
-                                          </>
-                                        )}
-                                        {columnId === 'ready' && (
-                                          <>
-                                            <Utensils className="w-5 h-5 mr-2" />
-                                            Marquer comme Servi
-                                          </>
-                                        )}
-                                      </Button>
+                                      {columnId === 'ready' ? (
+                                        <div className="w-full h-12 md:h-14 flex items-center justify-center gap-2 rounded-xl bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-400 font-bold">
+                                          <CheckCircle2 className="w-5 h-5" />
+                                          En attente du serveur
+                                        </div>
+                                      ) : (
+                                        <Button 
+                                          className="w-full font-bold h-12 md:h-14 text-base md:text-lg shadow-sm rounded-xl" 
+                                          size="lg"
+                                          variant={columnId === 'pending' ? 'default' : 'secondary'}
+                                          onClick={() => advanceOrder(order.id, columnId)}
+                                        >
+                                          {columnId === 'pending' && (
+                                            <>
+                                              Lancer la préparation
+                                              <ArrowRight className="w-5 h-5 ml-2" />
+                                            </>
+                                          )}
+                                          {columnId === 'preparing' && (
+                                            <>
+                                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                                              Marquer comme Prêt
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
                                     </div>
                                   </CardContent>
                               </Card>

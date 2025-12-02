@@ -54,7 +54,8 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     pending: [],
     preparing: [],
     ready: [],
-    served: []
+    served: [],
+    cancelled: []
   },
   isLoading: false,
   error: null,
@@ -82,7 +83,8 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         pending: [],
         preparing: [],
         ready: [],
-        served: []
+        served: [],
+        cancelled: []
       };
       
       let totalRev = 0;
@@ -171,6 +173,44 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         status: newStatus,
         updatedAt: serverTimestamp()
       });
+
+      // TODO: Génération automatique de facture désactivée temporairement
+      // Cause : Erreur de permissions Firestore sur la collection 'invoices'
+      // Solution : Configurer les règles Firestore pour autoriser l'écriture
+      
+      /*
+      // Si la commande est servie, générer une facture automatiquement
+      if (newStatus === 'served') {
+        const { useInvoiceStore } = await import('@/stores/invoices');
+        const { generateInvoiceFromOrder } = await import('@/lib/invoice-service');
+        
+        // Récupérer la commande complète depuis le state local
+        const state = get();
+        let order = null;
+        
+        // Chercher dans toutes les listes
+        Object.values(state.orders).forEach(list => {
+          const found = list.find(o => o.id === orderId);
+          if (found) order = found;
+        });
+
+        if (order) {
+          // Info restaurant par défaut (à configurer plus tard)
+          const restaurantInfo = {
+            name: "Mon Restaurant",
+            address: "Abidjan, Côte d'Ivoire",
+            phone: "+225 07 00 00 00 00"
+          };
+
+          // Convertir DashboardOrder en Order (types compatibles)
+          const invoice = generateInvoiceFromOrder(order as any, restaurantInfo);
+          
+          // Sauvegarder la facture via le store
+          await useInvoiceStore.getState().addInvoice(invoice);
+          console.log("Facture générée automatiquement pour la commande", orderId);
+        }
+      }
+      */
     } catch (error) {
       console.error("Error updating order:", error);
       throw error;

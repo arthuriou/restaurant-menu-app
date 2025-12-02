@@ -33,8 +33,14 @@ export function TableSelector({
 
   useEffect(() => {
     if (open) {
-      setStep('choice'); // Reset to choice when opening
-      setValue(currentTable?.id === 'takeaway' ? '' : (currentTable?.label || ""));
+      // If we already have a table (and it's not takeaway), go straight to input
+      if (currentTable && currentTable.id !== 'takeaway') {
+        setStep('input');
+        setValue(currentTable.label.replace('Table ', ''));
+      } else {
+        setStep('choice');
+        setValue("");
+      }
     }
   }, [open, currentTable]);
 

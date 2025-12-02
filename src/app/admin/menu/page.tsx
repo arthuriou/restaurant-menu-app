@@ -142,6 +142,61 @@ export default function AdminMenuPage() {
     }
   };
 
+  // Option Image Upload Logic
+  const [uploadingOptionIndex, setUploadingOptionIndex] = useState<number | null>(null);
+  const optionFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOptionImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingOptionIndex === null) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'restaurant_menu');
+
+    // Debug file
+    console.log("File to upload:", file.name, file.type, file.size);
+
+    try {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      
+      if (!cloudName) {
+        toast.error("Config: Cloud Name manquant");
+        return;
+      }
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Cloudinary Error:", data);
+        const errorMsg = data.error?.message || "Erreur inconnue";
+        toast.error(`Erreur Upload: ${errorMsg}`);
+        return;
+      }
+
+      if (data.secure_url) {
+        const newOpts = [...(newItem.options || [])];
+        newOpts[uploadingOptionIndex].imageUrl = data.secure_url;
+        setNewItem({...newItem, options: newOpts});
+        toast.success("Image d'option ajoutée !");
+      } else {
+        toast.error("Erreur: Pas d'URL reçue");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Erreur réseau lors de l'upload");
+    } finally {
+      setIsUploading(false);
+      setUploadingOptionIndex(null);
+      if (optionFileInputRef.current) optionFileInputRef.current.value = '';
+    }
+  };
+
   // Display Items
   const displayItems = items || [];
 
@@ -430,7 +485,7 @@ export default function AdminMenuPage() {
                     const currentOptions = newItem.options || [];
                     setNewItem({
                       ...newItem, 
-                      options: [...currentOptions, { name: "", price: 0, type: "addon" }]
+                      options: [...currentOptions, { name: "", price: 0, type: "addon", imageUrl: "", description: "" }]
                     });
                   }}
                 >
@@ -438,57 +493,135 @@ export default function AdminMenuPage() {
                 </Button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Hidden Input for Options Upload */}
+                <input 
+                  type="file" 
+                  ref={optionFileInputRef}
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleOptionImageUpload}
+                />
+
                 {(newItem.options || []).map((opt: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-2 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                  <div key={idx} className="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 space-y-2">
+                    {/* Row 1: Name, Price, Type*/}
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="Nom (ex: Sauce Blanche)" 
+                        className="h-8 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary flex-1"
+                        value={opt.name}
+                        onChange={(e) => {
+                          const newOpts = [...(newItem.options || [])];
+                          newOpts[idx].name = e.target.value;
+                          setNewItem({...newItem, options: newOpts});
+                        }}
+                      />
+                      <Input 
+                        type="number" 
+                        placeholder="Prix" 
+                        className="h-8 w-24 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
+                        value={opt.price}
+                        onChange={(e) => {
+                          const newOpts = [...(newItem.options || [])];
+                          newOpts[idx].price = parseInt(e.target.value) || 0;
+                          setNewItem({...newItem, options: newOpts});
+                        }}
+                      />
+                      <Select 
+                        value={opt.type}
+                        onValueChange={(v: any) => {
+                          const newOpts = [...(newItem.options || [])];
+                          newOpts[idx].type = v;
+                          setNewItem({...newItem, options: newOpts});
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-28 text-xs bg-zinc-900 border-zinc-700 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                          <SelectItem value="addon">Supplément</SelectItem>
+                          <SelectItem value="variant">Variante</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-red-500 hover:bg-red-950/30 hover:text-red-400 shrink-0"
+                        onClick={() => {
+                          const newOpts = (newItem.options || []).filter((_: any, i: number) => i !== idx);
+                          setNewItem({...newItem, options: newOpts});
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Row 2: Image Upload & Preview */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-16 h-16 rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden shrink-0">
+                        {opt.imageUrl ? (
+                          <Image 
+                            src={opt.imageUrl} 
+                            alt={opt.name || "Option"} 
+                            fill 
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                            {isUploading && uploadingOptionIndex === idx ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            ) : (
+                              <ImageIcon className="w-6 h-6" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 shrink-0"
+                          disabled={isUploading}
+                          onClick={() => {
+                            setUploadingOptionIndex(idx);
+                            // Petit timeout pour s'assurer que le state est mis à jour avant le click (bien que React batch, c'est plus sûr avec le ref)
+                            setTimeout(() => optionFileInputRef.current?.click(), 0);
+                          }}
+                        >
+                          <ImageIcon className="w-3 h-3 mr-1" />
+                          {opt.imageUrl ? 'Changer image' : 'Ajouter image'}
+                        </Button>
+                        {opt.imageUrl && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs text-red-500 hover:bg-red-950/30"
+                            onClick={() => {
+                              const newOpts = [...(newItem.options || [])];
+                              newOpts[idx].imageUrl = '';
+                              setNewItem({...newItem, options: newOpts});
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Row 3: Description */}
                     <Input 
-                      placeholder="Nom (ex: Sauce Blanche)" 
-                      className="h-8 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
-                      value={opt.name}
+                      placeholder="Description (optionnel)" 
+                      className="h-8 text-xs bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary w-full"
+                      value={opt.description || ''}
                       onChange={(e) => {
                         const newOpts = [...(newItem.options || [])];
-                        newOpts[idx].name = e.target.value;
+                        newOpts[idx].description = e.target.value;
                         setNewItem({...newItem, options: newOpts});
                       }}
                     />
-                    <Input 
-                      type="number" 
-                      placeholder="Prix" 
-                      className="h-8 w-24 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
-                      value={opt.price}
-                      onChange={(e) => {
-                        const newOpts = [...(newItem.options || [])];
-                        newOpts[idx].price = parseInt(e.target.value) || 0;
-                        setNewItem({...newItem, options: newOpts});
-                      }}
-                    />
-                    <Select 
-                      value={opt.type}
-                      onValueChange={(v: any) => {
-                        const newOpts = [...(newItem.options || [])];
-                        newOpts[idx].type = v;
-                        setNewItem({...newItem, options: newOpts});
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-28 text-xs bg-zinc-900 border-zinc-700 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-                        <SelectItem value="addon">Supplément</SelectItem>
-                        <SelectItem value="variant">Variante</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-red-500 hover:bg-red-950/30 hover:text-red-400"
-                      onClick={() => {
-                        const newOpts = (newItem.options || []).filter((_: any, i: number) => i !== idx);
-                        setNewItem({...newItem, options: newOpts});
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 ))}
                 {(!newItem.options || newItem.options.length === 0) && (

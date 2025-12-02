@@ -309,18 +309,37 @@ export default function OrderPage() {
                     {item.name}
                   </p>
                   {item.options && Object.keys(item.options).length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1 ml-8">
+                    <div className="flex flex-wrap gap-1.5 mt-1 ml-8">
                       {Object.entries(item.options)
                         .map(([key, value]) => {
+                          // Skip 'note' key
+                          if (key === 'note') return null;
                           // If it's a boolean true, show the key (option name)
-                          if (value === true) return key;
+                          if (value === true) {
+                            return (
+                              <span 
+                                key={key}
+                                className="inline-flex items-center text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary dark:bg-primary/20 font-medium border border-primary/30"
+                              >
+                                {key}
+                              </span>
+                            );
+                          }
                           // If it's a string (like a note), show the value
-                          if (typeof value === 'string' && value) return value;
+                          if (typeof value === 'string' && value) {
+                            return (
+                              <span 
+                                key={key}
+                                className="text-xs px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700"
+                              >
+                                {value}
+                              </span>
+                            );
+                          }
                           return null;
                         })
-                        .filter(Boolean)
-                        .join(', ')}
-                    </p>
+                        .filter(Boolean)}
+                    </div>
                   )}
                 </div>
                 <p className="font-bold text-primary whitespace-nowrap ml-4">

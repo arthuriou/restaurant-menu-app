@@ -98,7 +98,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
       
       // Default invoice settings (Fallback if Firestore empty)
       invoiceSettings: {
-        companyName: "Restaurant Le Gourmet",
+        companyName: "Restaurant Tino",
         companyAddress: "123 Avenue des Saveurs, Abidjan, Côte d'Ivoire",
         companyPhone: "+225 27 XX XX XX XX",
         companyEmail: "contact@legourmet.ci",
@@ -201,6 +201,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
     }),
     {
       name: 'restaurant-storage',
+      version: 1,
     }
   )
 );

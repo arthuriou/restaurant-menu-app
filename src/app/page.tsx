@@ -11,6 +11,7 @@ import { useMenuStore } from "@/stores/menu";
 import { useTableStore } from "@/stores/tables";
 import { useOrderStore } from "@/stores/orders";
 import { useRestaurantStore } from "@/stores/restaurant";
+import { useScanStore } from "@/stores/scans";
 import type { Category, MenuItem, OrderItem } from "@/types";
 
 import { Header } from "@/components/menu/Header";
@@ -98,20 +99,68 @@ export default function Home() {
     const tableParam = params.get('table');
     
     if (tableParam) {
-      setTableId(tableParam);
+      const cleanTableId = tableParam.replace('Table ', '');
+      setTableId(cleanTableId);
       setOrderType('dine-in');
-      setTable({ id: "qr", label: tableParam }); 
+      setTable({ id: "qr", label: cleanTableId }); // Just the number
       
       // Track scan in this session
       if (!scanProcessed.current) {
-        incrementTableScans(tableParam);
-        scanProcessed.current = true;
+        // Ensure auth before scanning
+        import('firebase/auth').then(({ signInAnonymously }) => {
+          import('@/lib/firebase').then(({ auth }) => {
+            addLog("Starting auth...");
+            signInAnonymously(auth).then(async () => {
+              addLog("Auth success. Incrementing scans...");
+              const result = await incrementTableScans(cleanTableId);
+              if (result && !result.success) {
+                addLog("Scan failed: " + result.message);
+                toast.error("Erreur Scan: " + result.message);
+              } else {
+                addLog("Scan success. Adding to history...");
+                // Only add to history if table update worked (or ignore)
+                useScanStore.getState().addScan(cleanTableId).then(() => {
+                  addLog("History added.");
+                  toast.success("Bienvenue ! Table " + cleanTableId + " détectée.");
+                });
+              }
+              scanProcessed.current = true;
+            }).catch(err => {
+              addLog("Auth error: " + err.message);
+              console.error("Auth error:", err);
+              toast.error("Erreur Auth: " + err.message);
+            });
+          });
+        });
       }
     } else {
-      setOrderType('takeaway');
-      setTable({ id: "takeaway", label: "À emporter" });
+      // Only reset if no table is already set (persistence check)
+      const currentTable = useMenuStore.getState().table;
+      if (!currentTable) {
+        setOrderType('takeaway');
+        setTable({ id: "takeaway", label: "À emporter" });
+      } else if (currentTable.label.startsWith('Table ')) {
+        // Migration: Fix old "Table X" labels to just "X"
+        const cleanLabel = currentTable.label.replace('Table ', '');
+        setTable({ ...currentTable, label: cleanLabel });
+      }
     }
   }, [setTableId, setOrderType, setTable, incrementTableScans]);
+
+  // Initial Loading State
+  const [mounted, setMounted] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addLog = (msg: string) => {
+    console.log(msg);
+    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+
   // State
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -175,11 +224,14 @@ export default function Home() {
     if (!detail.item) return;
     
     // Calculate price with options
-    const optionsTotal = detail.item.options?.reduce((acc, opt) => {
-      const selectedOptions = detail.options as Record<string, any>;
-      return acc + (selectedOptions[opt.name] ? opt.price : 0);
-    }, 0) || 0;
-    const totalPrice = detail.item.price + optionsTotal;
+    // Si une variante est sélectionnée, utilprix absolu de la variante
+    // Sinon, prix de base + suppléments
+    const selectedOptions = detail.options as Record<string, any>;
+    const selectedVariant = detail.item.options?.find(opt => opt.type === 'variant' && selectedOptions[opt.name]);
+    const basePrice = selectedVariant ? selectedVariant.price : detail.item.price;
+    const addonsTotal = detail.item.options?.filter(opt => (opt.type === 'addon' || !opt.type) && selectedOptions[opt.name])
+      .reduce((sum, opt) => sum + opt.price, 0) || 0;
+    const totalPrice = basePrice + addonsTotal;
     
     const toAdd: OrderItem = {
       menuId: detail.item.id,
@@ -248,6 +300,17 @@ export default function Home() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!mounted) {
+    return (
+      <div className="fixed inset-0 bg-background z-[100] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground font-medium animate-pulse">Chargement...</p>
+        </div>
       </div>
     );
   }
@@ -398,6 +461,15 @@ export default function Home() {
         onCheckout={handlePlaceOrder}
         total={total}
       />
+
+      {/* Debug Log - Temporary */}
+      {debugLog.length > 0 && (
+        <div className="fixed top-0 left-0 bg-black/80 text-white text-xs p-2 z-[200] max-w-[300px] max-h-[200px] overflow-auto pointer-events-none">
+          {debugLog.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

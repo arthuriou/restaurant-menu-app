@@ -95,13 +95,29 @@ export function CartDrawer({
                         {item.options && Object.keys(item.options).length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
                             {Object.entries(item.options).map(([k, v]) => {
+                              // Skip 'note' key
+                              if (k === 'note') return null;
                               // If option is a boolean (true), display the key name
                               if (v === true) {
-                                return <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{k}</span>;
+                                return (
+                                  <span 
+                                    key={k} 
+                                    className="inline-flex items-center text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary dark:bg-primary/20 font-medium border border-primary/30"
+                                  >
+                                    {k}
+                                  </span>
+                                );
                               }
                               // If option is a string (like a note), display the value
                               if (typeof v === 'string' && v) {
-                                return <span key={k} className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700">{v}</span>;
+                                return (
+                                  <span 
+                                    key={k} 
+                                    className="text-[10px] px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium border border-zinc-200 dark:border-zinc-700"
+                                  >
+                                    {v}
+                                  </span>
+                                );
                               }
                               return null;
                             })}

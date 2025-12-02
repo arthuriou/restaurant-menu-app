@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, QrCode, Trash2, Download, Copy, Users, Pencil, ScanLine } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,22 @@ import { Label } from "@/components/ui/label";
 import { useTableStore, Table } from "@/stores/tables";
 
 export default function AdminTablesPage() {
-  const { tables, addTable, updateTable, deleteTable } = useTableStore();
+  const { tables, addTable, updateTable, deleteTable, subscribeToTables } = useTableStore();
   const [qrOpen, setQrOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [baseUrl] = useState("http://192.168.1.79:3000"); // Replace with actual domain
+  const [baseUrl] = useState("http://192.168.1.79:3000");
   
   // Form states
   const [newTableLabel, setNewTableLabel] = useState("");
   const [newTableSeats, setNewTableSeats] = useState("4");
+
+  // Subscribe to tables
+  useEffect(() => {
+    const unsubscribe = subscribeToTables();
+    return () => unsubscribe();
+  }, [subscribeToTables]);
 
   const handleOpenQr = (table: Table) => {
     setSelectedTable(table);
@@ -105,7 +111,6 @@ export default function AdminTablesPage() {
 
   const downloadAllQrs = () => {
     toast.info("Téléchargement de tous les QR codes...");
-    // This would need to be implemented with a zip library
   };
 
   return (
@@ -195,7 +200,7 @@ export default function AdminTablesPage() {
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2">
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    <span>{table.seats}</span>
+                    <span>{table.occupants || 0}/{table.seats}</span>
                   </div>
                   <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                   <div className="flex items-center gap-1">

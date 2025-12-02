@@ -41,7 +41,7 @@ interface TableState {
   addTable: (table: Omit<Table, 'id' | 'scans' | 'status'>) => Promise<void>;
   updateTable: (id: string, updates: Partial<Table>) => Promise<void>;
   deleteTable: (id: string) => Promise<void>;
-  incrementTableScans: (id: string) => Promise<void>;
+  incrementTableScans: (id: string) => Promise<{ success: boolean; message: string } | void>;
   setTableStatus: (id: string, status: TableStatus, occupants?: number) => Promise<void>;
   requestService: (tableId: string, type: 'assistance' | 'bill') => Promise<void>;
   resolveServiceRequest: (tableId: string) => Promise<void>;
@@ -118,13 +118,41 @@ export const useTableStore = create<TableState>((set, get) => ({
     }
   },
 
-  incrementTableScans: async (id) => {
+  incrementTableScans: async (label) => {
     try {
-      await updateDoc(doc(db, 'tables', id), {
-        scans: increment(1)
-      });
-    } catch (error) {
-      console.error("Error incrementing scans:", error);
+      console.log(`[TableStore] Incrementing scans for label: "${label}"`);
+      const { query, where, getDocs, increment } = await import('firebase/firestore');
+      
+      // 1. Try exact match
+      const q = query(collection(db, 'tables'), where('label', '==', label));
+      const snapshot = await getDocs(q);
+
+      let tableDoc = snapshot.empty ? null : snapshot.docs[0];
+
+      // 2. Try with "Table " prefix if not found
+      if (!tableDoc) {
+        console.log(`[TableStore] Exact match not found, trying "Table ${label}"`);
+        const q2 = query(collection(db, 'tables'), where('label', '==', `Table ${label}`));
+        const snapshot2 = await getDocs(q2);
+        if (!snapshot2.empty) tableDoc = snapshot2.docs[0];
+      }
+
+      if (tableDoc) {
+        console.log(`[TableStore] Found table doc: ${tableDoc.id}, updating...`);
+        await updateDoc(tableDoc.ref, {
+          scans: increment(1),
+          occupants: increment(1),
+          status: 'occupied'
+        });
+        console.log(`[TableStore] Update successful`);
+        return { success: true, message: "Scan enregistré" };
+      } else {
+         console.warn(`[TableStore] Table with label "${label}" not found in DB`);
+         return { success: false, message: `Table "${label}" introuvable` };
+      }
+    } catch (error: any) {
+      console.error("[TableStore] Error incrementing scans:", error);
+      return { success: false, message: error.message || "Erreur scan" };
     }
   },
 
