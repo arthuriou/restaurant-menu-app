@@ -58,7 +58,8 @@ export default function AdminMenuPage() {
     price: 0,
     categoryId: "",
     available: true,
-    options: []
+    options: [],
+    recommendations: []
   });
 
   const handleOpenAdd = () => {
@@ -69,7 +70,8 @@ export default function AdminMenuPage() {
       price: 0,
       categoryId: categories[0]?.id || "",
       available: true,
-      options: []
+      options: [],
+      recommendations: []
     });
     setIsAddOpen(true);
   };
@@ -626,6 +628,68 @@ export default function AdminMenuPage() {
                 ))}
                 {(!newItem.options || newItem.options.length === 0) && (
                   <p className="text-xs text-zinc-500 italic text-center py-2">Aucune option configurée</p>
+                )}
+              </div>
+            </div>
+
+            {/* Recommendations Section */}
+            <div className="space-y-3 border-t border-zinc-800 pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-zinc-300 text-base font-semibold">Suggestions d'accompagnement</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                  onClick={() => {
+                    setNewItem({
+                      ...newItem, 
+                      recommendations: [...(newItem.recommendations || []), '']
+                    });
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Ajouter
+                </Button>
+              </div>
+
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {newItem.recommendations?.map((recId: string, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                    <Select
+                      value={recId}
+                      onValueChange={(value) => {
+                        const newRecs = [...(newItem.recommendations || [])];
+                        newRecs[idx] = value;
+                        setNewItem({...newItem, recommendations: newRecs});
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-zinc-900 border-zinc-700 flex-1">
+                        <SelectValue placeholder="Sélectionner un produit" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-700">
+                        {items.map(menuItem => (
+                          <SelectItem key={menuItem.id} value={menuItem.id} className="text-xs">
+                            {menuItem.name} - {menuItem.price} FCFA
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-500 hover:bg-red-950/30 shrink-0"
+                      onClick={() => {
+                        const newRecs = newItem.recommendations.filter((_: any, i: number) => i !== idx);
+                        setNewItem({...newItem, recommendations: newRecs});
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+                {(!newItem.recommendations || newItem.recommendations.length === 0) && (
+                  <p className="text-xs text-zinc-500 italic text-center py-2">Aucune recommandation configurée</p>
                 )}
               </div>
             </div>

@@ -415,7 +415,7 @@ export default function Home() {
 
       {/* Active Order Floating Button */}
       {activeOrderId && (
-        <div className="fixed bottom-24 right-4 z-[100]">
+        <div className="fixed bottom-24 right-4 z-40">
           <Button 
             onClick={() => router.push(`/order/${activeOrderId}`)}
             className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white px-5 py-3 h-auto flex items-center gap-3 animate-in slide-in-from-bottom-10 border-2 border-white/20"
