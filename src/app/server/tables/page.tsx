@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { 
   Users, ChevronLeft, Receipt, Printer, CreditCard,
-  Bell, Check, BanknoteIcon
+  Bell, Check, BanknoteIcon, Utensils
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -32,6 +32,7 @@ export default function ServerTablesPage() {
   const { invoiceSettings } = useRestaurantStore();
   const { user } = useAuthStore();
   
+  const [actionDialog, setActionDialog] = useState<{ open: boolean; tableId: string | null }>({ open: false, tableId: null });
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<Invoice | null>(null);
@@ -87,11 +88,6 @@ export default function ServerTablesPage() {
     const table = tables.find(t => t.id === tableId);
     if (!table) return;
 
-    if (status === 'available') {
-      toast.info("Cette table est libre.");
-      return;
-    }
-
     if (status === 'needs_service') {
       resolveServiceRequest(tableId);
       toast.success(`Service rendu à la Table ${table.label}`);
@@ -100,14 +96,22 @@ export default function ServerTablesPage() {
 
     if (status === 'requesting_bill') {
       setSelectedTable(tableId);
-      setGeneratedInvoice(null); // Reset previous invoice
+      setGeneratedInvoice(null);
       setShowInvoiceDialog(true);
       return;
     }
 
-    // For occupied tables, just show info
-    if (status === 'occupied') {
-      toast.info(`Table ${table.label} occupée par ${table.occupants} personne(s)`);
+    // Open Action Dialog for Available or Occupied tables
+    setActionDialog({ open: true, tableId });
+  };
+
+  const handleTakeOrder = () => {
+    if (actionDialog.tableId) {
+      const table = tables.find(t => t.id === actionDialog.tableId);
+      if (table) {
+        // Redirect to main menu with table param
+        window.location.href = `/?table=${table.label}`;
+      }
     }
   };
 
@@ -244,6 +248,52 @@ export default function ServerTablesPage() {
           );
         })}
       </div>
+
+      {/* Table Action Dialog */}
+      <Dialog open={actionDialog.open} onOpenChange={(open) => setActionDialog({ ...actionDialog, open })}>
+        <DialogContent className="sm:max-w-sm rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              Table {tables.find(t => t.id === actionDialog.tableId)?.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            <Button 
+              size="lg" 
+              className="h-14 text-lg font-bold bg-primary hover:bg-primary/90 rounded-xl"
+              onClick={handleTakeOrder}
+            >
+              <Utensils className="mr-2 h-5 w-5" />
+              Prendre Commande
+            </Button>
+            
+            {tables.find(t => t.id === actionDialog.tableId)?.status === 'occupied' && (
+               <Button 
+                size="lg" 
+                variant="secondary"
+                className="h-14 text-lg font-bold rounded-xl"
+                onClick={() => {
+                  setSelectedTable(actionDialog.tableId);
+                  setGeneratedInvoice(null);
+                  setShowInvoiceDialog(true);
+                  setActionDialog({ ...actionDialog, open: false });
+                }}
+              >
+                <Receipt className="mr-2 h-5 w-5" />
+                Encaisser / Voir
+              </Button>
+            )}
+
+            <Button 
+              variant="ghost" 
+              onClick={() => setActionDialog({ ...actionDialog, open: false })}
+              className="rounded-xl"
+            >
+              Annuler
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invoice Generation Dialog */}
       <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>

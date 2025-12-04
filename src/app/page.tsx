@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Bell, HelpCircle, Receipt as ReceiptIcon } from "lucide-react";
+import { Loader2, Bell, ChefHat } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -69,6 +69,7 @@ export default function Home() {
 
   // Call Server State
   const [callServerOpen, setCallServerOpen] = useState(false);
+  const [activeOrderStatus, setActiveOrderStatus] = useState<string | null>(null);
 
   const handleCallServer = (type: 'assistance' | 'bill') => {
     if (!table) {
@@ -93,6 +94,39 @@ export default function Home() {
     }
   };
 
+  // Monitor active order status for dynamic button text
+  useEffect(() => {
+    if (!activeOrderId) {
+      setActiveOrderStatus(null);
+      return;
+    }
+
+    const loadOrderStatus = async () => {
+      try {
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        
+        if (!db) return;
+
+        const orderRef = doc(db, 'orders', activeOrderId);
+        const unsubscribe = onSnapshot(orderRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setActiveOrderStatus(data.status || null);
+          } else {
+            setActiveOrderStatus(null);
+          }
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error loading order status:', error);
+      }
+    };
+
+    loadOrderStatus();
+  }, [activeOrderId]);
+
   // Handle URL params for QR codes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -110,26 +144,35 @@ export default function Home() {
         import('firebase/auth').then(({ signInAnonymously }) => {
           import('@/lib/firebase').then(({ auth }) => {
             addLog("Starting auth...");
-            signInAnonymously(auth).then(async () => {
-              addLog("Auth success. Incrementing scans...");
+            
+            const proceedWithScan = async () => {
+              addLog("Auth success/present. Incrementing scans...");
               const result = await incrementTableScans(cleanTableId);
               if (result && !result.success) {
                 addLog("Scan failed: " + result.message);
                 toast.error("Erreur Scan: " + result.message);
               } else {
                 addLog("Scan success. Adding to history...");
-                // Only add to history if table update worked (or ignore)
                 useScanStore.getState().addScan(cleanTableId).then(() => {
                   addLog("History added.");
                   toast.success("Bienvenue ! Table " + cleanTableId + " détectée.");
                 });
               }
               scanProcessed.current = true;
-            }).catch(err => {
-              addLog("Auth error: " + err.message);
-              console.error("Auth error:", err);
-              toast.error("Erreur Auth: " + err.message);
-            });
+            };
+
+            if (auth.currentUser) {
+              addLog("User already signed in: " + auth.currentUser.uid);
+              proceedWithScan();
+            } else {
+              signInAnonymously(auth).then(() => {
+                proceedWithScan();
+              }).catch(err => {
+                addLog("Auth error: " + err.message);
+                console.error("Auth error:", err);
+                toast.error("Erreur Auth: " + err.message);
+              });
+            }
           });
         });
       }
@@ -320,7 +363,7 @@ export default function Home() {
       <Header 
         table={table} 
         orderType={orderType}
-        onTableClick={() => setIsTableSelectorOpen(true)} 
+        onCallServer={() => setCallServerOpen(true)} 
       />
       
       <main className="max-w-5xl mx-auto w-full flex-1 pb-24">
@@ -372,26 +415,18 @@ export default function Home() {
 
       {/* Active Order Floating Button */}
       {activeOrderId && (
-        <div className="fixed bottom-40 right-4 z-40">
+        <div className="fixed bottom-24 right-4 z-[100]">
           <Button 
             onClick={() => router.push(`/order/${activeOrderId}`)}
-            className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white px-4 py-3 h-auto flex items-center gap-2 animate-in slide-in-from-bottom-10"
+            className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white px-5 py-3 h-auto flex items-center gap-3 animate-in slide-in-from-bottom-10 border-2 border-white/20"
           >
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <span className="font-bold">Suivi Commande</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Call Server Button */}
-      {table && (
-        <div className="fixed bottom-20 right-4 z-40">
-          <Button 
-            onClick={() => setCallServerOpen(true)}
-            className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white w-14 h-14 flex items-center justify-center animate-in slide-in-from-bottom-10 hover:scale-110 transition-transform"
-            title="Appeler le serveur"
-          >
-            <Bell className="w-6 h-6 animate-pulse" />
+            <div className="relative flex items-center justify-center">
+              <div className="w-3 h-3 bg-white rounded-full animate-ping absolute" />
+              <div className="w-2 h-2 bg-white rounded-full relative" />
+            </div>
+            <span className="font-bold text-sm">
+              {activeOrderStatus === 'served' ? 'Voir ma facture' : 'Ma Commande'}
+            </span>
           </Button>
         </div>
       )}
@@ -400,36 +435,39 @@ export default function Home() {
 
       {/* Call Server Dialog */}
       <Dialog open={callServerOpen} onOpenChange={setCallServerOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" />
-              Appeler le Serveur
+        <DialogContent className="sm:max-w-xs rounded-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-center text-xl font-bold">
+              Appeler un serveur ?
             </DialogTitle>
-            <DialogDescription>
-              Comment pouvons-nous vous aider ?
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <Button
-              onClick={() => handleCallServer('assistance')}
-              className="h-24 text-lg font-semibold rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg flex flex-col items-center justify-center gap-2"
-            >
-              <HelpCircle className="w-8 h-8" />
-              <span>J'ai besoin d'aide</span>
-              <span className="text-xs font-normal opacity-90">Question ou demande spéciale</span>
-            </Button>
+          <div className="flex flex-col items-center gap-6">
+            {/* Server Animation */}
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping" />
+              <div className="relative w-full h-full bg-white dark:bg-zinc-900 border-2 border-primary rounded-full flex items-center justify-center overflow-hidden">
+                <div className="animate-[slide-in_1.5s_ease-in-out_infinite]">
+                  <ChefHat className="w-10 h-10 text-primary" />
+                </div>
+              </div>
+            </div>
 
             <Button
-              onClick={() => handleCallServer('bill')}
-              className="h-24 text-lg font-semibold rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg flex flex-col items-center justify-center gap-2"
+              onClick={() => handleCallServer('assistance')}
+              className="w-full h-12 text-base font-bold rounded-xl bg-primary hover:bg-primary/90 text-white shadow-md transition-all active:scale-95"
             >
-              <ReceiptIcon className="w-8 h-8" />
-              <span>Demander l'addition</span>
-              <span className="text-xs font-normal opacity-90">Prêt à régler</span>
+              Oui, appeler maintenant
             </Button>
           </div>
+          
+          <style jsx global>{`
+            @keyframes slide-in {
+              0% { transform: translateX(-150%); opacity: 0; }
+              50% { transform: translateX(0); opacity: 1; }
+              100% { transform: translateX(150%); opacity: 0; }
+            }
+          `}</style>
         </DialogContent>
       </Dialog>
 

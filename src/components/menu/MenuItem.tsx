@@ -1,58 +1,52 @@
+import { MenuItem } from "@/types";
 import Image from "next/image";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { MenuItem } from "@/types";
+import { Plus, ShoppingBag } from "lucide-react";
 
-interface MenuItemProps {
-  item: MenuItem & { available: boolean };
+interface MenuItemCardProps {
+  item: MenuItem;
   onAdd: () => void;
 }
 
-export function MenuItemCard({ item, onAdd }: MenuItemProps) {
+export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   return (
     <div 
-      className="group relative flex flex-col bg-card rounded-[1.5rem] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-border/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-500 active:scale-[0.98] cursor-pointer"
       onClick={onAdd}
+      className="group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 shadow-lg hover:shadow-xl transition-all cursor-pointer flex gap-4 min-h-[140px] w-full !overflow-visible"
     >
-      <div className="flex flex-row items-center p-3 gap-4">
-        {/* Image Left - Circular */}
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full shadow-sm">
+      {/* Image Container - Left Side */}
+      <div className="relative h-32 w-32 shrink-0 self-center">
+        <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-inner">
           {item.imageUrl ? (
-            <Image 
-              src={item.imageUrl} 
-              alt={item.name} 
-              fill 
+            <Image
+              src={item.imageUrl}
+              alt={item.name}
+              fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-              <span className="text-xs">No img</span>
+            <div className="w-full h-full flex items-center justify-center text-zinc-300">
+              <ShoppingBag className="w-10 h-10" />
             </div>
           )}
         </div>
+      </div>
 
-        {/* Content Middle */}
-        <div className="flex flex-col flex-1 min-w-0 space-y-1">
-          <h3 className="font-bold text-base leading-tight text-foreground line-clamp-1">{item.name}</h3>
-          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed opacity-90">{item.description}</p>
-          <div className="pt-1 font-bold text-base text-primary">
-            {item.price.toLocaleString()} <span className="text-[10px] font-medium text-muted-foreground">FCFA</span>
-          </div>
+      {/* Content Container - Right Side */}
+      <div className="flex-1 flex flex-col py-1 min-w-0 relative">
+        <div className="space-y-1 pr-2">
+          <h3 className="font-black text-xl uppercase leading-none text-zinc-900 dark:text-white line-clamp-2 tracking-tight">
+            {item.name}
+          </h3>
+          <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium">
+            {item.description}
+          </p>
         </div>
-        
-        {/* Action Right */}
-        <div className="shrink-0">
-          <Button 
-            size="sm" 
-            className="h-9 px-4 rounded-full bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 font-bold text-xs transition-transform active:scale-95" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-            disabled={!item.available}
-          >
-            Ajouter
-          </Button>
+
+        {/* Price Tag - Overlapping Bottom Right */}
+        <div className="absolute -bottom-8 -right-1 z-10">
+          <div className="bg-primary text-white font-black text-lg px-5 py-2 rounded-[1rem] shadow-md transform transition-transform group-hover:scale-105 flex items-center justify-center min-w-[80px]">
+            <span>{item.price.toLocaleString('fr-FR')} FCFA</span>
+          </div>
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ export type MenuItem = {
   price: number;
   imageUrl?: string;
   available: boolean;
+  recommendations?: string[]; // IDs de menu items recommandés (boissons, vins, etc.)
   options?: {
     name: string;
     price: number;

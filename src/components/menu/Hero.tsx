@@ -46,9 +46,6 @@ export function Hero() {
 
   return (
     <div className="pt-2 pb-4 space-y-3 relative group/hero">
-      <div className="px-5">
-        <h1 className="text-2xl font-bold tracking-tight">Bienvenue chez <span className="text-primary">{invoiceSettings.companyName}</span> 👋</h1>
-      </div>
       
       {/* Desktop Navigation Arrows */}
       {specialOffers.length > 1 && (
