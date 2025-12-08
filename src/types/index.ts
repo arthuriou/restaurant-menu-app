@@ -16,7 +16,16 @@ export type MenuItem = {
   price: number;
   imageUrl?: string;
   available: boolean;
+  featured?: boolean;       // Item vedette dans la section spécialités
+  featuredOrder?: number;   // Ordre d'affichage (optionnel)
+  averageRating?: number;   // Moyenne des avis (0-5)
+  reviewCount?: number;     // Nombre d'avis
   recommendations?: string[]; // IDs de menu items recommandés (boissons, vins, etc.)
+  promotion?: {
+    price: number;        // Prix promotionnel
+    startDate: number;    // Timestamp début promo
+    endDate: number;      // Timestamp fin promo
+  };
   options?: {
     name: string;
     price: number;
@@ -32,6 +41,7 @@ export type OrderItem = {
   price: number;
   qty: number;
   options?: Record<string, string | number | boolean>;
+  selectedOptions?: { name: string; price: number }[]; // Added for ReviewDialog and UI
   note?: string;
   imageUrl?: string;
 };
@@ -45,6 +55,18 @@ export type Order = {
   total: number;
   status: OrderStatus;
   createdAt: Timestamp;
+};
+
+// Review Type
+export type Review = {
+  id: string;
+  itemId: string;
+  orderId: string;
+  tableId: string;
+  rating: number;
+  comment?: string;
+  createdAt: number;
+  itemName?: string;
 };
 
 // Invoice Types
@@ -99,5 +121,6 @@ export type StaffMember = {
   role: Role;
   pin: string;
   active: boolean;
+  avatar?: string; // Added for custom avatars
   createdAt: number;
 };

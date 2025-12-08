@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, CheckCircle2, Clock, ChefHat, UtensilsCrossed, XCircle, Wallet, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, Clock, ChefHat, UtensilsCrossed, XCircle, Wallet, ShoppingBag, Star } from "lucide-react";
 import { toast } from "sonner";
 import type { Order, OrderStatus as OrderStatusType } from "@/types";
 import { useMenuStore } from "@/stores/menu";
 import { useTableStore } from "@/stores/tables";
 import { useRestaurantStore } from "@/stores/restaurant";
+import { ReviewDialog } from "@/components/reviews/ReviewDialog";
+import { useReviewStore } from "@/stores/reviews";
 
 // Status configuration
 const STATUS_CONFIG = {
@@ -46,9 +48,12 @@ export default function OrderPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
   const { items: allMenuItems, removeActiveOrderId } = useMenuStore();
-  const { requestService } = useTableStore();
+  const {  requestService } = useTableStore();
   const { invoiceSettings } = useRestaurantStore();
+  const { hasReviewedOrder } = useReviewStore();
 
   const [prevStatus, setPrevStatus] = useState<OrderStatusType | null>(null);
   const [otherOrders, setOtherOrders] = useState<Order[]>([]);
@@ -143,6 +148,18 @@ export default function OrderPage() {
     loadOrder();
   }, [params.id, removeActiveOrderId]);
 
+  // Check if order has been reviewed
+  useEffect(() => {
+    if (!params.id) return;
+    
+    const checkReview = async () => {
+      const reviewed = await hasReviewedOrder(params.id as string);
+      setHasReviewed(reviewed);
+    };
+    
+    checkReview();
+  }, [params.id, hasReviewedOrder]);
+
   useEffect(() => {
     if (!order || !prevStatus) {
       if (order) setPrevStatus(order.status);
@@ -231,6 +248,9 @@ export default function OrderPage() {
   
   const statusConfig = STATUS_CONFIG[globalStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
   const isCompleted = allServed;
+  
+  // Aggregate all items from all session orders for review
+  const combinedItems = allSessionOrders.flatMap(o => o.items || []);
 
   return (
     <div className="min-h-dvh bg-zinc-100 dark:bg-zinc-950 flex flex-col pb-8">
@@ -418,9 +438,35 @@ export default function OrderPage() {
             <Wallet className="mr-2 h-5 w-5" />
             Régler l'addition
           </Button>
+
+          {/* Review Button (only if all orders served and not reviewed) */}
+          {allServed && !hasReviewed && (
+            <Button
+              onClick={() => setReviewDialogOpen(true)}
+              variant="outline"
+              className="w-full h-14 rounded-full text-lg font-bold shadow-xl border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950 transition-transform active:scale-[0.98]"
+            >
+              <Star className="mr-2 h-5 w-5 fill-yellow-400" />
+              Laisser un avis
+            </Button>
+          )}
         </div>
 
       </main>
+
+      {/* Review Dialog */}
+      {order && combinedItems.length > 0 && (
+        <ReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={(open) => {
+            setReviewDialogOpen(open);
+            if (!open) setHasReviewed(true);
+          }}
+          orderId={params.id as string}
+          tableId={order.tableId || ""}
+          items={combinedItems}
+        />
+      )}
     </div>
   );
 }

@@ -283,46 +283,42 @@ export default function AdminSettingsPage() {
               <CardDescription>Adaptez l'apparence de votre menu à votre image de marque.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <Label className="text-base">Couleur du thème</Label>
-                  <p className="text-sm text-muted-foreground">Choisissez la couleur principale de votre site.</p>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-base font-semibold">Couleur du thème</Label>
+                  <p className="text-sm text-muted-foreground mt-1">Choisissez la couleur principale de votre site.</p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   {PRESET_COLORS.map((color) => (
                     <button
                       key={color.name}
                       onClick={() => setPrimaryColor(color.value)}
                       className={cn(
-                        "w-10 h-10 rounded-full transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background",
-                        color.class,
-                        primaryColor === color.value ? "ring-2 ring-offset-2 ring-offset-background ring-zinc-900 dark:ring-white scale-110" : ""
+                        "relative w-12 h-12 rounded-full transition-all hover:scale-110 focus:outline-none",
+                        color.class
                       )}
                       title={color.name}
+                      aria-label={`Couleur ${color.name}`}
                     >
                       {primaryColor === color.value && (
-                        <Check className="w-5 h-5 text-white mx-auto" />
+                        <Check className="w-6 h-6 text-white absolute inset-0 m-auto drop-shadow-md" strokeWidth={3} />
                       )}
                     </button>
                   ))}
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={cn(
-                      "relative flex items-center justify-center w-10 h-10 rounded-full overflow-hidden transition-all hover:scale-110 ring-offset-background focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-zinc-900 dark:focus-within:ring-white",
-                      !PRESET_COLORS.some(c => c.value === primaryColor) && "ring-2 ring-offset-2 ring-offset-background ring-zinc-900 dark:ring-white scale-110"
-                    )}>
+                  <div className="relative flex flex-col items-center gap-1">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 hover:scale-110 transition-all">
                       <input
                         type="color"
-                        value={primaryColor.startsWith('hsl') ? '#000000' : primaryColor}
+                        value={primaryColor.startsWith('hsl') ? '#FF6B35' : primaryColor}
                         onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="absolute inset-0 w-[150%] h-[150%] -top-[25%] -left-[25%] p-0 border-0 cursor-pointer"
+                        className="absolute inset-0 w-[150%] h-[150%] -top-[25%] -left-[25%] cursor-pointer border-0"
                         title="Couleur personnalisée"
                       />
-                      <Plus className={cn(
-                        "w-5 h-5 pointer-events-none transition-colors",
-                        !PRESET_COLORS.some(c => c.value === primaryColor) ? "text-primary" : "text-zinc-500"
-                      )} />
+                      {!PRESET_COLORS.some(c => c.value === primaryColor) && (
+                        <Check className="w-6 h-6 text-white absolute inset-0 m-auto pointer-events-none drop-shadow-md" strokeWidth={3} />
+                      )}
                     </div>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Perso</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">PERSO</span>
                   </div>
                 </div>
               </div>
@@ -439,27 +435,17 @@ export default function AdminSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-base">Mode Sombre (Admin)</Label>
+                  <Label className="text-base">Thème de l'Administration</Label>
                   <p className="text-sm text-muted-foreground">
-                    Activez le thème sombre pour l'interface d'administration. 
+                    {theme === 'dark' ? 'Mode Sombre' : 'Mode Clair'} activé.
                     <br/>
-                    <span className="text-xs opacity-80 italic">N'affecte pas le site public.</span>
+                    <span className="text-xs opacity-80 italic">N'affecte que l'interface admin.</span>
                   </p>
                 </div>
                 <Switch 
                   checked={theme === 'dark'}
                   onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                 />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Animations</Label>
-                  <p className="text-sm text-muted-foreground">Activer les animations de transition.</p>
-                </div>
-                <Switch defaultChecked />
               </div>
             </CardContent>
           </Card>
@@ -500,12 +486,38 @@ export default function AdminSettingsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Image URL</Label>
-                        <Input 
-                          value={offer.imageUrl} 
-                          onChange={(e) => updateSpecialOffer(offer.id, { imageUrl: e.target.value })}
-                          placeholder="https://..."
-                        />
+                        <Label>Image (Bannière)</Label>
+                        <div className="flex items-start gap-4">
+                          {offer.imageUrl && (
+                            <div className="relative h-16 w-24 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 shrink-0">
+                              <img src={offer.imageUrl} alt={offer.title} className="h-full w-full object-cover" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input 
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (file.size > 2 * 1024 * 1024) {
+                                    toast.error("L'image est trop volumineuse (max 2Mo)");
+                                    return;
+                                  }
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    updateSpecialOffer(offer.id, { imageUrl: reader.result as string });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="cursor-pointer"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Format recommandé : 16:9 ou paysage large.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Sous-titre</Label>

@@ -58,6 +58,7 @@ export default function Home() {
     setTableId,
     orderType,
     activeOrderId,
+    clearTableSession,
   } = useMenuStore();
 
   // Data Resolution
@@ -134,6 +135,14 @@ export default function Home() {
     
     if (tableParam) {
       const cleanTableId = tableParam.replace('Table ', '');
+      const currentTableId = table?.label;
+      
+      // ✅ Check if we're switching tables - if so, clear session data
+      if (currentTableId && currentTableId !== cleanTableId) {
+        console.log(`Switching from table ${currentTableId} to ${cleanTableId} - clearing session`);
+        clearTableSession();
+      }
+      
       setTableId(cleanTableId);
       setOrderType('dine-in');
       setTable({ id: "qr", label: cleanTableId }); // Just the number
@@ -188,7 +197,7 @@ export default function Home() {
         setTable({ ...currentTable, label: cleanLabel });
       }
     }
-  }, [setTableId, setOrderType, setTable, incrementTableScans]);
+  }, [setTableId, setOrderType, setTable, incrementTableScans, clearTableSession, table]);
 
   // Initial Loading State
   const [mounted, setMounted] = useState(false);
@@ -268,10 +277,18 @@ export default function Home() {
     
     // Calculate price with options
     // Si une variante est sélectionnée, utilprix absolu de la variante
-    // Sinon, prix de base + suppléments
+    // Sinon, prix de base (ou promo) + suppléments
     const selectedOptions = detail.options as Record<string, any>;
     const selectedVariant = detail.item.options?.find(opt => opt.type === 'variant' && selectedOptions[opt.name]);
-    const basePrice = selectedVariant ? selectedVariant.price : detail.item.price;
+    
+    // Use promo price if active
+    const effectiveBasePrice = detail.item.promotion && 
+      Date.now() >= detail.item.promotion.startDate && 
+      Date.now() <= detail.item.promotion.endDate
+        ? detail.item.promotion.price 
+        : detail.item.price;
+    
+    const basePrice = selectedVariant ? selectedVariant.price : effectiveBasePrice;
     const addonsTotal = detail.item.options?.filter(opt => (opt.type === 'addon' || !opt.type) && selectedOptions[opt.name])
       .reduce((sum, opt) => sum + opt.price, 0) || 0;
     const totalPrice = basePrice + addonsTotal;
@@ -414,8 +431,8 @@ export default function Home() {
       </div>
 
       {/* Active Order Floating Button */}
-      {activeOrderId && (
-        <div className="fixed bottom-24 right-4 z-40">
+      {activeOrderId && itemCount === 0 && (
+        <div className="fixed bottom-6 right-4 z-40">
           <Button 
             onClick={() => router.push(`/order/${activeOrderId}`)}
             className="rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-white px-5 py-3 h-auto flex items-center gap-3 animate-in slide-in-from-bottom-10 border-2 border-white/20"

@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { Star, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Star, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MenuItem } from "@/types";
@@ -18,9 +17,10 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Filter Chef Special first, then others
-  const featured = items.filter(item => item.id === chefSpecial.itemId)
-    .concat(items.filter(item => item.id !== chefSpecial.itemId).slice(0, 3));
+  // Filter only featured items, sorted by featuredOrder if available
+  const featured = items
+    .filter(item => item.featured === true)
+    .sort((a, b) => (a.featuredOrder || 0) - (b.featuredOrder || 0));
 
   if (featured.length === 0) return null;
 
@@ -51,14 +51,8 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
 
   return (
     <div className="py-6 space-y-4 relative group/featured">
-      <div className="px-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-0.5">Must Try</p>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">{chefSpecial.title}</h2>
-        </div>
-        <Link href="/specials" className="flex items-center text-primary text-sm font-bold hover:opacity-80 transition-opacity">
-          Voir tout <ChevronRight className="w-4 h-4 ml-0.5" />
-        </Link>
+      <div className="px-5">
+        <h2 className="text-xl font-bold tracking-tight text-foreground">{chefSpecial.title}</h2>
       </div>
       
       {/* Desktop Navigation Arrows */}
@@ -99,10 +93,12 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               
-              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-black text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                4.9
-              </div>
+              {item.averageRating && item.reviewCount && item.reviewCount > 0 && (
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-black text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  {item.averageRating.toFixed(1)}
+                </div>
+              )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-4 text-white">

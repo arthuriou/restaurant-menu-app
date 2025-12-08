@@ -1,6 +1,8 @@
 import { MenuItem } from "@/types";
 import Image from "next/image";
-import { Plus, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
+import { getEffectivePrice } from "@/lib/price-utils";
+import { cn } from "@/lib/utils";
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -8,11 +10,33 @@ interface MenuItemCardProps {
 }
 
 export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
+  const isAvailable = item.available !== false;
+  const { currentPrice, originalPrice, isOnPromo, discountPercent } = getEffectivePrice(item);
+
   return (
     <div 
-      onClick={onAdd}
-      className="group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 shadow-lg hover:shadow-xl transition-all cursor-pointer flex gap-4 min-h-[140px] w-full !overflow-visible"
+      onClick={isAvailable ? onAdd : undefined}
+      className={cn(
+        "group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 shadow-lg hover:shadow-xl transition-all flex gap-4 min-h-[140px] w-full !overflow-visible",
+        isAvailable ? "cursor-pointer" : "cursor-not-allowed opacity-60 grayscale"
+      )}
     >
+      {/* Promo Badge */}
+      {isOnPromo && isAvailable && (
+        <div className="absolute top-2 left-2 z-20 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+          -{discountPercent}%
+        </div>
+      )}
+
+      {/* Unavailable Overlay */}
+      {!isAvailable && (
+        <div className="absolute inset-0 z-50 rounded-[2rem] flex items-center justify-center bg-black/20">
+          <div className="bg-red-500 text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg transform -rotate-6">
+            Oops épuisé !
+          </div>
+        </div>
+      )}
+
       {/* Image Container - Left Side */}
       <div className="relative h-32 w-32 shrink-0 self-center">
         <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-inner">
@@ -21,7 +45,10 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
               src={item.imageUrl}
               alt={item.name}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              className={cn(
+                "object-cover transition-transform duration-500",
+                isAvailable && "group-hover:scale-110"
+              )}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-zinc-300">
@@ -43,11 +70,22 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
         </div>
 
         {/* Price Tag - Overlapping Bottom Right */}
-        <div className="absolute -bottom-8 -right-1 z-10">
-          <div className="bg-primary text-white font-black text-lg px-5 py-2 rounded-[1rem] shadow-md transform transition-transform group-hover:scale-105 flex items-center justify-center min-w-[80px]">
-            <span>{item.price.toLocaleString('fr-FR')} FCFA</span>
+        {isAvailable && (
+          <div className="absolute -bottom-8 -right-1 z-10">
+            <div className={cn(
+              "text-white font-black px-5 py-2 rounded-[1rem] shadow-md transform transition-transform flex items-center justify-center min-w-[80px]",
+              "group-hover:scale-105",
+              isOnPromo ? "bg-green-500" : "bg-primary"
+            )}>
+              {isOnPromo && originalPrice && (
+                <span className="line-through text-xs opacity-70 mr-2">
+                  {originalPrice.toLocaleString('fr-FR')}
+                </span>
+              )}
+              <span className="text-lg">{currentPrice.toLocaleString('fr-FR')} FCFA</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

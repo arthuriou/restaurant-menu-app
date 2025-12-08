@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CldUploadWidget } from 'next-cloudinary';
+import { FeaturedItemsManager } from "@/components/admin/FeaturedItemsManager";
 
 export default function AdminMenuPage() {
   const { 
@@ -78,7 +79,20 @@ export default function AdminMenuPage() {
 
   const handleOpenEdit = (item: any) => {
     setEditingItem(item);
-    setNewItem({ ...item });
+    setNewItem({
+      name: item.name || "",
+      price: item.price || 0,
+      description: item.description || "",
+      categoryId: item.categoryId || "",
+      imageUrl: item.imageUrl || "",
+      available: item.available ?? true,
+      featured: item.featured ?? false,
+      featuredOrder: item.featuredOrder,
+      options: item.options || [],
+      recommendations: item.recommendations || [],
+      // Ensure specific fields are carried over
+      id: item.id
+    });
     setIsAddOpen(true);
   };
 
@@ -226,6 +240,12 @@ export default function AdminMenuPage() {
           >
             Catégories
           </TabsTrigger>
+          <TabsTrigger 
+            value="featured" 
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-zinc-900 dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
+          >
+            Items Vedettes
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="items" className="space-y-6">
@@ -240,9 +260,6 @@ export default function AdminMenuPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
-              <Filter className="w-4 h-4 mr-2" /> Filtres
-            </Button>
             <Button 
               className="rounded-xl shadow-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all" 
               onClick={handleOpenAdd}
@@ -331,12 +348,9 @@ export default function AdminMenuPage() {
                     <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                       {categories.find(c => c.id === item.categoryId)?.name || "Grillades"}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      Modifié il y a 2j
-                    </span>
                   </div>
                 </div>
-              </div>
+              </div> 
             ))}
           </div>
         </TabsContent>
@@ -408,6 +422,30 @@ export default function AdminMenuPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="featured" className="space-y-6">
+          <Card className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader>
+              <CardTitle>Items Vedettes (Spécialités du Chef)</CardTitle>
+              <CardDescription>
+                Sélectionnez et organisez les plats mis en avant sur la page d'accueil.
+                Activez "Item Vedette" dans l'onglet Plats pour ajouter des items ici.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FeaturedItemsManager
+                items={items.filter(item => item.featured === true).sort((a, b) => (a.featuredOrder || 0) - (b.featuredOrder || 0))}
+                onReorder={(reorderedItems) => {
+                  // Update featuredOrder for each item
+                  reorderedItems.forEach((item, index) => {
+                    updateItem(item.id, { featuredOrder: index });
+                  });
+                  toast.success("Ordre mis à jour");
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -762,6 +800,115 @@ export default function AdminMenuPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Promotion Section */}
+            <div className="space-y-3 border-t border-zinc-800 pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-zinc-300 text-base font-semibold">Promotion</Label>
+                {!newItem.promotion && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                    onClick={() => {
+                      const now = Date.now();
+                      setNewItem({
+                        ...newItem, 
+                        promotion: {
+                          price: Math.round(newItem.price * 0.85),
+                          startDate: now,
+                          endDate: now + (7 * 24 * 60 * 60 * 1000) // 1 semaine
+                        }
+                      });
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Ajouter promo
+                  </Button>
+                )}
+              </div>
+
+              {newItem.promotion && (
+                <div className="p-3 rounded-lg bg-green-950/30 border border-green-800/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-green-400 text-sm font-medium">Promotion active</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs text-red-400 hover:bg-red-950/30"
+                      onClick={() => setNewItem({...newItem, promotion: undefined})}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Supprimer
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs text-zinc-400">Prix original</Label>
+                      <div className="text-sm text-zinc-500 line-through">{newItem.price} FCFA</div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-400">Prix promo</Label>
+                      <Input 
+                        type="number"
+                        className="h-8 text-sm bg-zinc-900 border-zinc-700 text-green-400 font-bold"
+                        value={newItem.promotion.price}
+                        onChange={(e) => setNewItem({
+                          ...newItem, 
+                          promotion: {...newItem.promotion!, price: parseInt(e.target.value) || 0}
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-400">Réduction</Label>
+                      <div className="text-sm text-green-400 font-bold">
+                        -{Math.round((1 - newItem.promotion.price / newItem.price) * 100)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-zinc-400">Date début</Label>
+                      <Input 
+                        type="datetime-local"
+                        className="h-8 text-xs bg-zinc-900 border-zinc-700"
+                        value={new Date(newItem.promotion.startDate).toISOString().slice(0, 16)}
+                        onChange={(e) => setNewItem({
+                          ...newItem, 
+                          promotion: {...newItem.promotion!, startDate: new Date(e.target.value).getTime()}
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-zinc-400">Date fin</Label>
+                      <Input 
+                        type="datetime-local"
+                        className="h-8 text-xs bg-zinc-900 border-zinc-700"
+                        value={new Date(newItem.promotion.endDate).toISOString().slice(0, 16)}
+                        onChange={(e) => setNewItem({
+                          ...newItem, 
+                          promotion: {...newItem.promotion!, endDate: new Date(e.target.value).getTime()}
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+              <div>
+                <Label htmlFor="featured" className="text-base text-white">Item Vedette</Label>
+                <p className="text-sm text-zinc-400">Afficher dans "Spécialités du Chef"</p>
+              </div>
+              <Switch 
+                id="featured" 
+                checked={newItem.featured || false}
+                onCheckedChange={(c) => setNewItem({...newItem, featured: c})}
+              />
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">

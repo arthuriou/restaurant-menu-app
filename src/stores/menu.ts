@@ -38,6 +38,7 @@ type MenuStore = {
   removeFromCart: (index: number) => void;
   updateQty: (index: number, delta: number) => void;
   clearCart: () => void;
+  clearTableSession: () => void;
   
   loadMenu: () => Promise<void>;
   placeOrder: (order: Omit<Order, 'id' | 'status' | 'createdAt'>) => Promise<string>;
@@ -104,6 +105,11 @@ export const useMenuStore = create<MenuStore>()(
         })
       })),
       clearCart: () => set({ cart: [] }),
+      clearTableSession: () => set({ 
+        cart: [], 
+        activeOrderId: null, 
+        activeOrderIds: [] 
+      }),
       
       loadMenu: async () => {
         if (!db) return;
@@ -113,7 +119,7 @@ export const useMenuStore = create<MenuStore>()(
           const catSnap = await getDocs(catQuery);
           const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
 
-          const itemQuery = query(collection(db, 'products'), where('available', '==', true));
+          const itemQuery = query(collection(db, 'products'));
           const itemSnap = await getDocs(itemQuery);
           const items = itemSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
 
@@ -262,7 +268,8 @@ export const useMenuStore = create<MenuStore>()(
         table: state.table, 
         orderType: state.orderType,
         activeOrderId: state.activeOrderId,
-        activeOrderIds: state.activeOrderIds
+        activeOrderIds: state.activeOrderIds,
+        cart: state.cart
       }),
     }
   )

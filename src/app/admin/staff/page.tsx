@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Power, Shield, User, UtensilsCrossed } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, Shield, User, UtensilsCrossed, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ export default function AdminStaffPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [showPins, setShowPins] = useState<Record<string, boolean>>({});
 
   // Form states
   const [name, setName] = useState("");
@@ -110,34 +111,51 @@ export default function AdminStaffPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Code PIN</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
+                <TableHead className="font-semibold">Membre</TableHead>
+                <TableHead className="font-semibold">Code PIN</TableHead>
+                <TableHead className="font-semibold">Statut</TableHead>
+                <TableHead className="text-right font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {staff.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                        {member.role === 'admin' && <Shield className="w-4 h-4 text-purple-500" />}
-                        {member.role === 'server' && <User className="w-4 h-4 text-blue-500" />}
-                        {member.role === 'kitchen' && <UtensilsCrossed className="w-4 h-4 text-orange-500" />}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`}
+                          alt={member.name}
+                          className="w-full h-full"
+                        />
                       </div>
-                      {member.name}
+                      <div>
+                        <div className="font-semibold">{member.name}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {member.role === 'server' ? 'Serveur' : member.role === 'kitchen' ? 'Cuisine' : 'Admin'}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
+
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {member.role === 'server' ? 'Serveur' : member.role === 'kitchen' ? 'Cuisine' : 'Admin'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-muted-foreground">
-                    ••••
+                    <div className="flex items-center gap-2">
+                      <code className="font-mono text-sm">
+                        {showPins[member.id] ? member.pin : '••••'}
+                      </code>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setShowPins(prev => ({ ...prev, [member.id]: !prev[member.id] }))}
+                      >
+                        {showPins[member.id] ? 
+                          <EyeOff className="w-4 h-4 text-muted-foreground" /> : 
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        }
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={member.active ? "default" : "secondary"} className={member.active ? "bg-green-500 hover:bg-green-600" : ""}>
@@ -158,7 +176,7 @@ export default function AdminStaffPage() {
               ))}
               {staff.length === 0 && !isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     Aucun membre dans l'équipe. Ajoutez-en un !
                   </TableCell>
                 </TableRow>
