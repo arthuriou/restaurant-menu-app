@@ -19,11 +19,13 @@ const sizeClasses = {
 export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   if (!user) return null;
 
-  const initials = user.avatar || user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  // Use DiceBear if no avatar is provided
+  const avatarSrc = user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      <AvatarImage src={user.avatar} alt={user.name} />
+      <AvatarImage src={avatarSrc} alt={user.name} />
       <AvatarFallback className="bg-primary/10 text-primary font-bold">
         {initials}
       </AvatarFallback>

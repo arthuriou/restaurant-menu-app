@@ -46,7 +46,7 @@ export type OrderItem = {
   imageUrl?: string;
 };
 
-export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "cancelled";
+export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled";
 
 export type Order = {
   id: string;
