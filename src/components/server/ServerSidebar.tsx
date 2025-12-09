@@ -82,7 +82,7 @@ export function ServerSidebar() {
       {/* FOOTER */}
       <div className="mt-auto p-6 space-y-4">
         <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm">
-          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Mode Sombre</span>
+          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Mode</span>
           <ModeToggle />
         </div>
         <Button 

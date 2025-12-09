@@ -12,6 +12,7 @@ import { useTableStore } from "@/stores/tables";
 import { useRestaurantStore } from "@/stores/restaurant";
 import { ReviewDialog } from "@/components/reviews/ReviewDialog";
 import { useReviewStore } from "@/stores/reviews";
+import { OrderBill } from "@/components/order/OrderBill";
 
 // Status configuration
 const STATUS_CONFIG = {
@@ -263,172 +264,14 @@ export default function OrderPage() {
       </div>
 
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-2">
-        <div className="relative filter drop-shadow-xl">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-t-xl relative z-10">
-            
-            <div className="text-center space-y-2 mb-6 border-b-2 border-dashed border-zinc-200 dark:border-zinc-800 pb-6">
-              <h2 className="font-black text-2xl uppercase tracking-widest text-zinc-900 dark:text-white">
-                {invoiceSettings.companyName || "RESTAURANT"}
-              </h2>
-              <div className="flex flex-col text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                <span>{order.tableId}</span>
-                <span>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                <span>{new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-              
-              <div className="pt-2">
-                {globalStatus === 'served' && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Servie</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {allSessionOrders.map((ord) => {
-                const orderStatusConfig = STATUS_CONFIG[ord.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
-                
-                return (
-                  <div key={ord.id} className="space-y-4">
-                    <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span>Commande {ord.id.slice(0, 4)}</span>
-                        
-                        {/* Individual order status badge */}
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] ${
-                          ord.status === 'served' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400'
-                            : ord.status === 'ready'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
-                            : ord.status === 'preparing'
-                            ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400'
-                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'
-                        }`}>
-                          <orderStatusConfig.icon className="w-2.5 h-2.5" />
-                          <span className="font-bold">{orderStatusConfig.label}</span>
-                        </div>
-                      </div>
-                      
-                      {ord.status === 'pending' && (
-                        <button 
-                          onClick={() => handleCancelOrder(ord.id)}
-                          disabled={cancellingId === ord.id}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 px-2 py-0.5 rounded transition-colors flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {cancellingId === ord.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <XCircle className="w-3 h-3" />
-                          )}
-                          <span>Annuler</span>
-                        </button>
-                      )}
-                    </div>
-
-                  {ord.items.map((item, idx) => (
-                    <div key={`${ord.id}-${idx}`} className="flex gap-3">
-                      <div className="relative h-12 w-12 shrink-0 rounded overflow-hidden bg-zinc-100 dark:bg-zinc-800 mt-1">
-                        {item.imageUrl ? (
-                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ShoppingBag className="w-5 h-5 text-zinc-400" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <p className="font-bold text-sm text-zinc-800 dark:text-zinc-200 leading-tight">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800 text-xs mr-1.5">
-                                {item.qty}
-                              </span>
-                              {item.name}
-                            </p>
-                          </div>
-                          <p className="font-bold text-sm text-zinc-900 dark:text-white whitespace-nowrap">
-                            {(item.price * item.qty).toLocaleString()}
-                          </p>
-                        </div>
-
-                        {item.options && Object.keys(item.options).length > 0 && (
-                          <div className="mt-2 space-y-1.5 pl-1">
-                            {Object.entries(item.options).map(([optName, optVal]) => {
-                              if (optName === 'note') {
-                                return (
-                                  <div key={optName} className="text-[10px] text-muted-foreground italic bg-zinc-50 dark:bg-zinc-900/50 p-1.5 rounded border border-zinc-100 dark:border-zinc-800">
-                                    Note: {optVal as string}
-                                  </div>
-                                );
-                              }
-                              if (optVal === true || typeof optVal === 'string') {
-                                const details = getOptionDetails(item, optName);
-                                return (
-                                  <div key={optName} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    {details?.imageUrl && (
-                                      <div className="relative h-6 w-6 shrink-0 rounded overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                                        <Image src={details.imageUrl} alt={optName} fill className="object-cover" />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 flex justify-between items-center border-b border-dashed border-zinc-100 dark:border-zinc-800 pb-0.5">
-                                      <span>{optName}</span>
-                                      {details && details.price > 0 && (
-                                        <span className="font-medium">+{details.price.toLocaleString()}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-              })}
-            </div>
-
-            <div className="mt-8 pt-6 border-t-2 border-dashed border-zinc-200 dark:border-zinc-800 space-y-2">
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
-                <span>Sous-total</span>
-                <span>{sessionTotal.toLocaleString()} FCFA</span>
-              </div>
-              <div className="flex justify-between items-center pt-2">
-                <span className="font-black text-xl uppercase text-zinc-900 dark:text-white">Total à payer</span>
-                <span className="font-black text-2xl text-primary">{sessionTotal.toLocaleString()} <span className="text-sm font-medium text-muted-foreground">FCFA</span></span>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="font-handwriting text-lg text-zinc-400 rotate-[-2deg]">Merci de votre visite !</p>
-            </div>
-
-          </div>
-
-          <div 
-            className="h-4 w-full bg-white dark:bg-zinc-900 relative z-10"
-            style={{
-              maskImage: 'linear-gradient(45deg, transparent 50%, black 50%), linear-gradient(-45deg, transparent 50%, black 50%)',
-              maskSize: '20px 20px',
-              maskRepeat: 'repeat-x',
-              maskPosition: 'bottom',
-              WebkitMaskImage: 'linear-gradient(45deg, transparent 50%, black 50%), linear-gradient(-45deg, transparent 50%, black 50%)',
-              WebkitMaskSize: '20px 20px',
-              WebkitMaskRepeat: 'repeat-x',
-              WebkitMaskPosition: 'bottom',
-            }}
-          />
-          <div className="h-6 w-full bg-transparent -mt-4 relative z-0 overflow-hidden">
-             <div className="absolute top-0 left-0 w-full h-full bg-zinc-100 dark:bg-zinc-950" />
-          </div>
-
-        </div>
+        <OrderBill 
+          order={order}
+          otherOrders={otherOrders}
+          companyName={invoiceSettings.companyName}
+          showActions={true}
+          onCancelOrder={handleCancelOrder}
+          cancellingId={cancellingId}
+        />
 
         <div className="mt-8 space-y-3 pb-8">
           <Button 
@@ -451,7 +294,6 @@ export default function OrderPage() {
             </Button>
           )}
         </div>
-
       </main>
 
       {/* Review Dialog */}

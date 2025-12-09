@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
   Users, ChevronLeft, Receipt, Printer, CreditCard,
-  Bell, Check, BanknoteIcon, Utensils
+  Bell, Check, BanknoteIcon, Utensils, X, Armchair
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -23,7 +24,8 @@ import {
   calculateTotal, 
   getRestaurantInfo 
 } from "@/lib/invoice-utils";
-import { Invoice } from "@/types";
+import { Invoice, Order } from "@/types";
+import { OrderBill } from "@/components/order/OrderBill";
 
 export default function ServerTablesPage() {
   const { tables, resolveServiceRequest, closeTable } = useTableStore();
@@ -32,57 +34,9 @@ export default function ServerTablesPage() {
   const { invoiceSettings } = useRestaurantStore();
   const { user } = useAuthStore();
   
-  const [actionDialog, setActionDialog] = useState<{ open: boolean; tableId: string | null }>({ open: false, tableId: null });
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
-  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [generatedInvoice, setGeneratedInvoice] = useState<Invoice | null>(null);
-
-  const getTableStatusConfig = (status: string) => {
-    switch (status) {
-      case 'available':
-        return { 
-          label: 'Libre', 
-          bgColor: 'bg-green-50 dark:bg-green-950/20', 
-          borderColor: 'border-green-200 dark:border-green-900/50',
-          textColor: 'text-green-700 dark:text-green-300',
-          badgeBg: 'bg-green-100 dark:bg-green-900/50'
-        };
-      case 'occupied':
-        return { 
-          label: 'Occupée', 
-          bgColor: 'bg-blue-50 dark:bg-blue-950/20', 
-          borderColor: 'border-blue-200 dark:border-blue-900/50',
-          textColor: 'text-blue-700 dark:text-blue-300',
-          badgeBg: 'bg-blue-100 dark:bg-blue-900/50'
-        };
-      case 'needs_service':
-        return { 
-          label: 'Service', 
-          bgColor: 'bg-amber-50 dark:bg-amber-950/20', 
-          borderColor: 'border-amber-400 dark:border-amber-600',
-          textColor: 'text-amber-700 dark:text-amber-300',
-          badgeBg: 'bg-amber-100 dark:bg-amber-900/50',
-          pulse: true
-        };
-      case 'requesting_bill':
-        return { 
-          label: 'Addition', 
-          bgColor: 'bg-red-50 dark:bg-red-950/20', 
-          borderColor: 'border-red-400 dark:border-red-600',
-          textColor: 'text-red-700 dark:text-red-300',
-          badgeBg: 'bg-red-100 dark:bg-red-900/50',
-          pulse: true
-        };
-      default:
-        return { 
-          label: 'Inconnue', 
-          bgColor: 'bg-gray-50', 
-          borderColor: 'border-gray-200',
-          textColor: 'text-gray-700',
-          badgeBg: 'bg-gray-100'
-        };
-    }
-  };
+  const [activeSheet, setActiveSheet] = useState<boolean>(false);
 
   const handleTableClick = (tableId: string, status: string) => {
     const table = tables.find(t => t.id === tableId);
@@ -91,37 +45,22 @@ export default function ServerTablesPage() {
     if (status === 'needs_service') {
       resolveServiceRequest(tableId);
       toast.success(`Service rendu à la Table ${table.label}`);
-      return;
     }
-
-    if (status === 'requesting_bill') {
-      setSelectedTable(tableId);
-      setGeneratedInvoice(null);
-      setShowInvoiceDialog(true);
-      return;
-    }
-
-    // Open Action Dialog for Available or Occupied tables
-    setActionDialog({ open: true, tableId });
   };
 
-  const handleTakeOrder = () => {
-    if (actionDialog.tableId) {
-      const table = tables.find(t => t.id === actionDialog.tableId);
-      if (table) {
-        // Redirect to main menu with table param
-        window.location.href = `/?table=${table.label}`;
-      }
-    }
+  const handleOpenTableDetails = (tableId: string) => {
+    setSelectedTableId(tableId);
+    setActiveSheet(true);
+    setGeneratedInvoice(null);
   };
 
   const handleGenerateInvoice = () => {
-    const table = tables.find(t => t.id === selectedTable);
+    const table = tables.find(t => t.id === selectedTableId);
     if (!table) return;
 
     // 1. Gather orders
     const tableOrders = Object.values(orders).flat().filter(
-      o => o.table === `Table ${table.label}`
+      o => o.table === `Table ${table.label}` && o.status !== 'cancelled'
     );
 
     if (tableOrders.length === 0) {
@@ -138,7 +77,8 @@ export default function ServerTablesPage() {
           name: item.name,
           price: item.price,
           qty: item.qty,
-          imageUrl: item.image
+          imageUrl: item.image,
+          options: item.options
         });
       });
     });
@@ -162,7 +102,7 @@ export default function ServerTablesPage() {
       total,
       status: 'paid',
       paymentMethod: 'cash',
-      serverName: user?.name, // Add server name
+      serverName: user?.name,
       createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
       paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
       restaurantInfo: getRestaurantInfo()
@@ -173,9 +113,8 @@ export default function ServerTablesPage() {
 
     // 6. Feedback & Update UI
     toast.success(`Facture ${newInvoice.number} générée !`);
-    closeTable(selectedTable!);
+    closeTable(selectedTableId!);
     setGeneratedInvoice(newInvoice);
-    // Do not close dialog, let user print
   };
 
   const handlePrint = () => {
@@ -184,211 +123,196 @@ export default function ServerTablesPage() {
     }
   };
 
+  const getTableOrders = (tableLabel: string): any[] => {
+    return Object.values(orders).flat().filter(
+      (o: any) => o.table === `Table ${tableLabel}` && o.status !== 'cancelled'
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Mes Tables</h1>
-        <p className="text-muted-foreground">Vue d'ensemble et gestion des demandes clients.</p>
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50/50 dark:bg-black p-2">
+      <div className="flex flex-col gap-2 mb-6 px-2">
+        <h1 className="text-3xl font-black tracking-tighter uppercase">Mes Tables</h1>
+        <p className="text-muted-foreground">Vue d'ensemble et gestion des tables en temps réel.</p>
       </div>
       
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {tables.map((table) => {
-          const statusConfig = getTableStatusConfig(table.status);
-
-          return (
-            <Card 
-              key={table.id}
-              className={cn(
-                "cursor-pointer transition-all hover:scale-105 active:scale-95 border-2 relative overflow-hidden",
-                statusConfig.bgColor,
-                statusConfig.borderColor,
-                statusConfig.pulse && "animate-pulse"
-              )}
-              onClick={() => handleTableClick(table.id, table.status)}
-            >
-              {/* Alert Badge for urgent statuses */}
-              {(table.status === 'needs_service' || table.status === 'requesting_bill') && (
-                <div className={cn(
-                  "absolute top-0 right-0 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg flex items-center gap-1",
-                  table.status === 'needs_service' ? 'bg-amber-500' : 'bg-red-500'
-                )}>
-                  {table.status === 'needs_service' ? (
-                    <><Bell className="w-3 h-3" /> SERVICE</>
-                  ) : (
-                    <><Receipt className="w-3 h-3" /> ADDITION</>
-                  )}
-                </div>
-              )}
-
-              <CardContent className="p-6 flex flex-col items-center justify-center aspect-square">
-                <span className={cn("text-3xl font-bold mb-2", statusConfig.textColor)}>
-                  {table.label}
-                </span>
-                
-                <div className="flex items-center gap-1 text-muted-foreground text-sm mb-2">
-                  <Users className="w-3 h-3" />
-                  <span>{table.seats}</span>
-                </div>
-
-                {table.occupants && (
-                  <div className="text-xs text-muted-foreground mb-2">
-                    {table.occupants} personne{table.occupants > 1 ? 's' : ''}
-                  </div>
-                )}
-
-                <span className={cn(
-                  "mt-2 text-xs font-medium px-2 py-1 rounded-full",
-                  statusConfig.badgeBg,
-                  statusConfig.textColor
-                )}>
-                  {statusConfig.label}
-                </span>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Table Action Dialog */}
-      <Dialog open={actionDialog.open} onOpenChange={(open) => setActionDialog({ ...actionDialog, open })}>
-        <DialogContent className="sm:max-w-sm rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl">
-              Table {tables.find(t => t.id === actionDialog.tableId)?.label}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-4">
-            <Button 
-              size="lg" 
-              className="h-14 text-lg font-bold bg-primary hover:bg-primary/90 rounded-xl"
-              onClick={handleTakeOrder}
-            >
-              <Utensils className="mr-2 h-5 w-5" />
-              Prendre Commande
-            </Button>
+      <ScrollArea className="flex-1 -mx-2 px-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-20">
+          {tables.map((table) => {
+            const isOccupied = table.status === 'occupied';
+            const isService = table.status === 'needs_service';
+            const isBill = table.status === 'requesting_bill';
             
-            {tables.find(t => t.id === actionDialog.tableId)?.status === 'occupied' && (
-               <Button 
-                size="lg" 
-                variant="secondary"
-                className="h-14 text-lg font-bold rounded-xl"
-                onClick={() => {
-                  setSelectedTable(actionDialog.tableId);
-                  setGeneratedInvoice(null);
-                  setShowInvoiceDialog(true);
-                  setActionDialog({ ...actionDialog, open: false });
-                }}
+            // Mock occupancy for demonstration if occupied
+            const currentOccupancy = isOccupied ? Math.floor(Math.random() * table.seats) + 1 : 0;
+            const isFull = currentOccupancy === table.seats;
+
+            return (
+              <Card 
+                key={table.id}
+                onClick={() => isService ? handleTableClick(table.id, table.status) : handleOpenTableDetails(table.id)}
+                className={cn(
+                  "group cursor-pointer relative overflow-hidden transition-all duration-300 rounded-[2rem] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900",
+                  (isService || isBill) && "ring-2 ring-offset-2",
+                  isService ? "ring-amber-500" : isBill ? "ring-red-500" : "hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-1"
+                )}
               >
-                <Receipt className="mr-2 h-5 w-5" />
-                Encaisser / Voir
-              </Button>
-            )}
-
-            <Button 
-              variant="ghost" 
-              onClick={() => setActionDialog({ ...actionDialog, open: false })}
-              className="rounded-xl"
-            >
-              Annuler
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Invoice Generation Dialog */}
-      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
-        <DialogContent className="sm:max-w-md rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {generatedInvoice ? 'Facture Générée' : 'Générer l\'Addition'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-6">
-            {generatedInvoice ? (
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8" />
-                </div>
-                <p className="text-lg font-medium">Paiement enregistré avec succès !</p>
-                <p className="text-muted-foreground">
-                  Facture #{generatedInvoice.number}
-                </p>
-              </div>
-            ) : (
-              selectedTable && (() => {
-                const table = tables.find(t => t.id === selectedTable);
-                const tableOrders = Object.values(orders).flat().filter(
-                  o => o.table === `Table ${table?.label}`
-                );
-                const total = tableOrders.reduce((acc, o) => acc + o.total, 0);
-
-                return (
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-muted-foreground mb-2">Table {table?.label}</p>
-                      <p className="text-4xl font-bold text-primary">
-                        {total.toLocaleString()} <span className="text-xl text-muted-foreground">FCFA</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {tableOrders.length} commande(s) • {table?.occupants} personne(s)
-                      </p>
+                <CardContent className="p-0 flex flex-col items-center justify-center aspect-square relative z-10">
+                  {/* Table Number */}
+                  <span className="text-5xl font-black tracking-tighter mb-4 text-zinc-900 dark:text-zinc-100">
+                    {table.label}
+                  </span>
+                  
+                  {/* Seats / Occupancy Visuals */}
+                  <div className="flex flex-col items-center gap-2 w-full">
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                       <Users className={cn("w-4 h-4", isOccupied ? "text-zinc-900 dark:text-zinc-100" : "text-muted-foreground")} />
+                       <span className={cn(
+                         isOccupied ? "text-zinc-900 dark:text-zinc-100" : "text-muted-foreground"
+                       )}>
+                         {isOccupied ? `${currentOccupancy}/${table.seats}` : `${table.seats} places`}
+                       </span>
                     </div>
 
-                    <div className="bg-zinc-50 dark:bg-zinc-900 rounded-xl p-4 space-y-2">
-                      <h4 className="font-semibold text-sm">Détail des commandes :</h4>
-                      {tableOrders.map((order) => (
-                        <div key={order.id} className="text-sm flex justify-between">
-                          <span>#{order.id.split('-')[1]}</span>
-                          <span className="font-medium">{order.total.toLocaleString()} FCFA</span>
-                        </div>
-                      ))}
-                    </div>
+                    {/* Progress Bar for Occupancy */}
+                    {isOccupied && (
+                      <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div 
+                          className={cn("h-full rounded-full transition-all duration-500", isFull ? "bg-red-500" : "bg-green-500")}
+                          style={{ width: `${(currentOccupancy / table.seats) * 100}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
-                );
-              })()
-            )}
-          </div>
 
-          <DialogFooter className="gap-2 sm:justify-center">
-            {generatedInvoice ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowInvoiceDialog(false)}
-                  className="rounded-xl"
-                >
-                  Fermer
-                </Button>
-                <Button 
-                  onClick={handlePrint}
-                  className="rounded-xl"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Imprimer
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowInvoiceDialog(false)}
-                  className="rounded-xl"
-                >
-                  Annuler
-                </Button>
-                <Button 
-                  onClick={handleGenerateInvoice}
-                  className="rounded-xl bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="w-4 h-4 mr-2" />
-                  Générer & Encaisser
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  {/* Status Chips */}
+                  <div className="mt-6">
+                    {isService ? (
+                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 animate-pulse px-3 py-1 text-xs">
+                        <Bell className="w-3 h-3 mr-1" /> SERVICE
+                      </Badge>
+                    ) : isBill ? (
+                      <Badge variant="destructive" className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 animate-pulse border-red-200 px-3 py-1 text-xs">
+                        <Receipt className="w-3 h-3 mr-1" /> ADDITION
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className={cn(
+                        "border-0 px-3 py-1 text-xs font-bold",
+                        isOccupied 
+                          ? (isFull ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400")
+                          : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                      )}>
+                        {isOccupied ? (isFull ? "COMPLET" : "OCCUPÉ") : "LIBRE"}
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </ScrollArea>
+
+      {/* Table Details Sheet (Invoice View) */}
+      <Sheet open={activeSheet} onOpenChange={setActiveSheet}>
+        <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800">
+           {selectedTableId && (() => {
+             const table = tables.find(t => t.id === selectedTableId);
+             const tableOrders = getTableOrders(table?.label || "");
+             // Fake an active order structure for the bill component using the aggregated items
+             const aggregatedOrder: any = {
+               id: 'preview',
+               tableId: `Table ${table?.label}`,
+               items: [],
+               total: 0,
+               status: 'pending',
+               createdAt: { seconds: Date.now()/1000 }
+             };
+
+             if (tableOrders.length > 0) {
+               aggregatedOrder.items = []; // Items will be handled via the order prop and otherOrders in OrderBill
+             }
+
+             const hasOrders = tableOrders.length > 0;
+
+             return (
+               <div className="h-full flex flex-col bg-zinc-50 dark:bg-black">
+                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center">
+                   <div>
+                     <SheetTitle className="text-2xl font-black uppercase">Table {table?.label}</SheetTitle>
+                     <p className="text-sm text-muted-foreground">
+                        {hasOrders ? `${tableOrders.length} commandes en cours` : "Aucune commande"}
+                     </p>
+                   </div>
+                   <Button variant="ghost" size="icon" onClick={() => setActiveSheet(false)}>
+                     <X className="w-5 h-5" />
+                   </Button>
+                 </div>
+
+                 <ScrollArea className="flex-1 p-6">
+                    {hasOrders ? (
+                      <OrderBill 
+                        order={tableOrders[tableOrders.length - 1]} 
+                        otherOrders={tableOrders.slice(0, -1)}
+                        companyName={invoiceSettings.companyName}
+                        showActions={false}
+                      />
+                    ) : (
+                      <div className="text-center py-20 text-muted-foreground">
+                        <Utensils className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>Table libre ou sans commande.</p>
+                        <Button 
+                          className="mt-6 rounded-full"
+                          onClick={() => {
+                             window.location.href = `/?table=${table?.label}`;
+                          }}
+                        >
+                          Prendre une commande
+                        </Button>
+                      </div>
+                    )}
+                 </ScrollArea>
+
+                 {hasOrders && (
+                   <div className="p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+                     {generatedInvoice ? (
+                       <div className="space-y-3">
+                         <div className="flex items-center gap-3 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
+                            <Check className="w-6 h-6" />
+                            <div className="font-bold">Facture Payée & Générée</div>
+                         </div>
+                         <Button onClick={handlePrint} className="w-full h-12 rounded-xl text-lg font-bold" variant="outline">
+                           <Printer className="mr-2 w-5 h-5" /> Imprimer le ticket
+                         </Button>
+                       </div>
+                     ) : (
+                       <div className="grid grid-cols-2 gap-3">
+                         <Button 
+                          variant="outline" 
+                          className="h-14 rounded-xl font-bold"
+                          onClick={() => {
+                            window.location.href = `/?table=${table?.label}`;
+                          }}
+                         >
+                           <Utensils className="mr-2 w-5 h-5" />
+                           Ajouter
+                         </Button>
+                         <Button 
+                          className="h-14 rounded-xl font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black"
+                          onClick={handleGenerateInvoice}
+                         >
+                           <BanknoteIcon className="mr-2 w-5 h-5" />
+                           Encaisser
+                         </Button>
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </div>
+             );
+           })()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

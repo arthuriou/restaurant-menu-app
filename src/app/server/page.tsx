@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useOrderStore } from "@/stores/orders";
+import { useMenuStore } from "@/stores/menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,9 @@ import {
   Clock, 
   ChefHat, 
   ShoppingBag,
-  BellRing
+  BellRing,
+  UtensilsCrossed,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -19,6 +22,14 @@ import { fr } from "date-fns/locale";
 
 export default function ServerDashboard() {
   const { orders, updateOrderStatus } = useOrderStore();
+  const { items: menuItems, loadMenu } = useMenuStore();
+
+  useEffect(() => {
+    if (menuItems.length === 0) {
+      loadMenu();
+    }
+  }, [menuItems.length, loadMenu]);
+
   const [activeTab, setActiveTab] = useState("all");
   const prevReadyOrdersRef = useRef<Set<string>>(new Set());
 
@@ -123,6 +134,12 @@ function EmptyState() {
 
 function ObypayCard({ order, onServe }: { order: any, onServe: () => void }) {
   const isReady = order.status === 'ready';
+  const { items: allMenuItems } = useMenuStore();
+
+  const getOptionDetails = (orderItem: any, optionName: string) => {
+    const menuItem = allMenuItems.find(m => m.id === orderItem.menuId);
+    return menuItem?.options?.find(opt => opt.name === optionName);
+  };
   
   return (
     <div 
@@ -162,12 +179,67 @@ function ObypayCard({ order, onServe }: { order: any, onServe: () => void }) {
         </div>
       </div>
       
-      {/* Items Preview (Optional - collapsed by default in reference but useful) */}
-      <div className="pl-6 border-l-2 border-zinc-100 dark:border-zinc-800 mt-4 space-y-1">
+      {/* Items Preview */}
+      <div className="mt-6 space-y-3">
         {order.items.map((item: any, idx: number) => (
-           <p key={idx} className="text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">
-             {item.qty}x {item.name}
-           </p>
+           <div key={idx} className="flex items-start gap-3">
+             {/* Image Thumbnail */}
+             <div className="w-12 h-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-200 dark:border-zinc-700">
+               {item.imageUrl ? (
+                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+               ) : (
+                 <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                   <UtensilsCrossed className="w-5 h-5" />
+                 </div>
+               )}
+             </div>
+             
+             <div className="flex-1 min-w-0">
+               <div className="flex justify-between items-start">
+                 <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                   <span className="text-primary mr-1">{item.qty}x</span> {item.name}
+                 </p>
+               </div>
+               
+               {/* Options & Notes */}
+               {(item.note || (item.options && Object.keys(item.options).length > 0)) && (
+                 <div className="mt-2 space-y-3 pl-1">
+                   {item.options && Object.entries(item.options)
+                     .filter(([key]) => key !== 'note') // Exclude 'note' from here
+                     .map(([key, value]) => {
+                       const optionDetails = getOptionDetails(item, key);
+                       
+                       return (
+                         <div key={key} className="flex items-start gap-3 text-xs text-muted-foreground bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-lg border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800/50 transition-colors">
+                           {/* Option Image if available */}
+                           {optionDetails?.imageUrl && (
+                              <div className="w-10 h-10 rounded overflow-hidden bg-white dark:bg-zinc-900 flex-shrink-0 border border-zinc-200 dark:border-zinc-800">
+                                <img src={optionDetails.imageUrl} alt={key} className="w-full h-full object-cover" />
+                              </div>
+                           )}
+                           <div className="flex-1 min-w-0 pt-0.5">
+                             <div className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                               {value === true || value === 'true' ? key : <>{key}: <span className="font-normal text-muted-foreground">{String(value)}</span></>}
+                             </div>
+                             {optionDetails?.description && (
+                                <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">{optionDetails.description}</p>
+                             )}
+                           </div>
+                         </div>
+                       );
+                   })}
+                   
+                   {/* Dedicated Note Alert */}
+                   {item.note && (
+                     <div className="flex items-start gap-1 text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-900/20 px-2 py-1.5 rounded-md text-xs mt-1.5 border border-orange-100 dark:border-orange-900/30">
+                       <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                       <span className="italic leading-tight">"{item.note}"</span>
+                     </div>
+                   )}
+                 </div>
+               )}
+             </div>
+           </div>
         ))}
       </div>
     </div>

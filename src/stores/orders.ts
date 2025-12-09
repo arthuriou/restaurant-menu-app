@@ -55,6 +55,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     preparing: [],
     ready: [],
     served: [],
+    paid: [],
     cancelled: []
   },
   isLoading: false,
@@ -84,6 +85,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         preparing: [],
         ready: [],
         served: [],
+        paid: [],
         cancelled: []
       };
       
