@@ -7,6 +7,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { OrderBill } from "@/components/order/OrderBill";
 import { 
   CheckCircle2, 
   Clock, 
@@ -14,15 +17,16 @@ import {
   ShoppingBag,
   BellRing,
   UtensilsCrossed,
-  AlertCircle
+  AlertCircle,
+  Receipt
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export default function ServerDashboard() {
   const { orders, updateOrderStatus } = useOrderStore();
   const { items: menuItems, loadMenu } = useMenuStore();
+  const [viewingOrder, setViewingOrder] = useState<any>(null);
 
   useEffect(() => {
     if (menuItems.length === 0) {
@@ -37,7 +41,7 @@ export default function ServerDashboard() {
   const allOrders = Object.values(orders).flat();
   const activeOrders = allOrders.filter(o => o.status !== 'served' && o.status !== 'paid');
 
-  // Notification Logic (Kept from previous version)
+  // Notification Logic
   useEffect(() => {
     const currentReadyOrders = new Set(
       allOrders.filter(o => o.status === 'ready').map(o => o.id)
@@ -90,7 +94,12 @@ export default function ServerDashboard() {
                 <EmptyState />
               ) : (
                 activeOrders.map((order) => (
-                  <ObypayCard key={order.id} order={order} onServe={() => handleServeOrder(order.id)} />
+                  <ObypayCard 
+                    key={order.id} 
+                    order={order} 
+                    onServe={() => handleServeOrder(order.id)} 
+                    onViewBill={() => setViewingOrder(order)}
+                  />
                 ))
               )}
             </div>
@@ -101,7 +110,12 @@ export default function ServerDashboard() {
            <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
             <div className="space-y-4 pb-20 max-w-2xl mx-auto">
               {activeOrders.filter(o => o.status === 'ready').map((order) => (
-                 <ObypayCard key={order.id} order={order} onServe={() => handleServeOrder(order.id)} />
+                 <ObypayCard 
+                   key={order.id} 
+                   order={order} 
+                   onServe={() => handleServeOrder(order.id)} 
+                   onViewBill={() => setViewingOrder(order)}
+                 />
               ))}
             </div>
            </ScrollArea>
@@ -111,12 +125,38 @@ export default function ServerDashboard() {
            <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
             <div className="space-y-4 pb-20 max-w-2xl mx-auto">
               {activeOrders.filter(o => ['pending', 'preparing'].includes(o.status)).map((order) => (
-                 <ObypayCard key={order.id} order={order} onServe={() => handleServeOrder(order.id)} />
+                 <ObypayCard 
+                   key={order.id} 
+                   order={order} 
+                   onServe={() => handleServeOrder(order.id)} 
+                   onViewBill={() => setViewingOrder(order)}
+                 />
               ))}
             </div>
            </ScrollArea>
         </TabsContent>
       </Tabs>
+      
+      {/* Bill View Modal */}
+      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none sm:rounded-[2rem]">
+          {viewingOrder && (
+            <div className="relative">
+              <OrderBill order={viewingOrder} showActions={false} />
+              
+              {/* Print Button Overlay */}
+              <div className="absolute top-4 right-4 z-50 print:hidden">
+                <button 
+                  onClick={() => window.print()}
+                  className="bg-zinc-900 text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform"
+                >
+                  <Receipt className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -132,7 +172,7 @@ function EmptyState() {
   );
 }
 
-function ObypayCard({ order, onServe }: { order: any, onServe: () => void }) {
+function ObypayCard({ order, onServe, onViewBill }: { order: any, onServe: () => void, onViewBill: () => void }) {
   const isReady = order.status === 'ready';
   const { items: allMenuItems } = useMenuStore();
 
@@ -143,10 +183,9 @@ function ObypayCard({ order, onServe }: { order: any, onServe: () => void }) {
   
   return (
     <div 
-      onClick={isReady ? onServe : undefined}
       className={cn(
         "group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300",
-        isReady ? "cursor-pointer hover:shadow-md hover:border-green-200 dark:hover:border-green-900/50 ring-2 ring-transparent hover:ring-green-500/20" : "opacity-90"
+        isReady ? "border-green-200 dark:border-green-900/50 ring-2 ring-transparent ring-green-500/20" : "opacity-90"
       )}
     >
       <div className="flex justify-between items-start mb-4">
@@ -154,18 +193,33 @@ function ObypayCard({ order, onServe }: { order: any, onServe: () => void }) {
           COMMANDE N°{order.id.split('-')[1]}
         </h3>
         
-        <Badge className={cn(
-          "px-4 py-1.5 rounded-full text-xs font-bold shadow-none",
-          isReady 
-            ? "bg-[#D4E8D4] text-[#4A7A4A] dark:bg-green-900/30 dark:text-green-300" // Pastel Green
-            : "bg-[#FFE8CC] text-[#995500] dark:bg-orange-900/30 dark:text-orange-300" // Pastel Orange
-        )}>
-          <div className={cn(
-            "w-2 h-2 rounded-full mr-2",
-            isReady ? "bg-[#4A7A4A] dark:bg-green-400" : "bg-[#EA8A2F] dark:bg-orange-400"
-          )}></div>
-          {isReady ? "Prête" : "En cours"}
-        </Badge>
+        <div className="flex items-center gap-2">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewBill();
+              }}
+              className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              title="Voir la note"
+            >
+              <Receipt className="w-4 h-4" />
+            </button>
+            
+            <Badge 
+              onClick={isReady ? onServe : undefined}
+              className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-bold shadow-none cursor-pointer transition-transform active:scale-95",
+              isReady 
+                ? "bg-[#D4E8D4] text-[#4A7A4A] dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200" // Pastel Green
+                : "bg-[#FFE8CC] text-[#995500] dark:bg-orange-900/30 dark:text-orange-300" // Pastel Orange
+            )}>
+              <div className={cn(
+                "w-2 h-2 rounded-full mr-2",
+                isReady ? "bg-[#4A7A4A] dark:bg-green-400" : "bg-[#EA8A2F] dark:bg-orange-400"
+              )}></div>
+              {isReady ? "Prête (Servir)" : "En cours"}
+            </Badge>
+        </div>
       </div>
 
       <div className="space-y-2 text-muted-foreground mb-4">

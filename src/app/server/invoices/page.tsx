@@ -75,13 +75,52 @@ export default function ServerInvoicesPage() {
       .filter(Boolean) as (Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string })[];
   }, [tables, orders, invoiceSettings]);
 
+  // 2. Compute Active Takeaway Orders
+  const takeawayBills = useMemo(() => {
+    const allOrders = Object.values(orders).flat();
+    
+    // Find orders that are NOT linked to a standard table AND not paid
+    const takeaways = allOrders.filter(
+      o => (o.table === 'Emporter' || !o.table?.startsWith('Table')) 
+           && o.status !== 'cancelled' 
+           && o.status !== 'paid'
+           && o.status !== 'served' // If served, it might be waiting for payment too, but usually takeaway is paid immediately? Let's assume pending/preparing/ready/served all need payment.
+    );
+
+    return takeaways.map(order => {
+      const subtotal = order.total;
+      const taxRate = invoiceSettings.taxRate;
+      const tax = calculateTax(subtotal, taxRate);
+      const total = calculateTotal(subtotal, taxRate);
+
+      return {
+        id: `provisional_takeaway_${order.id}`,
+        number: `EMPORTER`,
+        type: 'takeaway',
+        tableId: 'Emporter',
+        items: order.items,
+        subtotal,
+        tax,
+        taxRate,
+        total,
+        status: 'pending',
+        paymentMethod: 'pending',
+        createdAt: order.createdAt,
+        isProvisional: true,
+        isRequestingBill: false,
+        realTableId: null, // No real table to close
+        customerName: "Client à emporter" 
+      } as unknown as Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string | null };
+    });
+  }, [orders, invoiceSettings]);
+
   const filteredInvoices = invoices.filter(inv => 
     inv.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()))
   ).sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
 
-  // Merge lists for display, putting pending first
-  const displayList = [...pendingBills, ...filteredInvoices];
+  // Merge lists for display, putting pending tables first, then takeaways, then history
+  const displayList = [...pendingBills, ...takeawayBills, ...filteredInvoices];
 
   const handleOpenInvoice = (invoice: Invoice | any) => {
     setSelectedInvoice(invoice);

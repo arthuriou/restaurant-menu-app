@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Simplified Staff check (adjust as needed for your real auth implementation)
+    // Currently assumes any authenticated user (e.g. email/password) is staff, 
+    // while anonymous users are customers.
+    function isStaff() {
+       return isAuthenticated() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // --- Public/Client Collections ---
+
+    // Menu: Public Read, Staff Write
+    match /categories/{docId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    match /products/{docId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Orders: Public Create, Public Read (Own), Staff Update
+    match /orders/{orderId} {
+      // Anyone can place an order
+      allow create: if true; 
+      // Customers can read their own orders (if tracked) or open for now to simplify
+      allow read: if true;   
+      // Only staff (Kitchen/Server) should update status to 'prepared', 'served', etc.
+      allow update: if isStaff();
+    }
+
+    // Tables: Global Read, Public Status Update (Important for ordering flow)
+    match /tables/{tableId} {
+      allow read: if true;
+      // Allow customers (anonymous) to mark table as 'occupied' when ordering
+      allow update: if true; 
+      allow create, delete: if isStaff();
+    }
+    
+    // Scans: Public Create (Analytics), Staff Read
+    match /scans/{scanId} {
+      allow create: if true;
+      allow read, update, delete: if isStaff();
+    }
+
+    // Service Requests: Public Create, Staff Handle
+    match /serviceRequests/{reqId} {
+      allow create: if true;
+      allow read, update: if isStaff();
+    }
+    
+    // Invoices: Staff only
+    match /invoices/{invoiceId} {
+      allow read, write: if isStaff();
+    }
+
+    // --- Staff/Admin Collections ---
+    
+    // Restaurant Settings
+    match /restaurant/{docId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    // --- Users & Staff ---
+    
+    // Users (Role Management)
+    match /users/{userId} {
+      // Allow user to read their own profile, OR allow staff to read any profile
+      allow read: if request.auth != null && (request.auth.uid == userId || isStaff());
+      allow write: if isStaff();
+    }
+
+    // Staff (PIN Login & Management)
+    match /staff/{staffId} {
+      allow read: if true; 
+      allow write: if isStaff();
+    }
+    
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read, create: if true;
+      allow update, delete: if isStaff();
+    }
+
+  }
+}

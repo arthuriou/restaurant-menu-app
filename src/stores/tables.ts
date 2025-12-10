@@ -139,11 +139,28 @@ export const useTableStore = create<TableState>((set, get) => ({
 
       if (tableDoc) {
         console.log(`[TableStore] Found table doc: ${tableDoc.id}, updating...`);
-        await updateDoc(tableDoc.ref, {
-          scans: increment(1),
-          occupants: increment(1),
-          status: 'occupied'
-        });
+        
+        const data = tableDoc.data();
+        
+        // Logic: If table was available, this starts a NEW session.
+        // If it was already occupied, just count the scan (maybe a new guest or same guest rescanning).
+        // We do NOT increment occupants on every scan anymore to avoid "4 scans = 4 people".
+        
+        if (data.status === 'available') {
+            await updateDoc(tableDoc.ref, {
+              scans: 1,
+              occupants: 1,
+              status: 'occupied',
+              // We might want to clear activeOrderId here too if we want a fresh start
+            });
+        } else {
+            await updateDoc(tableDoc.ref, {
+              scans: increment(1),
+              // We ensure status is occupied but don't blindly add people
+              status: 'occupied'
+            });
+        }
+        
         console.log(`[TableStore] Update successful`);
         return { success: true, message: "Scan enregistré" };
       } else {
@@ -192,7 +209,8 @@ export const useTableStore = create<TableState>((set, get) => ({
     try {
       await updateDoc(doc(db, 'tables', id), {
         status: 'available',
-        occupants: null, // Firestore allows null or deleteField()
+        occupants: 0, 
+        scans: 0,
         activeOrderId: null
       });
     } catch (error) {

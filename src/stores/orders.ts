@@ -176,11 +176,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         updatedAt: serverTimestamp()
       });
 
-      // TODO: Génération automatique de facture désactivée temporairement
-      // Cause : Erreur de permissions Firestore sur la collection 'invoices'
-      // Solution : Configurer les règles Firestore pour autoriser l'écriture
-      
-      /*
       // Si la commande est servie, générer une facture automatiquement
       if (newStatus === 'served') {
         const { useInvoiceStore } = await import('@/stores/invoices');
@@ -212,7 +207,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           console.log("Facture générée automatiquement pour la commande", orderId);
         }
       }
-      */
     } catch (error) {
       console.error("Error updating order:", error);
       throw error;

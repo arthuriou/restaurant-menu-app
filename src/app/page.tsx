@@ -135,66 +135,134 @@ export default function Home() {
     
     if (tableParam) {
       const cleanTableId = tableParam.replace('Table ', '');
-      const currentTableId = table?.label;
       
-      // ✅ Check if we're switching tables - if so, clear session data
-      if (currentTableId && currentTableId !== cleanTableId) {
-        console.log(`Switching from table ${currentTableId} to ${cleanTableId} - clearing session`);
+      // ✅ Session & Ghost Order Fix
+      if (table?.label && table.label !== cleanTableId) {
+        console.log(`Switching from table ${table.label} to ${cleanTableId} - clearing session`);
         clearTableSession();
+        scanProcessed.current = false;
       }
-      
-      setTableId(cleanTableId);
-      setOrderType('dine-in');
-      setTable({ id: "qr", label: cleanTableId }); // Just the number
-      
-      // Track scan in this session
-      if (!scanProcessed.current) {
-        // Ensure auth before scanning
-        import('firebase/auth').then(({ signInAnonymously }) => {
-          import('@/lib/firebase').then(({ auth }) => {
-            addLog("Starting auth...");
-            
-            const proceedWithScan = async () => {
-              addLog("Auth success/present. Incrementing scans...");
-              const result = await incrementTableScans(cleanTableId);
-              if (result && !result.success) {
-                addLog("Scan failed: " + result.message);
-                toast.error("Erreur Scan: " + result.message);
-              } else {
-                addLog("Scan success. Adding to history...");
-                useScanStore.getState().addScan(cleanTableId).then(() => {
-                  addLog("History added.");
-                  toast.success("Bienvenue ! Table " + cleanTableId + " détectée.");
-                });
-              }
-              scanProcessed.current = true;
-            };
 
-            if (auth.currentUser) {
-              addLog("User already signed in: " + auth.currentUser.uid);
-              proceedWithScan();
-            } else {
-              signInAnonymously(auth).then(() => {
-                proceedWithScan();
-              }).catch(err => {
-                addLog("Auth error: " + err.message);
-                console.error("Auth error:", err);
-                toast.error("Erreur Auth: " + err.message);
-              });
-            }
-          });
-        });
-      }
+      // Resolve Real Table ID & Log Scan
+      const initializeTable = async () => {
+         try {
+           const { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } = await import('firebase/firestore');
+           const { auth, db } = await import('@/lib/firebase');
+           const { signInAnonymously } = await import('firebase/auth');
+
+           // 1. Resolve Real DB ID for Table
+           // We must find the Firestore Doc ID (e.g. "8f7s8d...") matching label "1"
+           // Otherwise placeOrder fails with "tables/qr" error.
+           let realTableId = `temp_${cleanTableId}`;
+           
+           // Optimization: Skip fetch if state is already correct and has a real ID
+           if (table?.label === cleanTableId && table?.id && !table.id.startsWith('temp_') && !table.id.startsWith('qr') && table.id !== 'takeaway') {
+             realTableId = table.id;
+             // We still proceed to logging if not processed
+           } else {
+               const q = query(collection(db, 'tables'), where('label', '==', cleanTableId));
+               const snap = await getDocs(q);
+               
+               if (!snap.empty) {
+                 realTableId = snap.docs[0].id;
+               } else {
+                 const q2 = query(collection(db, 'tables'), where('label', '==', `Table ${cleanTableId}`));
+                 const snap2 = await getDocs(q2);
+                 if (!snap2.empty) realTableId = snap2.docs[0].id;
+               }
+           }
+
+           // Update State with VALID ID
+           // Only update if changed to avoid loops
+           if (table?.id !== realTableId) {
+             setTableId(cleanTableId);
+             setOrderType('dine-in');
+             setTable({ id: realTableId, label: cleanTableId });
+           }
+
+           // 2. Scan Logging
+           if (!scanProcessed.current) {
+               // Auth Check
+               if (!auth.currentUser) {
+                 try {
+                   await signInAnonymously(auth);
+                 } catch (authErr) {
+                   console.warn("Anon Auth failed (likely permitted or admin logged in):", authErr);
+                 }
+               }
+
+               // Anti-Spam
+               const lastScanKey = `lastScan_${cleanTableId}`;
+               const lastScanTime = sessionStorage.getItem(lastScanKey);
+               const now = Date.now();
+
+               if (!lastScanTime || (now - parseInt(lastScanTime) > 2 * 60 * 1000)) {
+                  // Attempt Firestore Log (Silent Fail allowed)
+                  try {
+                    await addDoc(collection(db, 'scans'), {
+                        type: 'TABLE',
+                        tableId: cleanTableId, 
+                        realTableId: realTableId, 
+                        scannedAt: serverTimestamp(),
+                        userAgent: navigator.userAgent
+                    });
+                     toast.success(`📍 Table ${cleanTableId} détectée`);
+                  } catch (e: any) {
+                      console.warn("Analytics Log Failed (Permissions?):", e.message);
+                  }
+                  
+                  // Update Legacy Stats (Silent Fail allowed)
+                  try {
+                    await incrementTableScans(cleanTableId);
+                    useScanStore.getState().addScan(cleanTableId);
+                  } catch (e) {
+                      console.warn("Stats Increment Failed:", e);
+                  }
+                  
+                  sessionStorage.setItem(lastScanKey, now.toString());
+               }
+               scanProcessed.current = true;
+           }
+
+         } catch (err) {
+           console.error("Table Init Error:", err);
+         }
+      };
+
+      initializeTable();
+
     } else {
-      // Only reset if no table is already set (persistence check)
+      // Logic for Takeaway / No Table / URL Restoration
       const currentTable = useMenuStore.getState().table;
-      if (!currentTable) {
-        setOrderType('takeaway');
-        setTable({ id: "takeaway", label: "À emporter" });
+      
+      // If we have a table in state (and it's not takeaway), but ID is missing from URL, restore it.
+      if (currentTable && currentTable.id !== 'takeaway' && currentTable.label) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('table', currentTable.label);
+          window.history.replaceState(null, '', newUrl.toString());
+      } 
+      else if (!currentTable) {
+         setOrderType('takeaway');
+         setTable({ id: "takeaway", label: "À emporter" });
+         
+         // Log Takeaway Scan
+         if (!sessionStorage.getItem('takeaway_scan')) {
+            import('@/lib/firebase').then(async ({ db }) => {
+              if(!db) return;
+              const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+              addDoc(collection(db, 'scans'), {
+                type: 'TAKEAWAY',
+                tableId: null,
+                scannedAt: serverTimestamp()
+              }).catch(e => console.error(e));
+              sessionStorage.setItem('takeaway_scan', 'true');
+            });
+         }
       } else if (currentTable.label.startsWith('Table ')) {
-        // Migration: Fix old "Table X" labels to just "X"
         const cleanLabel = currentTable.label.replace('Table ', '');
-        setTable({ ...currentTable, label: cleanLabel });
+        if (cleanLabel !== currentTable.label) {
+             setTable({ ...currentTable, label: cleanLabel });
+        }
       }
     }
   }, [setTableId, setOrderType, setTable, incrementTableScans, clearTableSession, table]);

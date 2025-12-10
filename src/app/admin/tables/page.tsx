@@ -13,12 +13,12 @@ import { Label } from "@/components/ui/label";
 import { useTableStore, Table } from "@/stores/tables";
 
 export default function AdminTablesPage() {
-  const { tables, addTable, updateTable, deleteTable, subscribeToTables } = useTableStore();
+  const { tables, addTable, updateTable, deleteTable, subscribeToTables, closeTable } = useTableStore();
   const [qrOpen, setQrOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [baseUrl] = useState("http://192.168.1.79:3000");
+  const [baseUrl] = useState("http://192.168.1.74:3000");
   
   // Form states
   const [newTableLabel, setNewTableLabel] = useState("");
@@ -157,6 +157,19 @@ export default function AdminTablesPage() {
                 <span className="text-xs font-medium bg-white/90 dark:bg-zinc-900/90 backdrop-blur px-2 py-1 rounded-full shadow-sm">
                   {table.status === 'occupied' ? 'Occupée' : 'Libre'}
                 </span>
+                {table.status === 'occupied' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50 bg-red-50/50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if(confirm('Libérer la table et réinitialiser ?')) closeTable(table.id);
+                    }}
+                  >
+                    Libérer
+                  </Button>
+                )}
               </div>
               
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-[-10px] group-hover:translate-y-0 duration-200">

@@ -173,6 +173,17 @@ export const useMenuStore = create<MenuStore>()(
             activeOrderIds: [...state.activeOrderIds, docRef.id],
             cart: [] 
           }));
+
+          // Mettre à jour le statut de la table à "occupied"
+          const currentTable = get().table;
+          if (currentTable?.id) {
+             try {
+                await updateDoc(doc(db, 'tables', currentTable.id), { status: 'occupied' });
+             } catch (e) {
+                 console.warn("Table status update ignored (permissions):", e);
+             }
+          }
+
           return docRef.id;
         } catch (error) {
           console.error("Error placing order:", error);
