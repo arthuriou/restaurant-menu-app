@@ -104,8 +104,13 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           time: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Now'
         };
         
+        // DEBUG: Log order status changes
+        console.log(`[OrderStore] Order ${doc.id.slice(0,6)}... status: ${order.status}`);
+        
         if (orders[order.status]) {
           orders[order.status].push(order);
+        } else {
+          console.warn(`[OrderStore] Unknown status: ${order.status} for order ${doc.id}`);
         }
 
         // Stats calculation

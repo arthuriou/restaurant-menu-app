@@ -31,10 +31,20 @@ export const useReviewStore = create<ReviewState>()((set, get) => ({
     if (!db) throw new Error('Firebase non initialisé');
     
     try {
-      const review: Omit<Review, 'id'> = {
-        ...reviewData,
+      // Create a clean object without undefined values to avoid Firestore errors
+      const review: any = {
+        itemId: reviewData.itemId,
+        orderId: reviewData.orderId,
+        tableId: reviewData.tableId,
+        rating: reviewData.rating,
         createdAt: Date.now()
       };
+
+      // Only add optional fields if they exist
+      if (reviewData.comment) review.comment = reviewData.comment;
+      if (reviewData.itemName) review.itemName = reviewData.itemName;
+      if (reviewData.customerName) review.customerName = reviewData.customerName;
+      if (reviewData.customerPhone) review.customerPhone = reviewData.customerPhone;
 
       const docRef = await addDoc(collection(db, 'reviews'), review);
       

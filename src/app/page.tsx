@@ -151,14 +151,11 @@ export default function Home() {
            const { signInAnonymously } = await import('firebase/auth');
 
            // 1. Resolve Real DB ID for Table
-           // We must find the Firestore Doc ID (e.g. "8f7s8d...") matching label "1"
-           // Otherwise placeOrder fails with "tables/qr" error.
            let realTableId = `temp_${cleanTableId}`;
            
            // Optimization: Skip fetch if state is already correct and has a real ID
            if (table?.label === cleanTableId && table?.id && !table.id.startsWith('temp_') && !table.id.startsWith('qr') && table.id !== 'takeaway') {
              realTableId = table.id;
-             // We still proceed to logging if not processed
            } else {
                const q = query(collection(db, 'tables'), where('label', '==', cleanTableId));
                const snap = await getDocs(q);
@@ -173,56 +170,68 @@ export default function Home() {
            }
 
            // Update State with VALID ID
-           // Only update if changed to avoid loops
-           if (table?.id !== realTableId) {
+           // CRITICAL: Only update if different to prevent loop
+           if (table?.id !== realTableId || table?.label !== cleanTableId) {
              setTableId(cleanTableId);
              setOrderType('dine-in');
              setTable({ id: realTableId, label: cleanTableId });
            }
 
-           // 2. Scan Logging
-           if (!scanProcessed.current) {
-               // Auth Check
-               if (!auth.currentUser) {
-                 try {
-                   await signInAnonymously(auth);
-                 } catch (authErr) {
-                   console.warn("Anon Auth failed (likely permitted or admin logged in):", authErr);
-                 }
-               }
-
-               // Anti-Spam
-               const lastScanKey = `lastScan_${cleanTableId}`;
-               const lastScanTime = sessionStorage.getItem(lastScanKey);
-               const now = Date.now();
-
-               if (!lastScanTime || (now - parseInt(lastScanTime) > 2 * 60 * 1000)) {
-                  // Attempt Firestore Log (Silent Fail allowed)
-                  try {
-                    await addDoc(collection(db, 'scans'), {
-                        type: 'TABLE',
-                        tableId: cleanTableId, 
-                        realTableId: realTableId, 
-                        scannedAt: serverTimestamp(),
-                        userAgent: navigator.userAgent
-                    });
-                     toast.success(`📍 Table ${cleanTableId} détectée`);
-                  } catch (e: any) {
-                      console.warn("Analytics Log Failed (Permissions?):", e.message);
-                  }
-                  
-                  // Update Legacy Stats (Silent Fail allowed)
-                  try {
-                    await incrementTableScans(cleanTableId);
-                    useScanStore.getState().addScan(cleanTableId);
-                  } catch (e) {
-                      console.warn("Stats Increment Failed:", e);
-                  }
-                  
-                  sessionStorage.setItem(lastScanKey, now.toString());
-               }
-               scanProcessed.current = true;
+           // 2. Scan Logging - IMPROVED: Use combination key
+           const scanKey = `scan_${cleanTableId}_${realTableId}`;
+           if (scanProcessed.current || sessionStorage.getItem(scanKey)) {
+               console.log(`[Scan] Already processed this exact scan: ${scanKey}`);
+               return; // Already processed this exact scan
            }
+
+           // Auth Check
+           if (!auth.currentUser) {
+             try {
+               await signInAnonymously(auth);
+             } catch (authErr) {
+               console.warn("Anon Auth failed:", authErr);
+             }
+           }
+
+           // Anti-Spam - check time-based cooldown
+           const lastScanKey = `lastScan_${cleanTableId}`;
+           const lastScanTime = sessionStorage.getItem(lastScanKey);
+           const now = Date.now();
+
+           if (lastScanTime && (now - parseInt(lastScanTime) < 2 * 60 * 1000)) {
+              // Within 2 minutes cooldown - skip logging but mark as processed
+              console.log(`[Scan] Cooldown active for table ${cleanTableId}`);
+              sessionStorage.setItem(scanKey, 'true');
+              scanProcessed.current = true;
+              return;
+           }
+
+           // Attempt Firestore Log
+           try {
+             await addDoc(collection(db, 'scans'), {
+                 type: 'TABLE',
+                 tableId: cleanTableId, 
+                 realTableId: realTableId, 
+                 scannedAt: serverTimestamp(),
+                 userAgent: navigator.userAgent
+             });
+             console.log(`[Scan] Logged for table ${cleanTableId}`);
+             toast.success(`📍 Table ${cleanTableId} détectée`, { id: `table-${cleanTableId}` });
+           } catch (e: any) {
+               console.warn("Analytics Log Failed:", e.message);
+           }
+           
+           // Update Legacy Stats
+           try {
+             await incrementTableScans(cleanTableId);
+             useScanStore.getState().addScan(cleanTableId);
+           } catch (e) {
+               console.warn("Stats Increment Failed:", e);
+           }
+           
+           sessionStorage.setItem(lastScanKey, now.toString());
+           sessionStorage.setItem(scanKey, 'true');
+           scanProcessed.current = true;
 
          } catch (err) {
            console.error("Table Init Error:", err);

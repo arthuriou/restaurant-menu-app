@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useOrderStore } from "@/stores/orders";
 import { useMenuStore } from "@/stores/menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +27,7 @@ export default function ServerDashboard() {
   const { orders, updateOrderStatus } = useOrderStore();
   const { items: menuItems, loadMenu } = useMenuStore();
   const [viewingOrder, setViewingOrder] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   useEffect(() => {
     if (menuItems.length === 0) {
@@ -34,12 +35,37 @@ export default function ServerDashboard() {
     }
   }, [menuItems.length, loadMenu]);
 
+  // Update current time every minute for elapsed time display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
   const [activeTab, setActiveTab] = useState("all");
   const prevReadyOrdersRef = useRef<Set<string>>(new Set());
 
-  // Flatten and separate orders
-  const allOrders = Object.values(orders).flat();
-  const activeOrders = allOrders.filter(o => o.status !== 'served' && o.status !== 'paid');
+  // Create a stable key that changes when any order status changes
+  const ordersKey = useMemo(() => {
+    return Object.entries(orders)
+      .map(([status, list]) => `${status}:${list.length}`)
+      .join('|');
+  }, [orders]);
+
+  // Flatten and separate orders - using ordersKey to ensure recalculation
+  const allOrders = useMemo(() => {
+    const flattened = Object.values(orders).flat();
+    console.log('[ServerDashboard] All orders:', flattened.length, 'orders');
+    console.log('[ServerDashboard] Orders by status:', orders);
+    console.log('[ServerDashboard] ordersKey:', ordersKey);
+    return flattened;
+  }, [orders, ordersKey]);
+
+  const activeOrders = useMemo(
+    () => allOrders.filter(o => o.status !== 'served' && o.status !== 'paid'),
+    [allOrders]
+  );
 
   // Notification Logic
   useEffect(() => {
@@ -67,6 +93,25 @@ export default function ServerDashboard() {
     toast.success("Commande servie !");
   };
 
+  // Helper function to calculate elapsed time display
+  const getElapsedTimeText = (createdAt: any) => {
+    if (!createdAt) return 'Maintenant';
+    
+    const orderTime = createdAt.toDate ? createdAt.toDate().getTime() : 
+                      (createdAt.seconds ? createdAt.seconds * 1000 : 
+                      (createdAt._seconds ? createdAt._seconds * 1000 : Date.now()));
+    
+    const diff = currentTime - orderTime;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `Il y a ${days} jour${days > 1 ? 's' : ''}`;
+    if (hours > 0) return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+    if (minutes > 0) return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+    return 'À l\'instant';
+  };
+
   return (
     <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50/50 dark:bg-black p-2">
       <div className="flex items-center justify-between mb-8 px-2">
@@ -90,17 +135,29 @@ export default function ServerDashboard() {
         <TabsContent value="all" className="flex-1">
           <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
              <div className="space-y-4 pb-20 max-w-2xl mx-auto">
-              {activeOrders.length === 0 ? (
+              {allOrders.length === 0 ? (
                 <EmptyState />
               ) : (
-                activeOrders.map((order) => (
-                  <ObypayCard 
-                    key={order.id} 
-                    order={order} 
-                    onServe={() => handleServeOrder(order.id)} 
-                    onViewBill={() => setViewingOrder(order)}
-                  />
-                ))
+                allOrders.map((order) => {
+                  try {
+                    return (
+                      <ObypayCard 
+                        key={order.id} 
+                        order={order} 
+                        onServe={() => handleServeOrder(order.id)} 
+                        onViewBill={() => setViewingOrder(order)}
+                        getElapsedTimeText={getElapsedTimeText}
+                      />
+                    );
+                  } catch (error) {
+                    console.error('[ObypayCard] Error rendering order:', order.id, error);
+                    return (
+                      <div key={order.id} className="p-4 bg-red-100 border border-red-500 rounded">
+                        Error rendering order {order.id}: {String(error)}
+                      </div>
+                    );
+                  }
+                })
               )}
             </div>
           </ScrollArea>
@@ -115,6 +172,7 @@ export default function ServerDashboard() {
                    order={order} 
                    onServe={() => handleServeOrder(order.id)} 
                    onViewBill={() => setViewingOrder(order)}
+                   getElapsedTimeText={getElapsedTimeText}
                  />
               ))}
             </div>
@@ -130,6 +188,7 @@ export default function ServerDashboard() {
                    order={order} 
                    onServe={() => handleServeOrder(order.id)} 
                    onViewBill={() => setViewingOrder(order)}
+                   getElapsedTimeText={getElapsedTimeText}
                  />
               ))}
             </div>
@@ -172,7 +231,12 @@ function EmptyState() {
   );
 }
 
-function ObypayCard({ order, onServe, onViewBill }: { order: any, onServe: () => void, onViewBill: () => void }) {
+function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: { 
+  order: any, 
+  onServe: () => void, 
+  onViewBill: () => void,
+  getElapsedTimeText: (createdAt: any) => string 
+}) {
   const isReady = order.status === 'ready';
   const { items: allMenuItems } = useMenuStore();
 
@@ -180,6 +244,63 @@ function ObypayCard({ order, onServe, onViewBill }: { order: any, onServe: () =>
     const menuItem = allMenuItems.find(m => m.id === orderItem.menuId);
     return menuItem?.options?.find(opt => opt.name === optionName);
   };
+
+  // Get status display info
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return {
+          label: 'En attente',
+          bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+          textColor: 'text-yellow-700 dark:text-yellow-300',
+          dotColor: 'bg-yellow-500'
+        };
+      case 'preparing':
+        return {
+          label: 'En préparation',
+          bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+          textColor: 'text-blue-700 dark:text-blue-300',
+          dotColor: 'bg-blue-500'
+        };
+      case 'ready':
+        return {
+          label: 'Prête (Servir)',
+          bgColor: 'bg-green-100 dark:bg-green-900/30',
+          textColor: 'text-green-700 dark:text-green-300',
+          dotColor: 'bg-green-500'
+        };
+      case 'served':
+        return {
+          label: 'Servie',
+          bgColor: 'bg-gray-100 dark:bg-gray-900/30',
+          textColor: 'text-gray-700 dark:text-gray-300',
+          dotColor: 'bg-gray-500'
+        };
+      case 'paid':
+        return {
+          label: 'Payée',
+          bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+          textColor: 'text-emerald-700 dark:text-emerald-300',
+          dotColor: 'bg-emerald-500'
+        };
+      case 'cancelled':
+        return {
+          label: 'Annulée',
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
+          textColor: 'text-red-700 dark:text-red-300',
+          dotColor: 'bg-red-500'
+        };
+      default:
+        return {
+          label: status,
+          bgColor: 'bg-zinc-100 dark:bg-zinc-900/30',
+          textColor: 'text-zinc-700 dark:text-zinc-300',
+          dotColor: 'bg-zinc-500'
+        };
+    }
+  };
+
+  const statusInfo = getStatusInfo(order.status);
   
   return (
     <div 
@@ -208,16 +329,14 @@ function ObypayCard({ order, onServe, onViewBill }: { order: any, onServe: () =>
             <Badge 
               onClick={isReady ? onServe : undefined}
               className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold shadow-none cursor-pointer transition-transform active:scale-95",
-              isReady 
-                ? "bg-[#D4E8D4] text-[#4A7A4A] dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200" // Pastel Green
-                : "bg-[#FFE8CC] text-[#995500] dark:bg-orange-900/30 dark:text-orange-300" // Pastel Orange
-            )}>
-              <div className={cn(
-                "w-2 h-2 rounded-full mr-2",
-                isReady ? "bg-[#4A7A4A] dark:bg-green-400" : "bg-[#EA8A2F] dark:bg-orange-400"
-              )}></div>
-              {isReady ? "Prête (Servir)" : "En cours"}
+                "px-4 py-1.5 rounded-full text-xs font-bold shadow-none transition-transform",
+                statusInfo.bgColor,
+                statusInfo.textColor,
+                isReady ? "cursor-pointer active:scale-95 hover:brightness-95" : "cursor-default"
+              )}
+            >
+              <div className={cn("w-2 h-2 rounded-full mr-2", statusInfo.dotColor)}></div>
+              {statusInfo.label}
             </Badge>
         </div>
       </div>
@@ -225,7 +344,7 @@ function ObypayCard({ order, onServe, onViewBill }: { order: any, onServe: () =>
       <div className="space-y-2 text-muted-foreground mb-4">
         <div className="flex items-center gap-2 text-sm">
           <Clock className="w-4 h-4" />
-          <span>Aujourd'hui à {order.time}</span>
+          <span>{getElapsedTimeText(order.createdAt)}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <ShoppingBag className="w-4 h-4" />

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Star } from "lucide-react";
 import { useReviewStore } from "@/stores/reviews";
 import type { OrderItem } from "@/types";
@@ -23,6 +25,8 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comments, setComments] =useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   const handleRating = (itemId: string, rating: number) => {
     setRatings(prev => ({ ...prev, [itemId]: rating }));
@@ -42,7 +46,9 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
             tableId,
             rating,
             comment: comments[item.menuId] || undefined,
-            itemName: item.name
+            itemName: item.name,
+            customerName: customerName || undefined,
+            customerPhone: customerPhone || undefined
           });
         }
       }
@@ -76,6 +82,35 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto custom-scrollbar px-1">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Vos coordonnées (optionnel - restez anonyme si vous préférez)
+            </p>
+            <div className="space-y-2">
+              <div>
+                <Label htmlFor="name" className="text-xs">Nom</Label>
+                <Input
+                  id="name"
+                  placeholder="Votre nom (optionnel)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone" className="text-xs">Téléphone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Votre numéro (optionnel)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          
           <p className="text-sm text-muted-foreground">
             Notez les plats que vous avez appréciés (optionnel : ajoutez un commentaire)
           </p>

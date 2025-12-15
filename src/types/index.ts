@@ -67,6 +67,8 @@ export type Review = {
   comment?: string;
   createdAt: number;
   itemName?: string;
+  customerName?: string;
+  customerPhone?: string;
 };
 
 // Invoice Types

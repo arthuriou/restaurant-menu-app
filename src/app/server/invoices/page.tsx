@@ -21,10 +21,11 @@ import { Invoice } from "@/types";
 import { calculateTotal, calculateTax, generateInvoiceNumber, getRestaurantInfo } from "@/lib/invoice-utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth";
+import { cn } from "@/lib/utils";
 
 export default function ServerInvoicesPage() {
   const { invoices, addInvoice } = useInvoiceStore();
-  const { tables, closeTable, resolveServiceRequest } = useTableStore();
+  const { tables, closeTable } = useTableStore();
   const { orders } = useOrderStore();
   const { invoiceSettings } = useRestaurantStore();
   const { user } = useAuthStore();
@@ -37,9 +38,8 @@ export default function ServerInvoicesPage() {
   // 1. Compute Active Bills (All occupied tables with orders)
   const pendingBills = useMemo(() => {
     return tables
-      .filter(t => t.status !== 'available') // Get ALL active tables
+      .filter(t => t.status !== 'available') 
       .map(table => {
-        // Gather orders for this table
         const tableOrders = Object.values(orders).flat().filter(
           o => o.table === `Table ${table.label}` && o.status !== 'cancelled' && o.status !== 'paid'
         );
@@ -53,13 +53,12 @@ export default function ServerInvoicesPage() {
 
         const isRequestingBill = table.status === 'requesting_bill';
 
-        // Create a provisional invoice object
         return {
           id: `provisional_${table.id}`,
-          number: isRequestingBill ? `DEMANDE-${table.label}` : `TABLE-${table.label}`,
+          number: isRequestingBill ? `DEMANDE: ${table.label}` : `TABLE ${table.label}`,
           type: 'table',
           tableId: `Table ${table.label}`,
-          items: tableOrders.flatMap(o => o.items), // Flatten items
+          items: tableOrders.flatMap(o => o.items),
           subtotal,
           tax,
           taxRate,
@@ -68,7 +67,7 @@ export default function ServerInvoicesPage() {
           paymentMethod: 'pending',
           createdAt: { seconds: Date.now() / 1000 },
           isProvisional: true, 
-          isRequestingBill, // Flag for UI styling
+          isRequestingBill,
           realTableId: table.id
         } as unknown as Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string };
       })
@@ -84,7 +83,7 @@ export default function ServerInvoicesPage() {
       o => (o.table === 'Emporter' || !o.table?.startsWith('Table')) 
            && o.status !== 'cancelled' 
            && o.status !== 'paid'
-           && o.status !== 'served' // If served, it might be waiting for payment too, but usually takeaway is paid immediately? Let's assume pending/preparing/ready/served all need payment.
+           && o.status !== 'served'
     );
 
     return takeaways.map(order => {
@@ -108,7 +107,7 @@ export default function ServerInvoicesPage() {
         createdAt: order.createdAt,
         isProvisional: true,
         isRequestingBill: false,
-        realTableId: null, // No real table to close
+        realTableId: null,
         customerName: "Client à emporter" 
       } as unknown as Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string | null };
     });
@@ -119,7 +118,6 @@ export default function ServerInvoicesPage() {
     (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()))
   ).sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
 
-  // Merge lists for display, putting pending tables first, then takeaways, then history
   const displayList = [...pendingBills, ...takeawayBills, ...filteredInvoices];
 
   const handleOpenInvoice = (invoice: Invoice | any) => {
@@ -138,7 +136,6 @@ export default function ServerInvoicesPage() {
   const handleProcessPayment = async (provisionalInv: any) => {
     setIsGenerating(true);
     try {
-      // Create real invoice
       const newInvoice: Invoice = {
         id: `inv_${Date.now()}`,
         number: generateInvoiceNumber(),
@@ -150,7 +147,7 @@ export default function ServerInvoicesPage() {
         taxRate: provisionalInv.taxRate,
         total: provisionalInv.total,
         status: 'paid',
-        paymentMethod: 'cash', // Default to cash for now, could add selector
+        paymentMethod: 'cash',
         serverName: user?.name,
         createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
         paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
@@ -158,8 +155,6 @@ export default function ServerInvoicesPage() {
       };
 
       await addInvoice(newInvoice);
-      
-      // Close table / Resolve request
       await closeTable(provisionalInv.realTableId);
       
       toast.success(`Facture ${newInvoice.number} générée et table libérée !`);
@@ -172,7 +167,6 @@ export default function ServerInvoicesPage() {
     }
   };
 
-  // Convert Invoice to Order structure for OrderBill component
   const invoiceToOrder = (inv: Invoice | any): any => {
     return {
       id: inv.id,
@@ -190,108 +184,87 @@ export default function ServerInvoicesPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50/50 dark:bg-black p-2">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 px-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black tracking-tighter uppercase">Factures</h1>
-          <p className="text-muted-foreground flex items-center gap-2">
-             <Sparkles className="w-4 h-4 text-amber-500" />
-             Historique & Demandes
-          </p>
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50 dark:bg-black p-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Factures</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gestion des encaissements et historique</p>
         </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Rechercher (N°, Table)..." 
-            className="pl-10 h-10 rounded-full bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800" 
+            placeholder="Rechercher..." 
+            className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-zinc-400" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <ScrollArea className="flex-1 -mx-2 px-2">
-        <div className="space-y-3 pb-20 max-w-3xl mx-auto">
+      <ScrollArea className="flex-1 -mx-4 px-4">
+        <div className="space-y-2 pb-20 max-w-4xl mx-auto">
           {displayList.length === 0 ? (
-            <div className="text-center py-20 opacity-50">
-              <FileText className="w-16 h-16 mx-auto mb-4 text-zinc-300 dark:text-zinc-700" />
-              <p className="text-lg font-medium">Aucune facture trouvée</p>
+            <div className="text-center py-20 opacity-40">
+              <FileText className="w-12 h-12 mx-auto mb-3" />
+              <p>Aucune facture</p>
             </div>
           ) : (
             displayList.map((invoice: any) => {
                const isProvisional = invoice.isProvisional;
                const isRequestingBill = invoice.isRequestingBill;
                
-               let cardClasses = "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700";
-               let iconBg = "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-black";
-               let amountColor = "";
-
-               if (isRequestingBill) {
-                 cardClasses = "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50 hover:border-red-300 ring-1 ring-red-500/20";
-                 iconBg = "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 animate-pulse";
-                 amountColor = "text-red-600 dark:text-red-400";
-               } else if (isProvisional) {
-                 cardClasses = "bg-blue-50/50 dark:bg-blue-900/5 border-blue-200 dark:border-blue-900/30 hover:border-blue-300";
-                 iconBg = "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
-                 amountColor = "text-blue-600 dark:text-blue-400";
-               }
-
                return (
                 <div 
                   key={invoice.id}
                   onClick={() => handleOpenInvoice(invoice)}
-                  className={`group cursor-pointer rounded-[2rem] p-5 shadow-sm border flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${cardClasses}`}
+                  className={cn(
+                    "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
+                    "bg-white dark:bg-zinc-900",
+                    isRequestingBill 
+                      ? "border-red-200 bg-red-50/10 dark:border-red-900/30" 
+                      : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                  )}
                 >
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors duration-300 ${iconBg}`}>
-                      {isRequestingBill ? <BellRing className="w-6 h-6" /> : (isProvisional ? <Utensils className="w-6 h-6" /> : <FileText className="w-6 h-6" />)}
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center",
+                      isRequestingBill ? "bg-red-100 text-red-600 dark:bg-red-900/30" :
+                      isProvisional ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20" :
+                      "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                    )}>
+                      {isRequestingBill ? <BellRing className="w-5 h-5" /> : 
+                       isProvisional ? <Utensils className="w-5 h-5" /> : 
+                       <FileText className="w-5 h-5" />}
                     </div>
+                    
                     <div>
-                      <h3 className="font-bold text-lg tracking-tight flex items-center gap-2">
-                        {isProvisional ? (isRequestingBill ? "Demande d'addition" : "Table en cours") : invoice.number}
-                        {isProvisional ? (
-                          isRequestingBill ? (
-                            <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Action Requise</span>
-                          ) : (
-                            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">En cours</span>
-                          )
-                        ) : (
-                          <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Payée</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase">
+                          {isProvisional ? (isRequestingBill ? `Demande: ${invoice.number}` : invoice.number) : invoice.number}
+                        </span>
+                        {isRequestingBill && (
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         )}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">{invoice.tableId || 'Emporter'}</span>
-                        <span className="w-1 h-1 rounded-full bg-zinc-300" />
-                        <div className="flex items-center gap-1">
-                           <Calendar className="w-3 h-3" />
-                           <span>{new Date(invoice.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                         <span>{new Date(invoice.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                         <span>•</span>
+                         <span>{invoice.items?.length || 0} articles</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                    <div className="text-right">
-                      <div className={`font-black text-xl ${amountColor}`}>{invoice.total.toLocaleString()} FCFA</div>
-                      <div className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                        {isProvisional ? (
-                          <span className="italic">Non encaissée</span>
-                        ) : (
-                          <>
-                            {invoice.paymentMethod === 'card' ? <CreditCard className="w-3 h-3" /> : <Banknote className="w-3 h-3" />}
-                            <span className="capitalize">{invoice.paymentMethod === 'card' ? 'Carte' : 'Espèces'}</span>
-                          </>
-                        )}
-                      </div>
+                  <div className="text-right">
+                    <div className="font-bold text-lg text-zinc-900 dark:text-zinc-100">
+                      {invoice.total.toLocaleString()} FCFA
                     </div>
-
-                    <Button 
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full h-12 w-12 shrink-0 bg-zinc-50 dark:bg-zinc-800 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </Button>
+                    <div className="text-xs font-medium mt-0.5">
+                      {isProvisional ? (
+                        <span className="text-blue-600 dark:text-blue-400">À encaisser</span>
+                      ) : (
+                        <span className="text-green-600 dark:text-green-500">Payé ({invoice.paymentMethod === 'card' ? 'CB' : 'Esp'})</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -301,20 +274,17 @@ export default function ServerInvoicesPage() {
       </ScrollArea>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-black flex flex-col h-full">
-           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center flex-shrink-0">
-             <div>
-               <SheetTitle className="text-xl font-black uppercase tracking-tight">
-                 {(selectedInvoice as any)?.isProvisional ? "Aperçu Addition" : "Détail Facture"}
-               </SheetTitle>
-               <p className="text-sm text-muted-foreground">Vue client exacte</p>
-             </div>
-             <Button variant="ghost" size="icon" onClick={() => setIsSheetOpen(false)} className="rounded-full">
-               <X className="w-5 h-5" />
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col h-full ring-0 shadow-2xl">
+           <div className="p-4 border-b border-zinc-100 dark:border-zinc-900 flex justify-between items-center">
+             <SheetTitle className="text-lg font-bold">
+               {(selectedInvoice as any)?.isProvisional ? "Encaissement" : "Détails"}
+             </SheetTitle>
+             <Button variant="ghost" size="icon" onClick={() => setIsSheetOpen(false)}>
+               <X className="w-4 h-4" />
              </Button>
            </div>
 
-           <div className="flex-1 overflow-y-auto p-6">
+           <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-black p-6">
              {selectedInvoice && (
                <OrderBill 
                  order={invoiceToOrder(selectedInvoice)} 
@@ -324,24 +294,23 @@ export default function ServerInvoicesPage() {
              )}
            </div>
 
-           <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex-shrink-0 space-y-3">
+           <div className="p-4 border-t border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950 space-y-3">
              {(selectedInvoice as any)?.isProvisional ? (
                 <Button 
                   onClick={() => handleProcessPayment(selectedInvoice)} 
                   disabled={isGenerating}
-                  className="w-full h-12 rounded-xl text-lg font-bold shadow-lg bg-green-600 hover:bg-green-700 text-white" 
-                  size="lg"
+                  className="w-full h-12 rounded-lg text-base font-semibold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200" 
                 >
-                  {isGenerating ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Banknote className="mr-2 w-5 h-5" />} 
-                  Encaisser & Clôturer
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Banknote className="mr-2 w-4 h-4" />} 
+                  Encaisser {selectedInvoice?.total.toLocaleString()} FCFA
                 </Button>
              ) : (
                 <Button 
                   onClick={() => selectedInvoice && handlePrint(selectedInvoice.id)} 
-                  className="w-full h-12 rounded-xl text-lg font-bold shadow-lg shadow-zinc-200 dark:shadow-zinc-900" 
-                  size="lg"
+                  variant="outline"
+                  className="w-full h-12 rounded-lg text-base font-medium" 
                 >
-                  <Printer className="mr-2 w-5 h-5" /> Imprimer le ticket
+                  <Printer className="mr-2 w-4 h-4" /> Imprimer le ticket
                 </Button>
              )}
            </div>

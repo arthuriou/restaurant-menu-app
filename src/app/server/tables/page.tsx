@@ -130,82 +130,66 @@ export default function ServerTablesPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50/50 dark:bg-black p-2">
-      <div className="flex flex-col gap-2 mb-6 px-2">
-        <h1 className="text-3xl font-black tracking-tighter uppercase">Mes Tables</h1>
-        <p className="text-muted-foreground">Vue d'ensemble et gestion des tables en temps réel.</p>
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50 dark:bg-black p-4">
+      <div className="flex flex-col gap-1 mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Mes Tables</h1>
+        <p className="text-sm text-muted-foreground">Vue d'ensemble et gestion temps réel</p>
       </div>
       
-      <ScrollArea className="flex-1 -mx-2 px-2">
+      <ScrollArea className="flex-1 -mx-4 px-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-20">
           {tables.map((table) => {
             const isOccupied = table.status === 'occupied';
             const isService = table.status === 'needs_service';
             const isBill = table.status === 'requesting_bill';
             
-            // Mock occupancy for demonstration if occupied
-            const currentOccupancy = isOccupied ? Math.floor(Math.random() * table.seats) + 1 : 0;
-            const isFull = currentOccupancy === table.seats;
+            // Use real occupancy data
+            const currentOccupancy = table.occupants || 0;
+
+            let borderColor = "border-zinc-200 dark:border-zinc-800";
+            let statusIndicator = <div className="w-2 h-2 rounded-full bg-green-500" />;
+            let statusText = "Libre";
+
+            if (isService) {
+              borderColor = "border-amber-400";
+              statusIndicator = <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />;
+              statusText = "Service";
+            } else if (isBill) {
+              borderColor = "border-red-400";
+              statusIndicator = <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />;
+              statusText = "Addition";
+            } else if (isOccupied) {
+              borderColor = "border-zinc-300 dark:border-zinc-700";
+              statusIndicator = <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />;
+              statusText = "Occupée";
+            }
 
             return (
               <Card 
                 key={table.id}
                 onClick={() => isService ? handleTableClick(table.id, table.status) : handleOpenTableDetails(table.id)}
                 className={cn(
-                  "group cursor-pointer relative overflow-hidden transition-all duration-300 rounded-[2rem] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900",
-                  (isService || isBill) && "ring-2 ring-offset-2",
-                  isService ? "ring-amber-500" : isBill ? "ring-red-500" : "hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-1"
+                  "group cursor-pointer rounded-xl border bg-white dark:bg-zinc-900 transition-all hover:border-zinc-400 dark:hover:border-zinc-600",
+                  borderColor
                 )}
               >
-                <CardContent className="p-0 flex flex-col items-center justify-center aspect-square relative z-10">
-                  {/* Table Number */}
-                  <span className="text-5xl font-black tracking-tighter mb-4 text-zinc-900 dark:text-zinc-100">
-                    {table.label}
-                  </span>
-                  
-                  {/* Seats / Occupancy Visuals */}
-                  <div className="flex flex-col items-center gap-2 w-full">
-                    <div className="flex items-center gap-1.5 text-sm font-medium">
-                       <Users className={cn("w-4 h-4", isOccupied ? "text-zinc-900 dark:text-zinc-100" : "text-muted-foreground")} />
-                       <span className={cn(
-                         isOccupied ? "text-zinc-900 dark:text-zinc-100" : "text-muted-foreground"
-                       )}>
-                         {isOccupied ? `${currentOccupancy}/${table.seats}` : `${table.seats} places`}
-                       </span>
-                    </div>
+                <CardContent className="p-4 flex flex-col items-center justify-center min-h-[140px] relative">
+                   {/* Header Status */}
+                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                     <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{statusText}</span>
+                     {statusIndicator}
+                   </div>
 
-                    {/* Progress Bar for Occupancy */}
-                    {isOccupied && (
-                      <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full rounded-full transition-all duration-500", isFull ? "bg-red-500" : "bg-green-500")}
-                          style={{ width: `${(currentOccupancy / table.seats) * 100}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                   {/* Main Number */}
+                   <div className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mt-2">
+                     {table.label}
+                   </div>
 
-                  {/* Status Chips */}
-                  <div className="mt-6">
-                    {isService ? (
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 animate-pulse px-3 py-1 text-xs">
-                        <Bell className="w-3 h-3 mr-1" /> SERVICE
-                      </Badge>
-                    ) : isBill ? (
-                      <Badge variant="destructive" className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 animate-pulse border-red-200 px-3 py-1 text-xs">
-                        <Receipt className="w-3 h-3 mr-1" /> ADDITION
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className={cn(
-                        "border-0 px-3 py-1 text-xs font-bold",
-                        isOccupied 
-                          ? (isFull ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400")
-                          : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                      )}>
-                        {isOccupied ? (isFull ? "COMPLET" : "OCCUPÉ") : "LIBRE"}
-                      </Badge>
-                    )}
-                  </div>
+                   {/* Footer Info */}
+                   <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="w-3 h-3" />
+                      <span>{isOccupied ? `${currentOccupancy}` : table.seats}</span>
+                   </div>
                 </CardContent>
               </Card>
             );
@@ -219,33 +203,19 @@ export default function ServerTablesPage() {
            {selectedTableId && (() => {
              const table = tables.find(t => t.id === selectedTableId);
              const tableOrders = getTableOrders(table?.label || "");
-             // Fake an active order structure for the bill component using the aggregated items
-             const aggregatedOrder: any = {
-               id: 'preview',
-               tableId: `Table ${table?.label}`,
-               items: [],
-               total: 0,
-               status: 'pending',
-               createdAt: { seconds: Date.now()/1000 }
-             };
-
-             if (tableOrders.length > 0) {
-               aggregatedOrder.items = []; // Items will be handled via the order prop and otherOrders in OrderBill
-             }
-
              const hasOrders = tableOrders.length > 0;
 
              return (
                <div className="h-full flex flex-col bg-zinc-50 dark:bg-black">
-                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center">
+                 <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center">
                    <div>
-                     <SheetTitle className="text-2xl font-black uppercase">Table {table?.label}</SheetTitle>
+                     <SheetTitle className="text-xl font-bold">Table {table?.label}</SheetTitle>
                      <p className="text-sm text-muted-foreground">
-                        {hasOrders ? `${tableOrders.length} commandes en cours` : "Aucune commande"}
+                        {hasOrders ? `${tableOrders.length} commandes` : "Table libre"}
                      </p>
                    </div>
                    <Button variant="ghost" size="icon" onClick={() => setActiveSheet(false)}>
-                     <X className="w-5 h-5" />
+                     <X className="w-4 h-4" />
                    </Button>
                  </div>
 
@@ -260,48 +230,30 @@ export default function ServerTablesPage() {
                     ) : (
                       <div className="text-center py-20 text-muted-foreground">
                         <Utensils className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>Table libre ou sans commande.</p>
-                        <Button 
-                          className="mt-6 rounded-full"
-                          onClick={() => {
-                             window.location.href = `/?table=${table?.label}`;
-                          }}
-                        >
-                          Prendre une commande
-                        </Button>
+                        <p>Aucune commande</p>
                       </div>
                     )}
                  </ScrollArea>
 
                  {hasOrders && (
-                   <div className="p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+                   <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
                      {generatedInvoice ? (
                        <div className="space-y-3">
-                         <div className="flex items-center gap-3 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
-                            <Check className="w-6 h-6" />
-                            <div className="font-bold">Facture Payée & Générée</div>
+                         <div className="flex items-center gap-3 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-900/50">
+                            <Check className="w-5 h-5" />
+                            <div className="font-bold text-sm">Facture Payée & Générée</div>
                          </div>
-                         <Button onClick={handlePrint} className="w-full h-12 rounded-xl text-lg font-bold" variant="outline">
-                           <Printer className="mr-2 w-5 h-5" /> Imprimer le ticket
+                         <Button onClick={handlePrint} className="w-full h-12 rounded-lg text-base font-bold bg-white border border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm">
+                           <Printer className="mr-2 w-4 h-4" /> Imprimer le ticket
                          </Button>
                        </div>
                      ) : (
-                       <div className="grid grid-cols-2 gap-3">
+                       <div className="flex flex-col gap-3">
                          <Button 
-                          variant="outline" 
-                          className="h-14 rounded-xl font-bold"
-                          onClick={() => {
-                            window.location.href = `/?table=${table?.label}`;
-                          }}
-                         >
-                           <Utensils className="mr-2 w-5 h-5" />
-                           Ajouter
-                         </Button>
-                         <Button 
-                          className="h-14 rounded-xl font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black"
+                          className="h-12 rounded-lg font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black shadow-sm"
                           onClick={handleGenerateInvoice}
                          >
-                           <BanknoteIcon className="mr-2 w-5 h-5" />
+                           <BanknoteIcon className="mr-2 w-4 h-4" />
                            Encaisser
                          </Button>
                        </div>
