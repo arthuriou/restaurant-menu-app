@@ -198,40 +198,35 @@ export default function Home() {
            const lastScanTime = sessionStorage.getItem(lastScanKey);
            const now = Date.now();
 
-           if (lastScanTime && (now - parseInt(lastScanTime) < 2 * 60 * 1000)) {
-              // Within 2 minutes cooldown - skip logging but mark as processed
+           if (!lastScanTime || (now - parseInt(lastScanTime) > 2 * 60 * 1000)) {
+               // IMMEDIATE LOCK: Set cooldown key before any async work to prevent race conditions
+               sessionStorage.setItem(lastScanKey, now.toString());
+               
+               try {
+                  // Single source of truth for scan logging
+                  await useScanStore.getState().addScan(cleanTableId);
+                  
+                  // Update Legacy Stats & Occupancy
+                  // We can run these in parallel
+                  const { incrementTableScans } = useTableStore.getState();
+                  await Promise.all([
+                    incrementTableScans(cleanTableId)
+                  ]);
+
+                  console.log(`[Scan] Logged for table ${cleanTableId}`);
+                  toast.success(`📍 Table ${cleanTableId} détectée`);
+               } catch (e) {
+                   console.error("Scan logging failed:", e);
+               }
+           } else {
               console.log(`[Scan] Cooldown active for table ${cleanTableId}`);
-              sessionStorage.setItem(scanKey, 'true');
-              scanProcessed.current = true;
-              return;
            }
 
-           // Attempt Firestore Log
-           try {
-             await addDoc(collection(db, 'scans'), {
-                 type: 'TABLE',
-                 tableId: cleanTableId, 
-                 realTableId: realTableId, 
-                 scannedAt: serverTimestamp(),
-                 userAgent: navigator.userAgent
-             });
-             console.log(`[Scan] Logged for table ${cleanTableId}`);
-             toast.success(`📍 Table ${cleanTableId} détectée`, { id: `table-${cleanTableId}` });
-           } catch (e: any) {
-               console.warn("Analytics Log Failed:", e.message);
-           }
-           
-           // Update Legacy Stats
-           try {
-             await incrementTableScans(cleanTableId);
-             useScanStore.getState().addScan(cleanTableId);
-           } catch (e) {
-               console.warn("Stats Increment Failed:", e);
-           }
-           
-           sessionStorage.setItem(lastScanKey, now.toString());
+           // Always mark as processed for this session
            sessionStorage.setItem(scanKey, 'true');
            scanProcessed.current = true;
+           
+
 
          } catch (err) {
            console.error("Table Init Error:", err);

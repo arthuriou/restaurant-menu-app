@@ -8,10 +8,11 @@ import { useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { 
   Clock, CheckCircle2, ChefHat, Utensils, LogOut, 
-  ArrowRight, BellRing, AlertTriangle
+  ArrowRight, BellRing, AlertTriangle, ShoppingBag, UtensilsCrossed
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
 import { UserAvatar } from "@/components/user-avatar";
@@ -152,12 +153,21 @@ export default function KitchenPage() {
                                 >
                                     <CardContent className="p-0">
                                       <div className="flex justify-between items-center p-3 md:p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                                        <Badge 
-                                          variant="outline" 
-                                          className="text-base md:text-xl font-black border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg shadow-sm"
-                                        >
-                                          {order.table}
-                                        </Badge>
+                                        <div className="flex flex-col gap-1">
+                                          <div className="flex items-center gap-2">
+                                            <Badge 
+                                              variant="outline" 
+                                              className={cn(
+                                                "text-sm md:text-base font-black px-2.5 md:px-3 py-1 rounded-lg shadow-sm uppercase",
+                                                (order.table === 'Emporter' || !order.table?.toLowerCase().startsWith('table')) ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-900" : "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700"
+                                              )}
+                                            >
+                                              {(order.table === 'Emporter' || !order.table?.toLowerCase().startsWith('table')) ? <ShoppingBag className="w-4 h-4 mr-2" /> : <UtensilsCrossed className="w-4 h-4 mr-2" />}
+                                              {order.table}
+                                            </Badge>
+                                          </div>
+                                          <span className="text-[10px] md:text-xs font-mono text-muted-foreground uppercase ml-1">#{order.id.slice(0, 4)}</span>
+                                        </div>
                                         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg font-bold text-xs md:text-sm ${timerColor}`}>
                                           <Clock className="w-3 h-3 md:w-4 md:h-4" />
                                           <span>{elapsed} min</span>

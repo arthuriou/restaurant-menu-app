@@ -35,90 +35,11 @@ export default function ServerInvoicesPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 1. Compute Active Bills (All occupied tables with orders)
-  const pendingBills = useMemo(() => {
-    return tables
-      .filter(t => t.status !== 'available') 
-      .map(table => {
-        const tableOrders = Object.values(orders).flat().filter(
-          o => o.table === `Table ${table.label}` && o.status !== 'cancelled' && o.status !== 'paid'
-        );
-
-        if (tableOrders.length === 0) return null;
-
-        const subtotal = tableOrders.reduce((acc, o) => acc + o.total, 0);
-        const taxRate = invoiceSettings.taxRate;
-        const tax = calculateTax(subtotal, taxRate);
-        const total = calculateTotal(subtotal, taxRate);
-
-        const isRequestingBill = table.status === 'requesting_bill';
-
-        return {
-          id: `provisional_${table.id}`,
-          number: isRequestingBill ? `DEMANDE: ${table.label}` : `TABLE ${table.label}`,
-          type: 'table',
-          tableId: `Table ${table.label}`,
-          items: tableOrders.flatMap(o => o.items),
-          subtotal,
-          tax,
-          taxRate,
-          total,
-          status: 'pending', 
-          paymentMethod: 'pending',
-          createdAt: { seconds: Date.now() / 1000 },
-          isProvisional: true, 
-          isRequestingBill,
-          realTableId: table.id
-        } as unknown as Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string };
-      })
-      .filter(Boolean) as (Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string })[];
-  }, [tables, orders, invoiceSettings]);
-
-  // 2. Compute Active Takeaway Orders
-  const takeawayBills = useMemo(() => {
-    const allOrders = Object.values(orders).flat();
-    
-    // Find orders that are NOT linked to a standard table AND not paid
-    const takeaways = allOrders.filter(
-      o => (o.table === 'Emporter' || !o.table?.startsWith('Table')) 
-           && o.status !== 'cancelled' 
-           && o.status !== 'paid'
-           && o.status !== 'served'
-    );
-
-    return takeaways.map(order => {
-      const subtotal = order.total;
-      const taxRate = invoiceSettings.taxRate;
-      const tax = calculateTax(subtotal, taxRate);
-      const total = calculateTotal(subtotal, taxRate);
-
-      return {
-        id: `provisional_takeaway_${order.id}`,
-        number: `EMPORTER`,
-        type: 'takeaway',
-        tableId: 'Emporter',
-        items: order.items,
-        subtotal,
-        tax,
-        taxRate,
-        total,
-        status: 'pending',
-        paymentMethod: 'pending',
-        createdAt: order.createdAt,
-        isProvisional: true,
-        isRequestingBill: false,
-        realTableId: null,
-        customerName: "Client à emporter" 
-      } as unknown as Invoice & { isProvisional: boolean, isRequestingBill: boolean, realTableId: string | null };
-    });
-  }, [orders, invoiceSettings]);
-
-  const filteredInvoices = invoices.filter(inv => 
+  // Only show finalized invoices from the store
+  const displayList = invoices.filter(inv => 
     inv.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()))
   ).sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
-
-  const displayList = [...pendingBills, ...takeawayBills, ...filteredInvoices];
 
   const handleOpenInvoice = (invoice: Invoice | any) => {
     setSelectedInvoice(invoice);

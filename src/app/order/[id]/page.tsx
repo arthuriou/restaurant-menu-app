@@ -108,9 +108,18 @@ export default function OrderPage() {
                 
                 // Use onSnapshot instead of getDocs for real-time updates
                 unsubscribeOthers = onSnapshot(q, (querySnapshot) => {
+                  const now = Date.now();
+                  const twelveHours = 12 * 60 * 60 * 1000;
+
                   const others = querySnapshot.docs
                     .map(d => ({ id: d.id, ...d.data() } as Order))
                     .filter(o => o.id !== currentOrder.id)
+                    // Filter out orders older than 12h or with invalid dates
+                    .filter(o => {
+                      if (!o.createdAt?.seconds) return false;
+                      const orderTime = o.createdAt.seconds * 1000;
+                      return (now - orderTime) < twelveHours;
+                    })
                     .sort((a, b) => {
                       const timeA = a.createdAt?.seconds || 0;
                       const timeB = b.createdAt?.seconds || 0;
@@ -212,9 +221,11 @@ export default function OrderPage() {
           router.push('/');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error cancelling:", error);
-      toast.error("Impossible d'annuler");
+      
+      console.error("Error cancelling:", error);
+      toast.error("Impossible d'annuler cette commande. Réessayez ou appelez le serveur.");
     } finally {
       setCancellingId(null);
     }

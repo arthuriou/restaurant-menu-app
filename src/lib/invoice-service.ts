@@ -12,13 +12,18 @@ export const generateInvoiceFromOrder = (
   taxRate: number = 20
 ): Invoice => {
   const subtotal = order.total;
-  const tax = calculateTax(subtotal, taxRate);
-  const total = subtotal + tax;
+  // Prices are TTC (Tax Inclusive) - total is subtotal, tax is extracted
+  const total = subtotal;
+  const tax = Math.round((total * taxRate / (100 + taxRate)) * 100) / 100;
+
+  // Determine type based on explicit "emporter" label
+  const orderAny = order as any;
+  const isTakeaway = orderAny.table?.toLowerCase().includes('emporter') || orderAny.type === 'takeaway';
 
   const invoice: Invoice = {
     id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     number: generateInvoiceNumber(),
-    type: "table", // Since order has tableId
+    type: isTakeaway ? "takeaway" : "table",
     tableId: order.tableId,
     items: order.items,
     subtotal: subtotal,
@@ -46,8 +51,9 @@ export const generateTakeawayInvoice = (
   taxRate: number = 20
 ): Invoice => {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const tax = calculateTax(subtotal, taxRate);
-  const total = subtotal + tax;
+  // Prices are TTC
+  const total = subtotal;
+  const tax = Math.round((total * taxRate / (100 + taxRate)) * 100) / 100;
 
   const invoice: Invoice = {
     id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -83,8 +89,9 @@ export const generateConsolidatedInvoice = (
   
   // Calculate totals
   const subtotal = orders.reduce((sum, order) => sum + order.total, 0);
-  const tax = calculateTax(subtotal, taxRate);
-  const total = subtotal + tax;
+  // Prices are TTC
+  const total = subtotal;
+  const tax = Math.round((total * taxRate / (100 + taxRate)) * 100) / 100;
 
   // Use the table ID from the first order (assuming all are from same table)
   const tableId = orders[0]?.tableId || "Unknown";

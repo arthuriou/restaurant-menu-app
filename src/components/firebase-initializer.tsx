@@ -26,10 +26,15 @@ export function FirebaseInitializer() {
     loadSettings();
 
     // Auth listener
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        // Handle logout if needed, or just sync state
-        // useAuthStore.setState({ user: null, isAuthenticated: false });
+        // Auto sign-in anonymously for guests/takeaway
+        try {
+           const { signInAnonymously } = await import('firebase/auth');
+           await signInAnonymously(auth);
+        } catch (e) {
+           console.error("Auto-auth failed:", e);
+        }
       }
     });
 

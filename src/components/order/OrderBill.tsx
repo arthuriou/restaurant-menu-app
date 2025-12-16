@@ -11,6 +11,7 @@ interface OrderBillProps {
   otherOrders?: Order[]; // Previous orders in the same session
   companyName?: string;
   showActions?: boolean; // Show pay/cancel buttons?
+  hideDetailsButton?: boolean; // New prop to optionally hide detail buttons if added
   onCancelOrder?: (orderId: string) => void;
   cancellingId?: string | null;
 }
@@ -99,7 +100,7 @@ export function OrderBill({
                     </div>
                   </div>
                   
-                  {showActions && ord.status === 'pending' && onCancelOrder && (
+                  {showActions && ord.status === 'pending' && onCancelOrder && ord.id === order.id && (
                     <button 
                       onClick={() => onCancelOrder(ord.id)}
                       disabled={cancellingId === ord.id}

@@ -5,7 +5,7 @@ import { format, isSameDay, subDays, subWeeks, subMonths, startOfWeek, endOfWeek
 import { fr } from "date-fns/locale";
 import { 
   Search, Download, Calendar as CalendarIcon, ArrowUpRight, ArrowDownRight,
-  CreditCard, Banknote, Filter, History, ScanLine, XCircle, CheckCircle2
+  CreditCard, Banknote, Filter, History, ScanLine, XCircle, CheckCircle2, FileText, Printer
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,26 +13,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useOrderStore, DashboardOrder } from "@/stores/orders";
-import { useScanStore, ScanEvent } from "@/stores/scans";
+import { useInvoiceStore } from "@/stores/invoices"; // Changed from Orders
+import { useScanStore } from "@/stores/scans";
+import { Invoice } from "@/types";
 
 export default function AccountingPage() {
-  const { orders, subscribeToOrders } = useOrderStore();
+  const { invoices, subscribeToInvoices } = useInvoiceStore();
   const { scans, subscribeToScans } = useScanStore();
   
   const [dateFilter, setDateFilter] = useState<string>(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
   const [periodType, setPeriodType] = useState<'day' | 'week' | 'month'>('day');
-  const [activeTab, setActiveTab] = useState("sales");
+  const [activeTab, setActiveTab] = useState("invoices");
 
   // Subscribe to data
   useEffect(() => {
-    const unsubOrders = subscribeToOrders();
+    const unsubInvoices = subscribeToInvoices();
     const unsubScans = subscribeToScans();
     return () => {
-      unsubOrders();
+      unsubInvoices();
       unsubScans();
     };
-  }, [subscribeToOrders, subscribeToScans]);
+  }, [subscribeToInvoices, subscribeToScans]);
 
   // --- Date Logic ---
   const selectedDate = useMemo(() => parseISO(dateFilter), [dateFilter]);
@@ -69,7 +70,6 @@ export default function AccountingPage() {
   const { start: prevStart, end: prevEnd } = getPreviousPeriod();
 
   // --- Filtering ---
-  const allOrders = useMemo(() => Object.values(orders).flat() as DashboardOrder[], [orders]);
   
   const filterDataByRange = (data: any[], dateField: string, start: Date, end: Date) => {
     return data.filter(item => {
@@ -87,33 +87,28 @@ export default function AccountingPage() {
     });
   };
 
-  const currentOrders = useMemo(() => filterDataByRange(allOrders, 'createdAt', currentStart, currentEnd), [allOrders, currentStart, currentEnd]);
-  const prevOrders = useMemo(() => filterDataByRange(allOrders, 'createdAt', prevStart, prevEnd), [allOrders, prevStart, prevEnd]);
+  const currentInvoices = useMemo(() => filterDataByRange(invoices, 'createdAt', currentStart, currentEnd), [invoices, currentStart, currentEnd]);
+  const prevInvoices = useMemo(() => filterDataByRange(invoices, 'createdAt', prevStart, prevEnd), [invoices, prevStart, prevEnd]);
 
-  const currentScans = useMemo(() => {
-    console.log("All Scans:", scans);
-    const filtered = filterDataByRange(scans, 'timestamp', currentStart, currentEnd);
-    console.log("Filtered Scans (Current):", filtered, "Start:", currentStart, "End:", currentEnd);
-    return filtered;
-  }, [scans, currentStart, currentEnd]);
+  const currentScans = useMemo(() => filterDataByRange(scans, 'timestamp', currentStart, currentEnd), [scans, currentStart, currentEnd]);
   const prevScans = useMemo(() => filterDataByRange(scans, 'timestamp', prevStart, prevEnd), [scans, prevStart, prevEnd]);
 
   // --- Stats Calculation ---
-  const calculateStats = (orderList: DashboardOrder[]) => {
-    const served = orderList.filter(o => o.status === 'served');
-    const cancelled = orderList.filter(o => o.status === 'cancelled');
-    const revenue = served.reduce((acc, o) => acc + (o.total || 0), 0);
+  const calculateStats = (invoiceList: Invoice[]) => {
+    const paid = invoiceList.filter(i => i.status === 'paid');
+    const cancelled = invoiceList.filter(i => i.status === 'cancelled');
+    const revenue = paid.reduce((acc, i) => acc + (i.total || 0), 0);
     return {
       revenue,
-      totalOrders: orderList.length,
-      servedCount: served.length,
+      totalInvoices: invoiceList.length,
+      paidCount: paid.length,
       cancelledCount: cancelled.length,
-      avgBasket: served.length ? revenue / served.length : 0
+      avgTicket: paid.length ? revenue / paid.length : 0
     };
   };
 
-  const currentStats = calculateStats(currentOrders);
-  const prevStats = calculateStats(prevOrders);
+  const currentStats = calculateStats(currentInvoices);
+  const prevStats = calculateStats(prevInvoices);
 
   const calculateGrowth = (current: number, prev: number) => {
     if (prev === 0) return current > 0 ? 100 : 0;
@@ -124,16 +119,20 @@ export default function AccountingPage() {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount).replace('XOF', 'FCFA');
   };
 
+  const handlePrintInvoice = (invoiceId: string) => {
+    window.open(`/admin/invoices/${invoiceId}/print`, '_blank');
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Comptabilité & Analytics
+            Comptabilité & Factures
           </h2>
           <p className="text-muted-foreground mt-1">
-            Suivi détaillé des ventes et de l'activité.
+            Suivi des factures générées et des encaissements.
           </p>
         </div>
         
@@ -188,12 +187,12 @@ export default function AccountingPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 max-w-[400px] rounded-xl">
-          <TabsTrigger value="sales" className="rounded-lg">Ventes</TabsTrigger>
+          <TabsTrigger value="invoices" className="rounded-lg">Factures</TabsTrigger>
           <TabsTrigger value="scans" className="rounded-lg">Scans QR</TabsTrigger>
         </TabsList>
 
-        {/* --- SALES TAB --- */}
-        <TabsContent value="sales" className="space-y-6">
+        {/* --- INVOICES TAB --- */}
+        <TabsContent value="invoices" className="space-y-6">
           {/* KPIs */}
           <div className="grid gap-4 md:grid-cols-4">
             <KPICard 
@@ -204,18 +203,18 @@ export default function AccountingPage() {
               subtext="vs période préc."
             />
             <KPICard 
-              title="Commandes Servies" 
-              value={currentStats.servedCount.toString()} 
+              title="Factures Payées" 
+              value={currentStats.paidCount.toString()} 
               icon={CheckCircle2} 
-              trend={calculateGrowth(currentStats.servedCount, prevStats.servedCount)}
-              subtext={`${currentStats.totalOrders} total`}
+              trend={calculateGrowth(currentStats.paidCount, prevStats.paidCount)}
+              subtext={`${currentStats.totalInvoices} emises`}
             />
             <KPICard 
-              title="Panier Moyen" 
-              value={formatCurrency(currentStats.avgBasket)} 
+              title="Ticket Moyen" 
+              value={formatCurrency(currentStats.avgTicket)} 
               icon={CreditCard} 
-              trend={calculateGrowth(currentStats.avgBasket, prevStats.avgBasket)}
-              subtext="par commande"
+              trend={calculateGrowth(currentStats.avgTicket, prevStats.avgTicket)}
+              subtext="par facture"
             />
             <KPICard 
               title="Annulations" 
@@ -223,43 +222,51 @@ export default function AccountingPage() {
               icon={XCircle} 
               trend={calculateGrowth(currentStats.cancelledCount, prevStats.cancelledCount)}
               inverseTrend // Red if up
-              subtext="commandes annulées"
+              subtext="factures annulées"
             />
           </div>
 
-          {/* Orders List */}
+          {/* Invoices List */}
           <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800">
             <CardHeader>
-              <CardTitle>Détail des Commandes</CardTitle>
+              <CardTitle>Liste des Factures</CardTitle>
               <CardDescription>
-                {currentOrders.length} commandes sur la période sélectionnée
+                {currentInvoices.length} factures sur la période sélectionnée
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {currentOrders.length === 0 ? (
-                  <div className="text-center py-12 opacity-50">Aucune commande trouvée</div>
+                {currentInvoices.length === 0 ? (
+                  <div className="text-center py-12 opacity-50">Aucune facture trouvée</div>
                 ) : (
-                  currentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                  currentInvoices.map((invoice) => (
+                    <div key={invoice.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-zinc-200 dark:bg-zinc-800'
+                          invoice.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         }`}>
-                          {order.table?.replace('Table ', '') || '?'}
+                          <FileText className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold">#{order.id.slice(-4)}</span>
-                            <Badge variant={order.status === 'served' ? 'default' : order.status === 'cancelled' ? 'destructive' : 'secondary'}>
-                              {order.status === 'served' ? 'Servi' : order.status === 'cancelled' ? 'Annulé' : order.status}
+                            <span className="font-bold text-sm tracking-wide">{invoice.number}</span>
+                            <Badge variant={invoice.status === 'paid' ? 'default' : invoice.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                              {invoice.status === 'paid' ? 'Payée' : invoice.status === 'cancelled' ? 'Annulée' : invoice.status}
                             </Badge>
                           </div>
-                          <span className="text-xs text-muted-foreground">{order.time} • {order.itemCount} articles</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                             {format(invoice.createdAt.seconds * 1000, 'HH:mm')} • {invoice.tableId} • {invoice.items.reduce((acc, i: ) => acc + i.qty, 0)} articles
+                          </span>
                         </div>
                       </div>
-                      <div className="font-bold">
-                        {formatCurrency(order.total)}
+                      <div className="flex items-center gap-4">
+                         <div className="font-bold text-right">
+                           {formatCurrency(invoice.total)}
+                           <p className="text-[10px] text-muted-foreground font-normal">{invoice.paymentMethod}</p>
+                         </div>
+                         <Button variant="ghost" size="icon" onClick={() => handlePrintInvoice(invoice.id)}>
+                           <Printer className="w-4 h-4" />
+                         </Button>
                       </div>
                     </div>
                   ))

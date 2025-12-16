@@ -18,7 +18,7 @@ export default function AdminTablesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [baseUrl] = useState("http://192.168.1.66:3001");
+  const [baseUrl] = useState("http://192.168.1.88:3000");
   
   // Form states
   const [newTableLabel, setNewTableLabel] = useState("");

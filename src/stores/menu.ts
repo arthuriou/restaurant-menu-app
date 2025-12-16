@@ -8,7 +8,8 @@ import {
   getDocs,
   query, 
   orderBy,
-  where
+  where,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Category, MenuItem, Order, OrderItem } from '@/types';
@@ -57,7 +58,7 @@ type MenuStore = {
   deleteItem: (id: string) => Promise<void>;
 };
 
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useMenuStore = create<MenuStore>()(
   persist(
@@ -161,11 +162,15 @@ export const useMenuStore = create<MenuStore>()(
         });
 
         try {
-          const { addDoc, serverTimestamp } = await import('firebase/firestore');
+          const { getAuth } = await import('firebase/auth');
+          const auth = getAuth();
+          const userId = auth.currentUser?.uid || 'anonymous';
+
           const docRef = await addDoc(collection(db, 'orders'), {
             ...orderData,
             items: sanitizedItems,
             status: 'pending',
+            userId, // Attach ownership
             createdAt: serverTimestamp()
           });
           set((state) => ({ 
@@ -175,9 +180,13 @@ export const useMenuStore = create<MenuStore>()(
           }));
 
           // Mettre à jour le statut de la table à "occupied"
+          // CRITICAL: We do NOT sync activeOrderId to the table anymore.
+          // This ensures that other devices scanning the table do NOT see this order.
+          // The order is only tracked locally in this device's session.
           const currentTable = get().table;
           if (currentTable?.id) {
              try {
+                // Ensure table is marked occupied, but don't link the order ID
                 await updateDoc(doc(db, 'tables', currentTable.id), { status: 'occupied' });
              } catch (e) {
                  console.warn("Table status update ignored (permissions):", e);
@@ -274,13 +283,14 @@ export const useMenuStore = create<MenuStore>()(
     }),
     {
       name: 'restaurant-menu-storage',
-      version: 1,
+      version: 3, // Bump version
+      storage: createJSONStorage(() => sessionStorage), // Use Session Storage (clears on tab close)
       partialize: (state) => ({ 
-        table: state.table, 
+        // Persist session-critical data
         orderType: state.orderType,
+        table: state.table, // Restore table persistence (safe with sessionStorage)
         activeOrderId: state.activeOrderId,
         activeOrderIds: state.activeOrderIds,
-        cart: state.cart
       }),
     }
   )

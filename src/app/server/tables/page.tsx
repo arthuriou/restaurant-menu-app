@@ -54,13 +54,24 @@ export default function ServerTablesPage() {
     setGeneratedInvoice(null);
   };
 
-  const handleGenerateInvoice = () => {
+  const handleGenerateInvoice = async () => {
     const table = tables.find(t => t.id === selectedTableId);
     if (!table) return;
 
     // 1. Gather orders
+    const normalizedLabel = table.label.toLowerCase().replace('table ', '').trim();
     const tableOrders = Object.values(orders).flat().filter(
-      o => o.table === `Table ${table.label}` && o.status !== 'cancelled'
+      (o: any) => {
+        const orderTableVal = o.tableId || o.table;
+        if (!orderTableVal || o.status === 'cancelled') return false;
+        
+        const orderTable = orderTableVal.toLowerCase().trim();
+        return (
+          orderTable === normalizedLabel || 
+          orderTable === `table ${normalizedLabel}` ||
+          orderTable.replace('table ', '').trim() === normalizedLabel
+        );
+      }
     );
 
     if (tableOrders.length === 0) {
@@ -72,14 +83,25 @@ export default function ServerTablesPage() {
     const allItems: any[] = [];
     tableOrders.forEach(order => {
       order.items.forEach((item: any) => {
-        allItems.push({
-          menuId: item.id || 'unknown',
-          name: item.name,
-          price: item.price,
-          qty: item.qty,
-          imageUrl: item.image,
-          options: item.options
-        });
+        // Try to find existing identical item to merge
+        const existingItemIndex = allItems.findIndex(existing => 
+          existing.name === item.name && 
+          existing.price === item.price && 
+          JSON.stringify(existing.options || {}) === JSON.stringify(item.options || {})
+        );
+
+        if (existingItemIndex >= 0) {
+          allItems[existingItemIndex].qty += item.qty;
+        } else {
+          allItems.push({
+            menuId: item.id || 'unknown',
+            name: item.name,
+            price: item.price,
+            qty: item.qty,
+            imageUrl: item.image,
+            options: item.options
+          });
+        }
       });
     });
 
@@ -109,7 +131,13 @@ export default function ServerTablesPage() {
     };
 
     // 5. Add to store
-    addInvoice(newInvoice);
+    await addInvoice(newInvoice);
+
+    // 5b. Mark all orders as PAID
+    const { updateOrderStatus } = useOrderStore.getState();
+    tableOrders.forEach(o => {
+      updateOrderStatus(o.id, 'paid');
+    });
 
     // 6. Feedback & Update UI
     toast.success(`Facture ${newInvoice.number} générée !`);
@@ -124,8 +152,25 @@ export default function ServerTablesPage() {
   };
 
   const getTableOrders = (tableLabel: string): any[] => {
+    if (!tableLabel) return [];
+    const normalizedLabel = tableLabel.toLowerCase().replace('table ', '').trim();
+    
     return Object.values(orders).flat().filter(
-      (o: any) => o.table === `Table ${tableLabel}` && o.status !== 'cancelled'
+      (o: any) => {
+        // Fix: DB uses 'tableId' but code was checking 'table'. Support both for safely.
+        const orderTableVal = o.tableId || o.table;
+        if (!orderTableVal) return false;
+        
+        const orderTable = orderTableVal.toLowerCase().trim();
+        // Check for "5", "Table 5", "table 5", "Table  5"
+        const isMatch = (
+          orderTable === normalizedLabel || 
+          orderTable === `table ${normalizedLabel}` ||
+          orderTable.replace('table ', '').trim() === normalizedLabel
+        );
+        if (isMatch && o.status !== 'cancelled') console.log(`[TableDebug] Found match for ${tableLabel}:`, o.id);
+        return isMatch && o.status !== 'cancelled';
+      }
     );
   };
 
@@ -214,23 +259,41 @@ export default function ServerTablesPage() {
                         {hasOrders ? `${tableOrders.length} commandes` : "Table libre"}
                      </p>
                    </div>
-                   <Button variant="ghost" size="icon" onClick={() => setActiveSheet(false)}>
-                     <X className="w-4 h-4" />
-                   </Button>
                  </div>
 
-                 <ScrollArea className="flex-1 p-6">
-                    {hasOrders ? (
-                      <OrderBill 
-                        order={tableOrders[tableOrders.length - 1]} 
-                        otherOrders={tableOrders.slice(0, -1)}
-                        companyName={invoiceSettings.companyName}
-                        showActions={false}
-                      />
-                    ) : (
-                      <div className="text-center py-20 text-muted-foreground">
+                   <ScrollArea className="flex-1 p-6 h-[calc(100vh-200px)]">
+                     {hasOrders ? (
+                       <OrderBill 
+                         order={{
+                           ...tableOrders[tableOrders.length - 1],
+                           // CRITICAL: Force the Total to be the sum of ALL orders, not just the last one
+                           total: tableOrders.reduce((acc, o) => acc + o.total, 0),
+                           items: tableOrders.flatMap(o => o.items || [])
+                         }}
+                         companyName={invoiceSettings.companyName}
+                         showActions={false}
+                       />
+                     ) : (
+                       <div className="text-center py-20 text-muted-foreground">
                         <Utensils className="w-12 h-12 mx-auto mb-4 opacity-20" />
                         <p>Aucune commande</p>
+                        {table?.status === 'occupied' && (
+                          <div className="mt-6">
+                            <Button 
+                              variant="outline" 
+                              className="border-red-200 text-red-600 hover:bg-red-50"
+                              onClick={() => {
+                                if(confirm("Forcer la libération de la table ?")) {
+                                  closeTable(table.id);
+                                  toast.success("Table libérée");
+                                  setActiveSheet(false);
+                                }
+                              }}
+                            >
+                              Forcer "Libérer"
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                  </ScrollArea>

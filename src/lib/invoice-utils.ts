@@ -15,13 +15,13 @@ export const calculateTax = (subtotal: number, taxRate: number = 20): number => 
 };
 
 // Calculate total with tax and optional discount
+// Assumes subtotal is already TTC (Tax Inclusive)
 export const calculateTotal = (
   subtotal: number, 
   taxRate: number = 20, 
   discount: number = 0
 ): number => {
-  const tax = calculateTax(subtotal, taxRate);
-  return Math.round((subtotal + tax - discount) * 100) / 100;
+  return Math.round((subtotal - discount) * 100) / 100;
 };
 
 // Format currency (FCFA)

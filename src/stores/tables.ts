@@ -29,6 +29,7 @@ export type Table = {
   scans: number;
   occupants?: number;
   activeOrderId?: string;
+  lastScanTime?: number;
 };
 
 interface TableState {
@@ -42,6 +43,7 @@ interface TableState {
   updateTable: (id: string, updates: Partial<Table>) => Promise<void>;
   deleteTable: (id: string) => Promise<void>;
   incrementTableScans: (id: string) => Promise<{ success: boolean; message: string } | void>;
+  incrementTableOccupants: (id: string) => Promise<void>;
   setTableStatus: (id: string, status: TableStatus, occupants?: number) => Promise<void>;
   requestService: (tableId: string, type: 'assistance' | 'bill') => Promise<void>;
   resolveServiceRequest: (tableId: string) => Promise<void>;
@@ -111,7 +113,45 @@ export const useTableStore = create<TableState>((set, get) => ({
 
   deleteTable: async (id) => {
     try {
-      await deleteDoc(doc(db, 'tables', id));
+      // 1. Get the table first to know its label
+      const tableRef = doc(db, 'tables', id);
+      const { getDoc } = await import('firebase/firestore');
+      const tableSnap = await getDoc(tableRef);
+      
+      if (tableSnap.exists()) {
+        const tableData = tableSnap.data() as Table;
+        const tableLabel = `Table ${tableData.label}`;
+        
+        console.log(`[TableStore] Deleting table ${tableLabel}, cleaning up orders...`);
+
+        // 2. Find and Cancel all active orders for this table
+        const { collection, query, where, getDocs, writeBatch } = await import('firebase/firestore');
+        const ordersRef = collection(db, 'orders');
+        // Find orders with this table label that are NOT paid/cancelled
+        // Note: Firestore != query inequality is tricky, so we might need to fetch and filter or just cancel everything pending/preparing/ready/served
+        const q = query(ordersRef, where('table', '==', tableLabel));
+        const snapshot = await getDocs(q);
+
+        const batch = writeBatch(db);
+        let updateCount = 0;
+
+        snapshot.docs.forEach(doc => {
+          const order = doc.data();
+          // Only cancel if it's an active status
+          if (['pending', 'preparing', 'ready', 'served'].includes(order.status)) {
+            batch.update(doc.ref, { status: 'cancelled' });
+            updateCount++;
+          }
+        });
+
+        if (updateCount > 0) {
+          await batch.commit();
+          console.log(`[TableStore] Cancelled ${updateCount} active orders for ${tableLabel}`);
+        }
+      }
+
+      // 3. Delete the table
+      await deleteDoc(tableRef);
     } catch (error) {
       console.error("Error deleting table:", error);
       throw error;
@@ -121,7 +161,7 @@ export const useTableStore = create<TableState>((set, get) => ({
   incrementTableScans: async (label) => {
     try {
       console.log(`[TableStore] Incrementing scans for label: "${label}"`);
-      const { query, where, getDocs, increment } = await import('firebase/firestore');
+      const { query, where, getDocs, increment, serverTimestamp } = await import('firebase/firestore');
       
       // 1. Try exact match
       const q = query(collection(db, 'tables'), where('label', '==', label));
@@ -141,25 +181,37 @@ export const useTableStore = create<TableState>((set, get) => ({
         console.log(`[TableStore] Found table doc: ${tableDoc.id}, updating...`);
         
         const data = tableDoc.data();
+        const now = Date.now();
+        const lastScanTime = data.lastScanTime || 0;
+        const isStale = (now - lastScanTime) > (3 * 60 * 60 * 1000); // 3 hours timeout
+
+        const updates: any = {
+          scans: increment(1),
+          lastScanTime: now
+        };
         
-        // Logic: If table was available, this starts a NEW session.
-        // If it was already occupied, just count the scan (maybe a new guest or same guest rescanning).
-        // We do NOT increment occupants on every scan anymore to avoid "4 scans = 4 people".
-        
-        if (data.status === 'available') {
-            await updateDoc(tableDoc.ref, {
-              scans: 1,
-              occupants: 1,
-              status: 'occupied',
-              // We might want to clear activeOrderId here too if we want a fresh start
-            });
+        // Logic: If table was available OR is stale, this starts a NEW session.
+        if (data.status === 'available' || isStale) {
+             console.log(`[TableStore] Starting NEW session (Stale: ${isStale})`);
+             updates.status = 'occupied';
+             updates.occupants = 1;
+             updates.scans = 1; // Reset scan count for new session
         } else {
-            await updateDoc(tableDoc.ref, {
-              scans: increment(1),
-              // We ensure status is occupied but don't blindly add people
-              status: 'occupied'
-            });
+             // Existing active session - Check capacity before joining
+             const currentOccupants = data.occupants || 0;
+             const seats = data.seats || 4; // Default to 4
+
+             if (currentOccupants >= seats) {
+                 console.warn(`[TableStore] Table ${label} is full (${currentOccupants}/${seats})`);
+                 return { success: false, message: "Table complète. Veuillez choisir une autre table." };
+             }
+
+             updates.status = 'occupied';
+             // Increment occupants for every new person joining
+             updates.occupants = increment(1); 
         }
+        
+        await updateDoc(tableDoc.ref, updates);
         
         console.log(`[TableStore] Update successful`);
         return { success: true, message: "Scan enregistré" };
@@ -170,6 +222,39 @@ export const useTableStore = create<TableState>((set, get) => ({
     } catch (error: any) {
       console.error("[TableStore] Error incrementing scans:", error);
       return { success: false, message: error.message || "Erreur scan" };
+    }
+  },
+
+  incrementTableOccupants: async (label) => {
+    try {
+      console.log(`[TableStore] Incrementing occupants for label: "${label}"`);
+      const { query, where, getDocs, increment } = await import('firebase/firestore');
+      
+      const q = query(collection(db, 'tables'), where('label', '==', label));
+      const snapshot = await getDocs(q);
+
+      let tableDoc = snapshot.empty ? null : snapshot.docs[0];
+
+      if (!tableDoc) {
+        const q2 = query(collection(db, 'tables'), where('label', '==', `Table ${label}`));
+        const snapshot2 = await getDocs(q2);
+        if (!snapshot2.empty) tableDoc = snapshot2.docs[0];
+      }
+
+      if (tableDoc) {
+        await updateDoc(tableDoc.ref, {
+          occupants: increment(1),
+          status: 'occupied'
+        });
+      }
+    } catch (error: any) {
+      // Permission denied is expected for anonymous users on some protected collections
+      // We swallow this error to prevent app crash. Occupancy tracking will be best-effort.
+      if (error?.code === 'permission-denied') {
+        console.warn("[TableStore] Permission denied for occupancy update (expected for Guest)");
+        return;
+      }
+      console.error("Error incrementing occupants:", error);
     }
   },
 

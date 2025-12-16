@@ -49,10 +49,19 @@ export function Header({ table, orderType, onCallServer }: HeaderProps) {
             </span>
           )}
           {mounted && orderType === 'dine-in' && table && (
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              Table {table.label}
-            </span>
+             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-600 dark:text-zinc-400">
+               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+               <span>TABLE {table.label}</span>
+             </div>
           )}
+          
+          {mounted && orderType !== 'dine-in' && (
+             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-600 dark:text-zinc-400">
+                <UtensilsCrossed className="w-3 h-3" />
+                <span>EMPORTER</span>
+             </div>
+          )}
+
         </div>
 
         {/* Right: Actions (Bell) */}

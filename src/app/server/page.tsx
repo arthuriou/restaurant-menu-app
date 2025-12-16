@@ -6,6 +6,7 @@ import { useMenuStore } from "@/stores/menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -231,12 +232,23 @@ function EmptyState() {
   );
 }
 
-function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: { 
-  order: any, 
-  onServe: () => void, 
-  onViewBill: () => void,
-  getElapsedTimeText: (createdAt: any) => string 
+function ObypayCard({ 
+  order, 
+  onServe, 
+  onViewBill,
+  getElapsedTimeText
+}: { 
+  order: any;
+  onServe: () => void;
+  onViewBill: () => void;
+  getElapsedTimeText: (createdAt: any) => string;
 }) {
+  // Resolve table name robustly (support order.tableId and order.table)
+  const orderTable = order.tableId || order.table || "";
+  
+  // Determine if it's takeaway
+  // Only detect as takeaway if explicitly labeled 'Emporter' (case insensitive) or type is takeaway
+  const isTakeaway = orderTable.toLowerCase().includes('emporter') || order.type === 'takeaway';
   const isReady = order.status === 'ready';
   const { items: allMenuItems } = useMenuStore();
 
@@ -301,7 +313,7 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
   };
 
   const statusInfo = getStatusInfo(order.status);
-  
+
   return (
     <div 
       className={cn(
@@ -310,12 +322,35 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
       )}
     >
       <div className="flex justify-between items-start mb-4">
-        <h3 className="font-black text-2xl tracking-tight">
-          COMMANDE N°{order.id.split('-')[1]}
-        </h3>
+        <div>
+           <div className="flex items-center gap-3 mb-2">
+             {/* Main Table Badge - Much Larger */}
+             <Badge 
+               className={cn(
+                 "text-sm md:text-base font-black px-3 py-1.5 rounded-xl shadow-sm uppercase tracking-wide",
+                 isTakeaway 
+                   ? "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-900" 
+                   : "bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200"
+               )}
+             >
+               {isTakeaway ? <ShoppingBag className="w-4 h-4 mr-2" /> : <UtensilsCrossed className="w-4 h-4 mr-2" />}
+               {orderTable || "Sans Table"}
+             </Badge>
+             
+             {/* Order ID Tag */}
+             <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">
+               #{order.id.slice(0, 4)}
+             </span>
+          </div>
+           <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 pl-1">
+            <Clock className="w-3.5 h-3.5" />
+            {getElapsedTimeText(order.createdAt)}
+           </p>
+        </div>
         
         <div className="flex items-center gap-2">
-            <button 
+            {/* User requested to remove bill/details options */}
+            {/* <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onViewBill();
@@ -324,7 +359,7 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
               title="Voir la note"
             >
               <Receipt className="w-4 h-4" />
-            </button>
+            </button> */}
             
             <Badge 
               onClick={isReady ? onServe : undefined}
@@ -341,19 +376,7 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
         </div>
       </div>
 
-      <div className="space-y-2 text-muted-foreground mb-4">
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="w-4 h-4" />
-          <span>{getElapsedTimeText(order.createdAt)}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <ShoppingBag className="w-4 h-4" />
-          <span>{order.items.length} items • {order.table}</span>
-        </div>
-      </div>
-      
-      {/* Items Preview */}
-      <div className="mt-6 space-y-3">
+      <div className="space-y-4 mb-4">
         {order.items.map((item: any, idx: number) => (
            <div key={idx} className="flex items-start gap-3">
              {/* Image Thumbnail */}
@@ -376,9 +399,9 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
                
                {/* Options & Notes */}
                {(item.note || (item.options && Object.keys(item.options).length > 0)) && (
-                 <div className="mt-2 space-y-3 pl-1">
+                 <div className="mt-2 space-y-2 pl-1">
                    {item.options && Object.entries(item.options)
-                     .filter(([key]) => key !== 'note') // Exclude 'note' from here
+                     .filter(([key]) => key !== 'note') 
                      .map(([key, value]) => {
                        const optionDetails = getOptionDetails(item, key);
                        
@@ -414,6 +437,27 @@ function ObypayCard({ order, onServe, onViewBill, getElapsedTimeText }: {
              </div>
            </div>
         ))}
+      </div>
+      
+      <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+        {/* User requested to remove Details button */}
+        {/* <Button 
+          variant="outline" 
+          className="flex-1 rounded-xl h-10 text-xs font-bold"
+          onClick={onViewBill}
+        >
+          <Receipt className="w-3.5 h-3.5 mr-2" />
+          Détails
+        </Button> */}
+        {isReady && (
+          <Button 
+            className="flex-1 rounded-xl h-10 text-xs font-bold bg-green-500 hover:bg-green-600 text-white"
+            onClick={onServe}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
+            Servir
+          </Button>
+        )}
       </div>
     </div>
   );
