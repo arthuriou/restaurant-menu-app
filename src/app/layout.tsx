@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import { FirebaseInitializer } from "@/components/firebase-initializer";
+import { ClientOrderListener } from "@/components/client-order-listener";
 
 export default function RootLayout({
   children,
@@ -32,6 +33,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ThemeInitializer />
           <FirebaseInitializer />
+          <ClientOrderListener />
           {children}
           <Toaster />
         </ThemeProvider>

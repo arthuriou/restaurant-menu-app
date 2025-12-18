@@ -59,10 +59,13 @@ export const useScanStore = create<ScanState>((set) => ({
       const scans: ScanEvent[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
+        // Safety check for timestamp
+        const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+        
         scans.push({
           id: doc.id,
           tableId: data.tableId,
-          timestamp: data.timestamp.toDate()
+          timestamp
         });
       });
       

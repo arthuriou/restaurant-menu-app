@@ -3,6 +3,18 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Bell, ChefHat } from "lucide-react";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  addDoc, 
+  serverTimestamp, 
+  doc, 
+  onSnapshot 
+} from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -104,9 +116,6 @@ export default function Home() {
 
     const loadOrderStatus = async () => {
       try {
-        const { doc, onSnapshot } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
-        
         if (!db) return;
 
         const orderRef = doc(db, 'orders', activeOrderId);
@@ -146,9 +155,15 @@ export default function Home() {
       // Resolve Real Table ID & Log Scan
       const initializeTable = async () => {
          try {
-           const { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } = await import('firebase/firestore');
-           const { auth, db } = await import('@/lib/firebase');
-           const { signInAnonymously } = await import('firebase/auth');
+           // 0. AUTHENTICATE FIRST (Critical for Rules)
+           if (!auth.currentUser) {
+             try {
+               console.log("Authenticating anonymously...");
+               await signInAnonymously(auth);
+             } catch (authErr) {
+               console.warn("Anon Auth failed:", authErr);
+             }
+           }
 
            // 1. Resolve Real DB ID for Table
            let realTableId = `temp_${cleanTableId}`;
@@ -182,15 +197,6 @@ export default function Home() {
            if (scanProcessed.current || sessionStorage.getItem(scanKey)) {
                console.log(`[Scan] Already processed this exact scan: ${scanKey}`);
                return; // Already processed this exact scan
-           }
-
-           // Auth Check
-           if (!auth.currentUser) {
-             try {
-               await signInAnonymously(auth);
-             } catch (authErr) {
-               console.warn("Anon Auth failed:", authErr);
-             }
            }
 
            // Anti-Spam - check time-based cooldown
@@ -228,8 +234,15 @@ export default function Home() {
            
 
 
-         } catch (err) {
+         } catch (err: any) {
            console.error("Table Init Error:", err);
+           // Fallback: Force set table from URL even if DB lookup fails
+           if (table?.label !== cleanTableId) {
+             setTableId(cleanTableId);
+             setOrderType('dine-in');
+             setTable({ id: `temp_${cleanTableId}`, label: cleanTableId });
+             toast.error(`Mode hors ligne : ${err.message || "Erreur inconnue"}`);
+           }
          }
       };
 

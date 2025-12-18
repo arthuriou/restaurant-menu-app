@@ -263,16 +263,28 @@ export default function ServerTablesPage() {
 
                    <ScrollArea className="flex-1 p-6 h-[calc(100vh-200px)]">
                      {hasOrders ? (
-                       <OrderBill 
-                         order={{
-                           ...tableOrders[tableOrders.length - 1],
-                           // CRITICAL: Force the Total to be the sum of ALL orders, not just the last one
-                           total: tableOrders.reduce((acc, o) => acc + o.total, 0),
-                           items: tableOrders.flatMap(o => o.items || [])
-                         }}
-                         companyName={invoiceSettings.companyName}
-                         showActions={false}
-                       />
+                       (() => {
+                         // Sort orders to ensure correct order in the bill view
+                         const sortedOrders = [...tableOrders].sort((a, b) => {
+                           const timeA = a.createdAt?.seconds || 0;
+                           const timeB = b.createdAt?.seconds || 0;
+                           return timeA - timeB;
+                         });
+                         
+                         // We pass the last order as the "main" one, and the rest as "otherOrders"
+                         // The OrderBill component will display them all sequentially
+                         const lastOrder = sortedOrders[sortedOrders.length - 1];
+                         const previousOrders = sortedOrders.slice(0, sortedOrders.length - 1);
+
+                         return (
+                           <OrderBill 
+                             order={lastOrder}
+                             otherOrders={previousOrders}
+                             companyName={invoiceSettings.companyName}
+                             showActions={false}
+                           />
+                         );
+                       })()
                      ) : (
                        <div className="text-center py-20 text-muted-foreground">
                         <Utensils className="w-12 h-12 mx-auto mb-4 opacity-20" />

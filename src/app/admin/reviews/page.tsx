@@ -133,13 +133,27 @@ export default function AdminReviewsPage() {
                     </div>
                     <div>
                       <p className="font-semibold">{review.customerName || 'Client anonyme'}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {review.customerPhone && (
+                        <p className="text-xs text-muted-foreground">{review.customerPhone}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         <Calendar className="w-3 h-3" />
-                        {review.createdAt && format(
-                          (review.createdAt as any).toDate ? (review.createdAt as any).toDate() : new Date((review.createdAt as any).seconds * 1000 || Date.now()),
-                          'dd MMM yyyy à HH:mm',
-                          { locale: fr }
-                        )}
+                        {(() => {
+                          let date;
+                          if (!review.createdAt) {
+                            date = new Date();
+                          } else if (typeof review.createdAt === 'number') {
+                            date = new Date(review.createdAt);
+                          } else if ((review.createdAt as any).toDate) {
+                            date = (review.createdAt as any).toDate();
+                          } else if ((review.createdAt as any).seconds) {
+                            date = new Date((review.createdAt as any).seconds * 1000);
+                          } else {
+                            date = new Date();
+                          }
+                          
+                          return format(date, 'dd MMM yyyy à HH:mm', { locale: fr });
+                        })()}
                       </div>
                     </div>
                   </div>

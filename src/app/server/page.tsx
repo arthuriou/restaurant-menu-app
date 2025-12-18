@@ -79,7 +79,9 @@ export default function ServerDashboard() {
         if (order) {
           const audio = new Audio('/sounds/notification.mp3');
           audio.play().catch(e => {});
-          toast.success(`COMMANDE PRÊTE ! - ${order.table}`, {
+          // Use tableId or table (fallback)
+          const tableName = order.tableId || order.table || "Client";
+          toast.success(`COMMANDE PRÊTE ! - ${tableName}`, {
             duration: 8000,
             icon: <BellRing className="w-6 h-6 text-green-600 animate-bounce" />
           });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { 
@@ -20,41 +20,52 @@ import {
   getPaymentMethodLabel
 } from "@/lib/invoice-utils";
 import { toast } from "sonner";
-
-// Mock invoice - Will be fetched from Firebase
-const mockInvoice: Invoice = {
-  id: "inv_1",
-  number: "INV-2024-00001",
-  type: "table",
-  tableId: "Table 5",
-  items: [
-    { menuId: "1", name: "Poulet Braisé", price: 4500, qty: 2 },
-    { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 },
-    { menuId: "3", name: "Salade César", price: 2500, qty: 1, note: "Sans croûtons" }
-  ],
-  subtotal: 14500,
-  tax: 2900,
-  taxRate: 20,
-  total: 17400,
-  status: "paid",
-  paymentMethod: "card",
-  createdAt: { seconds: Date.now() / 1000 - 3600, nanoseconds: 0 } as any,
-  paidAt: { seconds: Date.now() / 1000 - 3500, nanoseconds: 0 } as any,
-  notes: "Merci pour votre visite !",
-  restaurantInfo: {
-    name: "Restaurant Le Gourmet",
-    address: "123 Avenue des Saveurs, Abidjan, Côte d'Ivoire",
-    phone: "+225 27 XX XX XX XX",
-    email: "contact@legourmet.ci",
-    taxId: "CI-123456789"
-  }
-};
+import { useInvoiceStore } from "@/stores/invoices";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
-  const [invoice] = useState<Invoice>(mockInvoice);
+  const { invoices } = useInvoiceStore();
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      if (!params.id) return;
+      const id = params.id as string;
+
+      // Try to find in store first
+      const found = invoices.find(i => i.id === id);
+      if (found) {
+        setInvoice(found);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch from Firestore if not in store
+      try {
+        const docRef = doc(db, "invoices", id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          setInvoice({ id: docSnap.id, ...docSnap.data() } as Invoice);
+        } else {
+          toast.error("Facture introuvable");
+          router.push("/admin/invoices");
+        }
+      } catch (error) {
+        console.error("Error fetching invoice:", error);
+        toast.error("Erreur lors du chargement de la facture");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [params.id, invoices, router]);
 
   const handlePrint = () => {
     window.print();
@@ -63,10 +74,10 @@ export default function InvoiceDetailPage() {
   const handleDownloadPDF = () => {
     toast.info("Téléchargement PDF en cours...");
     // TODO: Implement PDF generation
-    // Option: Use jsPDF or react-pdf
   };
 
   const handleShare = async () => {
+    if (!invoice) return;
     const url = `${window.location.origin}/invoice/${invoice.id}`;
     
     if (navigator.share) {
@@ -91,7 +102,31 @@ export default function InvoiceDetailPage() {
     toast.info("Annulation de la facture...");
   };
 
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
+  }
+
+  if (!invoice) {
+    return <div className="flex items-center justify-center min-h-screen">Facture introuvable</div>;
+  }
+
   const statusConfig = getInvoiceStatusConfig(invoice.status);
+
+  // Helper for safe date formatting
+  const formatDate = (dateValue: any, formatStr: string) => {
+    if (!dateValue) return "-";
+    try {
+      let date: Date;
+      if (dateValue instanceof Date) date = dateValue;
+      else if (dateValue.toDate) date = dateValue.toDate();
+      else if (dateValue.seconds) date = new Date(dateValue.seconds * 1000);
+      else date = new Date(dateValue);
+      
+      return format(date, formatStr, { locale: fr });
+    } catch (e) {
+      return "-";
+    }
+  };
 
   return (
     <>
@@ -112,7 +147,7 @@ export default function InvoiceDetailPage() {
                 {formatInvoiceNumber(invoice.number)}
               </h2>
               <p className="text-muted-foreground mt-1">
-                {format(new Date(invoice.createdAt.seconds * 1000), 'PPP à p', { locale: fr })}
+                {formatDate(invoice.createdAt, 'PPP à p')}
               </p>
             </div>
           </div>
@@ -195,7 +230,7 @@ export default function InvoiceDetailPage() {
               </div>
               {invoice.paidAt && (
                 <div className="text-sm text-muted-foreground mt-1">
-                  Payé le {format(new Date(invoice.paidAt.seconds * 1000), 'PPp', { locale: fr })}
+                  Payé le {formatDate(invoice.paidAt, 'PPp')}
                 </div>
               )}
             </CardContent>

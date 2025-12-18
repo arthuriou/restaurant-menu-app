@@ -212,6 +212,16 @@ export const useTableStore = create<TableState>((set, get) => ({
         }
         
         await updateDoc(tableDoc.ref, updates);
+
+        // --- NEW: Record Scan Event for Analytics ---
+        try {
+          await addDoc(collection(db, 'scans'), {
+            tableId: data.label, // Use the human-readable label (e.g. "5")
+            timestamp: serverTimestamp()
+          });
+        } catch (err) {
+          console.error("[TableStore] Failed to record scan analytics:", err);
+        }
         
         console.log(`[TableStore] Update successful`);
         return { success: true, message: "Scan enregistré" };

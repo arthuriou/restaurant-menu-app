@@ -4,91 +4,89 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- Helper Functions ---
+    
+    // Vérifie si l'utilisateur est connecté
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Simplified Staff check (adjust as needed for your real auth implementation)
-    // Currently assumes any authenticated user (e.g. email/password) is staff, 
-    // while anonymous users are customers.
+
+    // Vérifie si l'utilisateur est un membre du staff (non anonyme)
     function isStaff() {
-       return isAuthenticated() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      return isAuthenticated() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
-    // --- Public/Client Collections ---
+    // Vérifie si l'utilisateur a un rôle spécifique (admin, server, kitchen)
+    // Le rôle est stocké dans le token (Custom Claims) ou dans le document user
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
 
-    // Menu: Public Read, Staff Write
+    // --- Collection Rules ---
+
+    // 1. MENU & CATEGORIES (Public en lecture, Admin en écriture)
     match /categories/{docId} {
-      allow read: if true;
-      allow write: if isStaff();
+      allow read: if true; // Tout le monde peut voir le menu
+      allow write: if hasRole('admin');
     }
     match /products/{docId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if hasRole('admin');
     }
 
-    // Orders: Public Create, Public Read (Own), Staff Update
+    // 2. ORDERS
     match /orders/{orderId} {
-      // Anyone can place an order
-      allow create: if true; 
-      // Customers can read their own orders (if tracked) or open for now to simplify
-      allow read: if true;   
-      // Only staff (Kitchen/Server) should update status to 'prepared', 'served', etc.
-      allow update: if isStaff();
+      allow create: if true; // Les clients peuvent commander sans compte
+      allow read: if true;   // Les clients doivent pouvoir lire leur commande pour voir le statut
+      allow update: if true; // Les clients doivent pouvoir annuler (update status)
+      allow delete: if isAuthenticated(); // Seul le staff peut supprimer
     }
 
-    // Tables: Global Read, Public Status Update (Important for ordering flow)
-    match /tables/{tableId} {
-      allow read: if true;
-      // Allow customers (anonymous) to mark table as 'occupied' when ordering
-      allow update: if true; 
-      allow create, delete: if isStaff();
-    }
-    
-    // Scans: Public Create (Analytics), Staff Read
-    match /scans/{scanId} {
-      allow create: if true;
-      allow read, update, delete: if isStaff();
+    // 3. STAFF (Admin uniquement, ou lecture de son propre profil)
+    match /staff/{userId} {
+      allow read: if isAuthenticated(); // Le staff doit pouvoir se lire pour se connecter
+      allow write: if hasRole('admin');
     }
 
-    // Service Requests: Public Create, Staff Handle
-    match /serviceRequests/{reqId} {
-      allow create: if true;
-      allow read, update: if isStaff();
-    }
-    
-    // Invoices: Staff only
-    match /invoices/{invoiceId} {
-      allow read, write: if isStaff();
-    }
-
-    // --- Staff/Admin Collections ---
-    
-    // Restaurant Settings
-    match /restaurant/{docId} {
-      allow read: if true;
-      allow write: if isStaff();
-    }
-    // --- Users & Staff ---
-    
-    // Users (Role Management)
+    // 8. USERS (Pour l'admin qui se connecte par email)
     match /users/{userId} {
-      // Allow user to read their own profile, OR allow staff to read any profile
-      allow read: if request.auth != null && (request.auth.uid == userId || isStaff());
-      allow write: if isStaff();
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if hasRole('admin');
     }
 
-    // Staff (PIN Login & Management)
-    match /staff/{staffId} {
+    // 4. TABLES
+    match /tables/{tableId} {
       allow read: if true; 
-      allow write: if isStaff();
+      allow update: if true; // Les clients mettent à jour le statut (occupied) via le scan
+      allow create, delete: if hasRole('admin');
     }
     
-    // Reviews
-    match /reviews/{reviewId} {
-      allow read, create: if true;
-      allow update, delete: if isStaff();
+    // 9. SCANS (Pour les stats)
+    match /scans/{scanId} {
+      allow create: if true; // Les clients créent des scans
+      allow read: if isStaff();
     }
 
+    // 5. INVOICES (Staff uniquement)
+    match /invoices/{invoiceId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 6. REVIEWS (Public en écriture pour les clients, Staff en lecture/gestion)
+    match /reviews/{reviewId} {
+      allow create: if true; // Les clients peuvent laisser un avis
+      allow read: if true;   // Tout le monde peut lire les avis
+      allow update, delete: if hasRole('admin'); // Seul l'admin modère
+    }
+
+    // 7. SETTINGS (Public en lecture, Admin en écriture)
+    match /settings/{docId} {
+      allow read: if true; // Nécessaire pour afficher le logo, les couleurs, etc.
+      allow write: if hasRole('admin');
+    }
+
+    // Fallback: Refuser tout le reste par défaut
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

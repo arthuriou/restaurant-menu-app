@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { Star } from "lucide-react";
 import { useReviewStore } from "@/stores/reviews";
 import type { OrderItem } from "@/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import "./scrollbar.css";
 
 interface ReviewDialogProps {
@@ -22,42 +23,84 @@ interface ReviewDialogProps {
 
 export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: ReviewDialogProps) {
   const { addReview } = useReviewStore();
-  const [ratings, setRatings] = useState<Record<string, number>>({});
-  const [comments, setComments] =useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Form state
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  
+  // Ratings state keyed by uniqueKey (menuId + options)
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [comments, setComments] = useState<Record<string, string>>({});
 
-  const handleRating = (itemId: string, rating: number) => {
-    setRatings(prev => ({ ...prev, [itemId]: rating }));
+  // Deduplicate items based on menuId AND options
+  const displayItems = useMemo(() => {
+    const uniqueMap = new Map<string, OrderItem & { uniqueKey: string }>();
+    
+    items.forEach(item => {
+      // Create a deterministic key for options to distinguish "Burger" from "Burger + Fries"
+      const optionsKey = item.selectedOptions 
+        ? JSON.stringify([...item.selectedOptions].sort((a, b) => a.name.localeCompare(b.name))) 
+        : '';
+      
+      // Use menuId + options as unique key
+      const uniqueKey = `${item.menuId}|${optionsKey}`;
+      
+      if (!uniqueMap.has(uniqueKey)) {
+        uniqueMap.set(uniqueKey, { ...item, uniqueKey });
+      }
+    });
+    
+    return Array.from(uniqueMap.values());
+  }, [items]);
+
+  const handleRating = (uniqueKey: string, rating: number) => {
+    setRatings(prev => ({ ...prev, [uniqueKey]: rating }));
   };
 
   const handleSubmit = async () => {
+    if (Object.keys(ratings).length === 0) return;
+
     setIsSubmitting(true);
-    
     try {
-      // Envoyer un avis pour chaque item noté
-      for (const item of items) {
-        const rating = ratings[item.menuId];
-        if (rating) {
-          await addReview({
-            itemId: item.menuId,
-            orderId,
-            tableId,
-            rating,
-            comment: comments[item.menuId] || undefined,
-            itemName: item.name,
-            customerName: customerName || undefined,
-            customerPhone: customerPhone || undefined
-          });
+      const promises = Object.entries(ratings).map(([uniqueKey, rating]) => {
+        const item = displayItems.find(i => i.uniqueKey === uniqueKey);
+        if (!item) return null;
+
+        // Append options to comment for context
+        let finalComment = comments[uniqueKey] || '';
+        if (item.selectedOptions && item.selectedOptions.length > 0) {
+          const optionsStr = item.selectedOptions.map(o => o.name).join(', ');
+          const optionNote = `(Options: ${optionsStr})`;
+          finalComment = finalComment ? `${finalComment} ${optionNote}` : optionNote;
         }
-      }
+
+        return addReview({
+          itemId: item.menuId, // Link to the menu item
+          orderId,
+          tableId,
+          rating,
+          comment: finalComment,
+          itemName: item.name,
+          customerName: customerName || 'Anonyme',
+          customerPhone: customerPhone || ''
+        });
+      });
+
+      await Promise.all(promises);
       
+      toast.success("Merci pour votre avis ! ⭐");
       onOpenChange(false);
+      
+      // Reset form
       setRatings({});
       setComments({});
+      setCustomerName("");
+      setCustomerPhone("");
+      
     } catch (error) {
       console.error('Error submitting reviews:', error);
+      toast.error("Erreur lors de l'envoi de l'avis");
     } finally {
       setIsSubmitting(false);
     }
@@ -65,14 +108,6 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
 
   const totalRated = Object.keys(ratings).length;
   const canSubmit = totalRated > 0 && !isSubmitting;
-
-  // Deduplicate items - show each dish only once
-  const uniqueItems = items.reduce((acc, item) => {
-    if (!acc.find(i => i.menuId === item.menuId)) {
-      acc.push(item);
-    }
-    return acc;
-  }, [] as OrderItem[]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,8 +150,8 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
             Notez les plats que vous avez appréciés (optionnel : ajoutez un commentaire)
           </p>
 
-          {uniqueItems.map((item) => (
-            <div key={item.menuId} className="space-y-2 p-4 rounded-xl bg-muted/30">
+          {displayItems.map((item) => (
+            <div key={item.uniqueKey} className="space-y-2 p-4 rounded-xl bg-muted/30">
               <div>
                 <h4 className="font-bold">{item.name}</h4>
                 {item.selectedOptions && item.selectedOptions.length > 0 && (
@@ -131,13 +166,13 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    onClick={() => handleRating(item.menuId, star)}
+                    onClick={() => handleRating(item.uniqueKey, star)}
                     className="transition-all hover:scale-110"
                   >
                     <Star 
                       className={cn(
                         "w-8 h-8 transition-colors",
-                        star <= (ratings[item.menuId] || 0)
+                        star <= (ratings[item.uniqueKey] || 0)
                           ? "fill-yellow-400 text-yellow-400"
                           : "text-zinc-300"
                       )}
@@ -147,11 +182,11 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
               </div>
 
               {/* Comment (only if rated) */}
-              {ratings[item.menuId] && (
+              {ratings[item.uniqueKey] && (
                 <Textarea
                   placeholder="Un commentaire ? (optionnel)"
-                  value={comments[item.menuId] || ""}
-                  onChange={(e) => setComments(prev => ({ ...prev, [item.menuId]: e.target.value }))}
+                  value={comments[item.uniqueKey] || ""}
+                  onChange={(e) => setComments(prev => ({ ...prev, [item.uniqueKey]: e.target.value }))}
                   className="resize-none h-20 text-sm"
                 />
               )}
