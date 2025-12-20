@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRestaurantStore } from "@/stores/restaurant";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
 import { Invoice } from "@/types";
@@ -19,6 +20,7 @@ const getSampleInvoice = (settings: any): Invoice => ({
   number: "INV-2024-00001",
   type: "table",
   tableId: "Table 5",
+  serverName: "Jean Serveur",
   items: [
     { menuId: "1", name: "Poulet Braisé", price: 4500, qty: 2 },
     { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 }
@@ -27,6 +29,7 @@ const getSampleInvoice = (settings: any): Invoice => ({
   tax: 11000 * settings.taxRate / 100,
   taxRate: settings.taxRate,
   total: 11000 + (11000 * settings.taxRate / 100),
+  discount: 0,
   status: "paid",
   paymentMethod: "card",
   createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
@@ -37,7 +40,8 @@ const getSampleInvoice = (settings: any): Invoice => ({
     phone: settings.companyPhone,
     email: settings.companyEmail,
     taxId: settings.showTaxId ? settings.taxId : undefined,
-    logo: settings.showLogo ? settings.logoUrl : undefined
+    logo: settings.showLogo ? settings.logoUrl : undefined,
+    footerMessage: settings.footerMessage
   }
 });
 
@@ -182,6 +186,25 @@ export default function InvoiceTemplatePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <Label htmlFor="templateType">Format d'impression</Label>
+                <Select
+                  value={formData.templateType || 'a4'}
+                  onValueChange={(value) => handleChange('templateType', value)}
+                >
+                  <SelectTrigger className="w-full mt-2 rounded-xl">
+                    <SelectValue placeholder="Choisir un format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a4">Format A4 (Standard)</SelectItem>
+                    <SelectItem value="ticket">Format Ticket (Thermique 80mm)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Choisissez le format adapté à votre imprimante
+                </p>
+              </div>
+
+              <div>
                 <Label htmlFor="logoUrl">URL du Logo</Label>
                 <Input
                   id="logoUrl"
@@ -223,7 +246,7 @@ export default function InvoiceTemplatePage() {
                 <Label htmlFor="footerMessage">Message de pied de page</Label>
                 <Textarea
                   id="footerMessage"
-                  value={formData.footerMessage}
+                  value={formData.footerMessage || ''}
                   onChange={(e) => handleChange('footerMessage', e.target.value)}
                   className="rounded-xl mt-2"
                   rows={2}
@@ -242,10 +265,13 @@ export default function InvoiceTemplatePage() {
                 <CardTitle>Aperçu en temps réel</CardTitle>
                 <CardDescription>Voici à quoi ressemblera votre facture</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="max-h-[800px] overflow-y-auto">
-                  <div className="scale-75 origin-top">
-                    <InvoicePrintable invoice={sampleInvoice} />
+              <CardContent className="p-0 bg-gray-100/50 min-h-[600px] flex items-center justify-center rounded-b-2xl">
+                <div className="max-h-[800px] overflow-y-auto w-full p-8 flex justify-center">
+                  <div className={formData.templateType === 'ticket' ? "w-[80mm] shadow-xl" : "w-[210mm] shadow-xl scale-75 origin-top"}>
+                    <InvoicePrintable 
+                      invoice={sampleInvoice} 
+                      templateType={formData.templateType || 'a4'} 
+                    />
                   </div>
                 </div>
               </CardContent>

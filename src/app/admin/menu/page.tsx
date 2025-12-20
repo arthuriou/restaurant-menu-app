@@ -268,89 +268,90 @@ export default function AdminMenuPage() {
             </Button>
           </div>
 
-          {/* Menu Items Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Menu Items Grid - Horizontal Style */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {displayItems.map((item) => (
-              <div key={item.id} className="group relative bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
-                {/* Image Container */}
-                <div className="relative h-64 w-full shrink-0">
-                  <div className="absolute inset-0 rounded-t-3xl overflow-hidden z-0">
+              <div key={item.id} className="group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 border border-zinc-100 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all duration-300 flex gap-4 items-center">
+                
+                {/* Image Container - Left Side */}
+                <div className="relative h-24 w-24 shrink-0">
+                  <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                     {item.imageUrl ? (
                       <Image 
                         src={item.imageUrl} 
                         alt={item.name} 
                         fill 
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
-                      <div className="w-full h-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-muted-foreground">No Image</div>
+                      <div className="w-full h-full flex items-center justify-center text-zinc-300">
+                        <ImageIcon className="w-8 h-8" />
+                      </div>
                     )}
                   </div>
                   
-                  {/* Actions Menu - Always visible, cleaner style */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          size="icon" 
-                          className="h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-md border-0 shadow-sm transition-colors"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl">
-                        <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
-                          <Pencil className="w-4 h-4 mr-2" /> Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-red-600 focus:text-red-600"
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* Availability Badge */}
-                  <div className="absolute top-3 left-3 z-10">
-                    <Badge 
-                      variant="secondary"
-                      className={`rounded-full px-3 py-1 shadow-sm backdrop-blur-md border-0 ${
-                        item.available 
-                          ? 'bg-green-500/90 text-white hover:bg-green-600/90' 
-                          : 'bg-black/60 text-white hover:bg-black/70'
-                      }`}
-                    >
-                      {item.available ? (
-                        <><Eye className="w-3 h-3 mr-1.5" /> Disponible</>
-                      ) : (
-                        <><EyeOff className="w-3 h-3 mr-1.5" /> Épuisé</>
-                      )}
-                    </Badge>
-                  </div>
+                  {/* Availability Indicator (Small dot) */}
+                  <div className={`absolute top-2 left-2 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${item.available ? 'bg-green-500' : 'bg-red-500'}`} />
                 </div>
                 
-                {/* Content */}
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 leading-tight">{item.name}</h3>
-                    <span className="font-bold text-primary text-lg whitespace-nowrap ml-2">
-                      {item.price.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">FCFA</span>
-                    </span>
+                {/* Content - Middle */}
+                <div className="flex-1 min-w-0 py-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100 truncate pr-2">{item.name}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1 mb-1.5">
+                        {item.description || "Aucune description"}
+                      </p>
+                    </div>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
-                    {item.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800 mt-auto">
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                      {categories.find(c => c.id === item.categoryId)?.name || "Grillades"}
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-0">
+                      {categories.find(c => c.id === item.categoryId)?.name || "Autre"}
+                    </Badge>
+                    <span className="font-bold text-sm">
+                      {item.price.toLocaleString()} <span className="text-[10px] font-normal text-muted-foreground">FCFA</span>
                     </span>
                   </div>
                 </div>
-              </div> 
+
+                {/* Actions - Right Side */}
+                <div className="flex flex-col gap-2 pr-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                      <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
+                        <Pencil className="w-4 h-4 mr-2" /> Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        // Toggle availability
+                        updateItem(item.id, { available: !item.available });
+                        toast.success(item.available ? "Plat marqué comme épuisé" : "Plat marqué comme disponible");
+                      }}>
+                        {item.available ? (
+                          <><EyeOff className="w-4 h-4 mr-2" /> Marquer épuisé</>
+                        ) : (
+                          <><Eye className="w-4 h-4 mr-2" /> Marquer disponible</>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-red-600 focus:text-red-600"
+                        onClick={() => handleDeleteItem(item.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             ))}
           </div>
         </TabsContent>

@@ -42,40 +42,62 @@ export default function AdminTablesPage() {
     setEditOpen(true);
   };
 
-  const handleDelete = (tableId: string) => {
+  const handleDelete = async (tableId: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cette table ?")) {
-      deleteTable(tableId);
-      toast.success("Table supprimée");
+      try {
+        await deleteTable(tableId);
+        toast.success("Table supprimée");
+      } catch (error) {
+        console.error("Error deleting table:", error);
+        toast.error("Erreur lors de la suppression de la table");
+      }
     }
   };
 
-  const handleAddTable = () => {
+  const handleAddTable = async () => {
     if (!newTableLabel.trim()) {
       toast.error("Le numéro de table est requis");
       return;
     }
     
-    addTable({
-      label: newTableLabel,
-      seats: parseInt(newTableSeats) || 4
-    });
+    // Check if table label already exists
+    const existingTable = tables.find(t => t.label.toLowerCase() === newTableLabel.trim().toLowerCase());
+    if (existingTable) {
+      toast.error("Une table avec ce numéro existe déjà");
+      return;
+    }
     
-    setNewTableLabel("");
-    setNewTableSeats("4");
-    setAddOpen(false);
-    toast.success("Table ajoutée avec succès");
+    try {
+      await addTable({
+        label: newTableLabel,
+        seats: parseInt(newTableSeats) || 4
+      });
+      
+      setNewTableLabel("");
+      setNewTableSeats("4");
+      setAddOpen(false);
+      toast.success("Table ajoutée avec succès");
+    } catch (error) {
+      console.error("Error adding table:", error);
+      toast.error("Erreur lors de l'ajout de la table");
+    }
   };
 
-  const handleUpdateTable = () => {
+  const handleUpdateTable = async () => {
     if (!selectedTable) return;
     
-    updateTable(selectedTable.id, {
-      label: newTableLabel,
-      seats: parseInt(newTableSeats) || 4
-    });
+    try {
+      await updateTable(selectedTable.id, {
+        label: newTableLabel,
+        seats: parseInt(newTableSeats) || 4
+      });
 
-    setEditOpen(false);
-    toast.success("Table mise à jour");
+      setEditOpen(false);
+      toast.success("Table mise à jour");
+    } catch (error) {
+      console.error("Error updating table:", error);
+      toast.error("Erreur lors de la mise à jour de la table");
+    }
   };
 
   const getQrUrl = () => {
@@ -143,100 +165,190 @@ export default function AdminTablesPage() {
         </div>
       </div>
 
-      {/* Tables Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {tables.map((table) => (
-          <Card 
-            key={table.id} 
-            className="group relative overflow-hidden rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-xl transition-all duration-300"
-          >
-            {/* Top Bar with Status & Actions */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${table.status === 'occupied' ? 'bg-red-500' : 'bg-green-500'} ring-4 ring-white dark:ring-zinc-900`} />
-                <span className="text-xs font-medium bg-white/90 dark:bg-zinc-900/90 backdrop-blur px-2 py-1 rounded-full shadow-sm">
-                  {table.status === 'occupied' ? 'Occupée' : 'Libre'}
-                </span>
-                {table.status === 'occupied' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 px-2 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50 bg-red-50/50"
+      {/* Tables Grid - Floor Plan Style */}
+      <div className="flex flex-wrap gap-12 p-8 justify-center items-start min-h-[50vh]">
+        {tables.map((table) => {
+          const isOccupied = table.status === 'occupied';
+          const seats = table.seats || 4;
+          
+          // Table visualization logic
+          let widthClass = "w-24"; 
+          let heightClass = "h-24";
+          let customStyle = {};
+          
+          // Chair distribution logic
+          let top = 0, bottom = 0, left = 0, right = 0;
+
+          if(seats  == 1) {
+             widthClass = "w-20"; heightClass = "h-20"
+            top = 1; bottom = 0; left = 0; right = 0;
+          }
+          else if (seats <= 2) {
+             widthClass = "w-20"; heightClass = "h-20";
+             top = 1; bottom = 1;
+          } else if (seats <= 4) {
+             widthClass = "w-24"; heightClass = "h-24";
+             top = 1; bottom = 1; left = 1; right = 1;
+          } else if (seats <= 6) {
+             widthClass = "w-40"; heightClass = "h-24";
+             top = 2; bottom = 2; left = 1; right = 1;
+          } else if (seats <= 8) {
+             widthClass = "w-56"; heightClass = "h-24";
+             top = 3; bottom = 3; left = 1; right = 1;
+          } else {
+             // Dynamic width for large tables
+             const sides = 2;
+             const remaining = seats - sides;
+             top = Math.ceil(remaining / 2);
+             bottom = Math.floor(remaining / 2);
+             left = 1; right = 1;
+             
+             // Calculate width based on chair count to ensure table covers all chairs
+             // 1 chair = w-10 (2.5rem) + gap-2 (0.5rem) = 3rem per unit
+             const widthRem = Math.max(14, top * 3); 
+             customStyle = { width: `${widthRem}rem` };
+             heightClass = "h-24";
+          }
+
+          // Occupants distribution logic (Active chairs)
+          let activeTop = 0, activeBottom = 0, activeLeft = 0, activeRight = 0;
+          let remainingOccupants = table.occupants || 0;
+          
+          while (remainingOccupants > 0) {
+            let placed = false;
+            // Fill Top/Bottom first (balanced)
+            if (activeTop < top || activeBottom < bottom) {
+                if (activeTop <= activeBottom && activeTop < top) {
+                    activeTop++;
+                    placed = true;
+                } else if (activeBottom < bottom) {
+                    activeBottom++;
+                    placed = true;
+                }
+            } 
+            // Then Left/Right
+            else if (activeLeft < left || activeRight < right) {
+                 if (activeLeft <= activeRight && activeLeft < left) {
+                    activeLeft++;
+                    placed = true;
+                } else if (activeRight < right) {
+                    activeRight++;
+                    placed = true;
+                }
+            }
+            if (!placed) break;
+            remainingOccupants--;
+          }
+
+          // Styles matching the "Obypay" aesthetic (Chunky & Rounded)
+          const chairBase = "rounded-full shadow-sm transition-colors duration-300";
+          const getChairColor = (isActive: boolean) => isActive 
+            ? "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" 
+            : "bg-zinc-300 dark:bg-zinc-600";
+            
+          const tableBase = "relative flex items-center justify-center rounded-2xl shadow-md transition-all duration-300 border-4";
+          const tableColor = isOccupied
+            ? "bg-cyan-950 border-cyan-500/50 text-cyan-400"
+            : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100";
+
+          return (
+            <div
+              key={table.id}
+              className="relative flex flex-col items-center justify-center p-2 group transition-transform hover:scale-105"
+              onClick={() => handleOpenQr(table)}
+            >
+              <div className="relative flex flex-col items-center">
+                {/* Top Chairs */}
+                {top > 0 && (
+                  <div className="flex gap-2 mb-1.5">
+                    {Array.from({length: top}).map((_, i) => (
+                      <div key={`t-${i}`} className={`w-10 h-3 ${chairBase} ${getChairColor(i < activeTop)}`} />
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-1.5">
+                  {/* Left Chairs */}
+                  {left > 0 && (
+                    <div className="flex flex-col gap-2 mr-0.5">
+                      {Array.from({length: left}).map((_, i) => (
+                        <div key={`l-${i}`} className={`w-3 h-10 ${chairBase} ${getChairColor(i < activeLeft)}`} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* The Table */}
+                  <div 
+                    className={`${!customStyle.width ? widthClass : ''} ${heightClass} ${tableBase} ${tableColor}`}
+                    style={customStyle}
+                  >
+                    <span className="text-2xl font-black tracking-tight">{table.label}</span>
+                    {isOccupied && (
+                       <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+                    )}
+                  </div>
+
+                  {/* Right Chairs */}
+                  {right > 0 && (
+                    <div className="flex flex-col gap-2 ml-0.5">
+                      {Array.from({length: right}).map((_, i) => (
+                        <div key={`r-${i}`} className={`w-3 h-10 ${chairBase} ${getChairColor(i < activeRight)}`} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Chairs */}
+                {bottom > 0 && (
+                  <div className="flex gap-2 mt-1.5">
+                    {Array.from({length: bottom}).map((_, i) => (
+                      <div key={`b-${i}`} className={`w-10 h-3 ${chairBase} ${getChairColor(i < activeBottom)}`} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Hover Actions */}
+              <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-white dark:bg-zinc-800 shadow-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(table);
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-white dark:bg-zinc-800 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 border border-zinc-200 dark:border-zinc-700 text-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(table.id);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+                {isOccupied && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 border border-red-200 dark:border-red-900/50"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if(confirm('Libérer la table et réinitialiser ?')) closeTable(table.id);
+                      if(confirm('Libérer cette table ?')) closeTable(table.id);
                     }}
                   >
                     Libérer
                   </Button>
                 )}
               </div>
-              
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-[-10px] group-hover:translate-y-0 duration-200">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 rounded-full shadow-sm"
-                  onClick={() => handleEdit(table)}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="h-8 w-8 rounded-full shadow-sm"
-                  onClick={() => handleDelete(table.id)}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
             </div>
-
-            <CardContent className="p-0">
-              {/* Main Visual Area */}
-              <div className="pt-16 pb-8 px-6 flex flex-col items-center justify-center bg-gradient-to-b from-zinc-50/50 to-transparent dark:from-zinc-900/50">
-                <div className="relative mb-4 group-hover:scale-105 transition-transform duration-300">
-                  <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="bg-white dark:bg-zinc-950 p-3 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 relative">
-                    <QRCodeSVG 
-                      value={`${baseUrl}?table=Table ${table.label}`}
-                      size={100}
-                      level="M"
-                    />
-                  </div>
-                </div>
-                
-                <h3 className="text-3xl font-black text-foreground tracking-tight mb-1">
-                  {table.label}
-                </h3>
-                
-                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-2">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{table.occupants || 0}/{table.seats}</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                  <div className="flex items-center gap-1">
-                    <ScanLine className="w-4 h-4" />
-                    <span>{table.scans || 0}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  onClick={() => handleOpenQr(table)}
-                >
-                  <QrCode className="w-4 h-4 mr-2" />
-                  QR Code
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* QR Code Detail Dialog */}

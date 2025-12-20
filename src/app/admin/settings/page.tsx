@@ -548,8 +548,8 @@ export default function AdminSettingsPage() {
 
             <Card className="rounded-xl border-zinc-200 dark:border-zinc-800">
               <CardHeader>
-                <CardTitle>Spécial du Chef</CardTitle>
-                <CardDescription>Mettez en avant un plat spécifique.</CardDescription>
+                <CardTitle>Section "À la une"</CardTitle>
+                <CardDescription>Personnalisez le titre de la section des plats mis en avant.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -557,26 +557,11 @@ export default function AdminSettingsPage() {
                   <Input 
                     value={chefSpecial.title} 
                     onChange={(e) => updateChefSpecial({ title: e.target.value })}
-                    placeholder="Ex: Spécial du Chef"
+                    placeholder="Ex: Nos Spécialités, Plats du jour..."
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Plat à mettre en avant</Label>
-                  <Select 
-                    value={chefSpecial.itemId} 
-                    onValueChange={(value) => updateChefSpecial({ itemId: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un plat" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name} ({item.price} FCFA)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Ce titre s'affichera au-dessus de la liste des plats marqués comme "Vedette" dans le menu.
+                  </p>
                 </div>
               </CardContent>
             </Card>

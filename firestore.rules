@@ -18,7 +18,11 @@ service cloud.firestore {
     // Vérifie si l'utilisateur a un rôle spécifique (admin, server, kitchen)
     // Le rôle est stocké dans le token (Custom Claims) ou dans le document user
     function hasRole(role) {
-      return isAuthenticated() && request.auth.token.role == role;
+      return isAuthenticated() && (
+        (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == role) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role) ||
+        (exists(/databases/$(database)/documents/staff/$(request.auth.uid)) && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == role)
+      );
     }
 
     // --- Collection Rules ---

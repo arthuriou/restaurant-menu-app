@@ -1,25 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { 
   collection, 
   query, 
   orderBy, 
-  getDocs,
   onSnapshot
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, User, Calendar, MessageSquare } from "lucide-react";
+import { Star, User, Calendar, MessageSquare, ChevronDown, ChevronUp, Utensils } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Review } from "@/types";
+import { cn } from "@/lib/utils";
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | number>('all');
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!db) return;
@@ -45,9 +46,46 @@ export default function AdminReviewsPage() {
     return () => unsubscribe();
   }, []);
 
-  const filteredReviews = filter === 'all' 
-    ? reviews 
-    : reviews.filter(r => r.rating === filter);
+  const filteredReviews = useMemo(() => {
+    return filter === 'all' 
+      ? reviews 
+      : reviews.filter(r => r.rating === filter);
+  }, [reviews, filter]);
+
+  const groupedReviews = useMemo(() => {
+    const groups: Record<string, { name: string, reviews: Review[] }> = {};
+    
+    filteredReviews.forEach(review => {
+      const itemId = review.itemId || 'unknown';
+      if (!groups[itemId]) {
+        groups[itemId] = {
+          name: review.itemName || 'Plat inconnu',
+          reviews: []
+        };
+      }
+      groups[itemId].reviews.push(review);
+    });
+    
+    return Object.entries(groups)
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        reviews: data.reviews,
+        average: data.reviews.reduce((acc, r) => acc + r.rating, 0) / data.reviews.length,
+        count: data.reviews.length
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredReviews]);
+
+  const toggleItem = (itemId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedItems(newExpanded);
+  };
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
@@ -109,13 +147,13 @@ export default function AdminReviewsPage() {
         ))}
       </div>
 
-      {/* Reviews List */}
+      {/* Grouped Reviews List */}
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">
             Chargement des avis...
           </div>
-        ) : filteredReviews.length === 0 ? (
+        ) : groupedReviews.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -123,69 +161,117 @@ export default function AdminReviewsPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredReviews.map((review) => (
-            <Card key={review.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
+          <div className="grid gap-4">
+            {groupedReviews.map((group) => (
+              <Card key={group.id} className="overflow-hidden transition-all duration-200 hover:shadow-md border-zinc-200 dark:border-zinc-800">
+                <div 
+                  className={cn(
+                    "p-4 flex items-center justify-between cursor-pointer transition-colors",
+                    expandedItems.has(group.id) ? "bg-zinc-50 dark:bg-zinc-800/50" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                  )}
+                  onClick={() => toggleItem(group.id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
+                      group.average >= 4.5 ? "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400" :
+                      group.average >= 3 ? "bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400" :
+                      "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                    )}>
+                      <span className="font-bold text-lg">{group.average.toFixed(1)}</span>
                     </div>
                     <div>
-                      <p className="font-semibold">{review.customerName || 'Client anonyme'}</p>
-                      {review.customerPhone && (
-                        <p className="text-xs text-muted-foreground">{review.customerPhone}</p>
-                      )}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <Calendar className="w-3 h-3" />
-                        {(() => {
-                          let date;
-                          if (!review.createdAt) {
-                            date = new Date();
-                          } else if (typeof review.createdAt === 'number') {
-                            date = new Date(review.createdAt);
-                          } else if ((review.createdAt as any).toDate) {
-                            date = (review.createdAt as any).toDate();
-                          } else if ((review.createdAt as any).seconds) {
-                            date = new Date((review.createdAt as any).seconds * 1000);
-                          } else {
-                            date = new Date();
-                          }
-                          
-                          return format(date, 'dd MMM yyyy à HH:mm', { locale: fr });
-                        })()}
+                      <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100">{group.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>{group.count} avis</span>
+                        <span>•</span>
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={cn(
+                                "w-3 h-3",
+                                i < Math.round(group.average) 
+                                  ? "fill-yellow-400 text-yellow-400" 
+                                  : "fill-zinc-200 text-zinc-200 dark:fill-zinc-700 dark:text-zinc-700"
+                              )}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < review.rating
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'fill-gray-200 text-gray-200'
-                        }`}
-                      />
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200",
+                      expandedItems.has(group.id) ? "bg-zinc-200 dark:bg-zinc-700 rotate-180" : "bg-transparent"
+                    )}>
+                      <ChevronDown className="w-4 h-4 text-zinc-500" />
+                    </div>
                   </div>
                 </div>
 
-                {review.comment && (
-                  <p className="text-sm text-muted-foreground mb-3 pl-13">
-                    "{review.comment}"
-                  </p>
+                {expandedItems.has(group.id) && (
+                  <div className="border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                    {group.reviews.map((review) => (
+                      <div key={review.id} className="p-4 border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                              <User className="w-4 h-4 text-zinc-400" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                                  {review.customerName || 'Client anonyme'}
+                                </p>
+                                <span className="text-xs text-zinc-400">•</span>
+                                <span className="text-xs text-zinc-400">
+                                  {(() => {
+                                    let date;
+                                    if (!review.createdAt) {
+                                      date = new Date();
+                                    } else if (typeof review.createdAt === 'number') {
+                                      date = new Date(review.createdAt);
+                                    } else if ((review.createdAt as any).toDate) {
+                                      date = (review.createdAt as any).toDate();
+                                    } else if ((review.createdAt as any).seconds) {
+                                      date = new Date((review.createdAt as any).seconds * 1000);
+                                    } else {
+                                      date = new Date();
+                                    }
+                                    return format(date, 'dd MMM', { locale: fr });
+                                  })()}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={cn(
+                                      "w-3 h-3",
+                                      i < review.rating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-zinc-200 text-zinc-200 dark:fill-zinc-700 dark:text-zinc-700"
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-zinc-600 dark:text-zinc-300 pl-11 leading-relaxed">
+                            {review.comment}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
-
-                {review.itemName && (
-                  <Badge variant="secondary" className="text-xs">
-                    {review.itemName}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          ))
+              </Card>
+            ))}
+          </div>
         )}
       </div>
     </div>

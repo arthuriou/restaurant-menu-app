@@ -16,7 +16,7 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   // Don't show layout on login page
-  if (pathname === "/admin/login") {
+  if (pathname === "/login") {
     return <>{children}</>;
   }
 
@@ -40,6 +40,11 @@ export default function AdminLayout({
       label: "Comptabilité",
       icon: Receipt,
       href: "/admin/invoices",
+    },
+    {
+      label: "Template Facture",
+      icon: Receipt,
+      href: "/admin/invoices/template",
     },
     {
       label: "Avis Clients",
@@ -89,7 +94,7 @@ export default function AdminLayout({
       </div>
       <div className="mt-auto p-6 border-t border-zinc-100 dark:border-zinc-900">
         <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/10" asChild>
-          <Link href="/admin/login">
+          <Link href="/login">
             <LogOut className="h-5 w-5 mr-3" />
             Déconnexion
           </Link>

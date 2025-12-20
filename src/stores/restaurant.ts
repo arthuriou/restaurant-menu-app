@@ -39,6 +39,7 @@ interface RestaurantStore {
     footerMessage: string;
     showLogo: boolean;
     showTaxId: boolean;
+    templateType: 'a4' | 'ticket';
   };
   
   isLoading: boolean;
@@ -108,6 +109,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
         footerMessage: "Merci de votre visite ! À bientôt.",
         showLogo: true,
         showTaxId: true,
+        templateType: 'a4',
       },
       
       isLoading: false,

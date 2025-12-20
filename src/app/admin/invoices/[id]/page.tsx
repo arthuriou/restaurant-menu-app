@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Invoice } from "@/types";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
+import { useRestaurantStore } from "@/stores/restaurant";
 import {
   formatCurrency,
   formatInvoiceNumber,
@@ -29,6 +30,7 @@ export default function InvoiceDetailPage() {
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
   const { invoices } = useInvoiceStore();
+  const { invoiceSettings } = useRestaurantStore();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -203,8 +205,12 @@ export default function InvoiceDetailPage() {
 
         {/* Invoice Preview (Printable) */}
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          <CardContent className="p-0">
-            <InvoicePrintable ref={printRef} invoice={invoice} />
+          <CardContent className="p-0 flex justify-center">
+            <InvoicePrintable 
+              ref={printRef} 
+              invoice={invoice} 
+              templateType={invoiceSettings.templateType}
+            />
           </CardContent>
         </Card>
 

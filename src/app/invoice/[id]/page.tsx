@@ -6,6 +6,7 @@ import { Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Invoice } from "@/types";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
+import { useRestaurantStore } from "@/stores/restaurant";
 import { toast } from "sonner";
 
 // Mock invoice - Will be fetched from Firebase using invoice ID from params
@@ -22,6 +23,7 @@ const mockInvoice: Invoice = {
   tax: 2200,
   taxRate: 20,
   total: 13200,
+  discount: 0,
   status: "paid",
   paymentMethod: "card",
   createdAt: { seconds: Date.now() / 1000 - 3600, nanoseconds: 0 } as any,
@@ -38,6 +40,7 @@ const mockInvoice: Invoice = {
 export default function PublicInvoicePage() {
   const params = useParams();
   const printRef = useRef<HTMLDivElement>(null);
+  const { invoiceSettings } = useRestaurantStore();
   const [invoice] = useState<Invoice>(mockInvoice);
   const [loading, setLoading] = useState(false);
 
@@ -97,8 +100,12 @@ export default function PublicInvoicePage() {
         </div>
 
         {/* Invoice */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <InvoicePrintable ref={printRef} invoice={invoice} />
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex justify-center">
+          <InvoicePrintable 
+            ref={printRef} 
+            invoice={invoice} 
+            templateType={invoiceSettings.templateType}
+          />
         </div>
 
         {/* Footer - Not printed */}

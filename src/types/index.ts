@@ -83,6 +83,7 @@ export type RestaurantInfo = {
   email?: string;
   taxId?: string;
   logo?: string;
+  footerMessage?: string;
 };
 
 export type Invoice = {

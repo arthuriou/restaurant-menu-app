@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useInvoiceStore } from "@/stores/invoices";
+import { useRestaurantStore } from "@/stores/restaurant";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft } from "lucide-react";
@@ -12,6 +13,7 @@ export default function InvoicePrintPage() {
   const params = useParams();
   const router = useRouter();
   const { invoices } = useInvoiceStore();
+  const { invoiceSettings } = useRestaurantStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,8 +46,11 @@ export default function InvoicePrintPage() {
         </Button>
       </div>
       
-      <div className="shadow-lg print:shadow-none">
-        <InvoicePrintable invoice={invoice} />
+      <div className="shadow-lg print:shadow-none flex justify-center">
+        <InvoicePrintable 
+          invoice={invoice} 
+          templateType={invoiceSettings.templateType}
+        />
       </div>
 
       <style jsx global>{`
