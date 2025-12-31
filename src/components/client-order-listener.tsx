@@ -39,7 +39,7 @@ export function ClientOrderListener() {
             description: "Veuillez vous présenter au comptoir.",
             duration: 10000,
             action: {
-              label: "J'arrive",
+              label: "D'accord!",
               onClick: () => console.log("Client notifié"),
             },
           });
@@ -47,7 +47,7 @@ export function ClientOrderListener() {
           // Notification Système (Navigateur)
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification("🍽️ Commande Prête !", {
-              body: "Votre commande est prête à être récupérée.",
+              body: "Votre commande est prête, elle vous sera servie d'ici peu!",
               icon: "/icons/icon-192x192.png", // Assure-toi d'avoir une icône
               // vibrate: [200, 100, 200], // Removed to fix TS error
             });

@@ -291,6 +291,7 @@ export const useMenuStore = create<MenuStore>()(
         table: state.table, // Restore table persistence (safe with sessionStorage)
         activeOrderId: state.activeOrderId,
         activeOrderIds: state.activeOrderIds,
+        cart: state.cart, // Persist cart
       }),
     }
   )

@@ -577,6 +577,24 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
+                  <Label>Format d'impression</Label>
+                  <Select 
+                    value={invoiceSettings.templateType || 'ticket'} 
+                    onValueChange={(value: 'a4' | 'ticket') => updateInvoiceSettings({ templateType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir le format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ticket">Format Ticket (Thermique 80mm)</SelectItem>
+                      <SelectItem value="a4">Format A4 (Standard)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Choisissez "Ticket" pour les imprimantes thermiques.
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label>Numéro Fiscal (CC / N° Compte Contribuable)</Label>
                   <Input 
                     value={invoiceSettings.taxId}

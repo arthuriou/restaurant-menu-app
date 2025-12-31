@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, memo } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/stores/auth";
 import { useOrderStore } from "@/stores/orders";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/user-avatar";
 import type { DashboardOrder } from "@/stores/orders";
+import { MenuItem } from "@/types";
 
 const columns = {
   pending: {
@@ -62,16 +64,19 @@ const OrderCard = memo(function OrderCard({
   elapsed: number;
   tableInfo: { label: string; isTakeaway: boolean } | null;
   onAdvance: (orderId: string, status: string) => void;
-  menuItems: any[];
+  menuItems: MenuItem[];
 }) {
   // Get option/variant details from menu
-  const getOptionDetails = (orderItem: any, optionName: string) => {
+  const getOptionDetails = (
+    orderItem: DashboardOrder["items"][0],
+    optionName: string,
+  ) => {
     const menuItem = menuItems.find((m) => m.id === orderItem.menuId);
-    return menuItem?.options?.find((opt: any) => opt.name === optionName);
+    return menuItem?.options?.find((opt) => opt.name === optionName);
   };
 
   // Get menu item image
-  const getItemImage = (orderItem: any) => {
+  const getItemImage = (orderItem: DashboardOrder["items"][0]) => {
     if (orderItem.imageUrl) return orderItem.imageUrl;
     const menuItem = menuItems.find((m) => m.id === orderItem.menuId);
     return menuItem?.imageUrl || null;
@@ -114,18 +119,19 @@ const OrderCard = memo(function OrderCard({
 
       {/* Items list */}
       <div className="space-y-3">
-        {order.items.map((item: any, idx: number) => {
+        {order.items.map((item, idx) => {
           const itemImage = getItemImage(item);
 
           return (
             <div key={idx} className="flex items-start gap-3">
               {/* Item Image */}
-              <div className="w-12 h-12 rounded-lg bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
+              <div className="relative w-12 h-12 rounded-lg bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
                 {itemImage ? (
-                  <img
+                  <Image
                     src={itemImage}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-600">
@@ -156,11 +162,12 @@ const OrderCard = memo(function OrderCard({
                           >
                             {/* Option image */}
                             {optionDetails?.imageUrl && (
-                              <div className="w-8 h-8 rounded overflow-hidden shrink-0 border border-zinc-700">
-                                <img
+                              <div className="relative w-8 h-8 rounded overflow-hidden shrink-0 border border-zinc-700">
+                                <Image
                                   src={optionDetails.imageUrl}
                                   alt={key}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                 />
                               </div>
                             )}
@@ -272,7 +279,7 @@ export default function KitchenPage() {
   );
 
   const getElapsedTime = useCallback(
-    (createdAt: any) => {
+    (createdAt: { seconds?: number; _seconds?: number }) => {
       if (!createdAt) return 0;
       const ms = createdAt.seconds
         ? createdAt.seconds * 1000

@@ -1,21 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Eye } from "lucide-react";
+import { Save, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRestaurantStore } from "@/stores/restaurant";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
 import { Invoice } from "@/types";
+import { Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+const TicketPreview = dynamic(
+  () => import("@/components/invoice/TicketPreview"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    ),
+  },
+);
 
 // Sample invoice for preview
-const getSampleInvoice = (settings: any): Invoice => ({
+const getSampleInvoice = (settings: {
+  taxRate: number;
+  companyName: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
+  showTaxId: boolean;
+  taxId: string;
+  showLogo: boolean;
+  logoUrl?: string;
+  footerMessage: string;
+}): Invoice => ({
   id: "sample",
   number: "INV-2024-00001",
   type: "table",
@@ -23,17 +60,17 @@ const getSampleInvoice = (settings: any): Invoice => ({
   serverName: "Jean Serveur",
   items: [
     { menuId: "1", name: "Poulet Braisé", price: 4500, qty: 2 },
-    { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 }
+    { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 },
   ],
   subtotal: 11000,
-  tax: 11000 * settings.taxRate / 100,
+  tax: (11000 * settings.taxRate) / 100,
   taxRate: settings.taxRate,
-  total: 11000 + (11000 * settings.taxRate / 100),
+  total: 11000 + (11000 * settings.taxRate) / 100,
   discount: 0,
   status: "paid",
   paymentMethod: "card",
-  createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+  createdAt: Timestamp.now(),
+  paidAt: Timestamp.now(),
   restaurantInfo: {
     name: settings.companyName,
     address: settings.companyAddress,
@@ -41,18 +78,18 @@ const getSampleInvoice = (settings: any): Invoice => ({
     email: settings.companyEmail,
     taxId: settings.showTaxId ? settings.taxId : undefined,
     logo: settings.showLogo ? settings.logoUrl : undefined,
-    footerMessage: settings.footerMessage
-  }
+    footerMessage: settings.footerMessage,
+  },
 });
 
 export default function InvoiceTemplatePage() {
   const { invoiceSettings, updateInvoiceSettings } = useRestaurantStore();
   const [showPreview, setShowPreview] = useState(true);
-  
+
   // Local state for form
   const [formData, setFormData] = useState(invoiceSettings);
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData({ ...formData, [field]: value });
   };
 
@@ -68,8 +105,12 @@ export default function InvoiceTemplatePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Template de Facture</h2>
-          <p className="text-muted-foreground mt-1">Personnalisez l'apparence de vos factures et reçus.</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Template de Facture
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Personnalisez l&apos;apparence de vos factures et reçus.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -78,7 +119,7 @@ export default function InvoiceTemplatePage() {
             onClick={() => setShowPreview(!showPreview)}
           >
             <Eye className="w-4 h-4 mr-2" />
-            {showPreview ? 'Masquer' : 'Afficher'} l'aperçu
+            {showPreview ? "Masquer" : "Afficher"} l&apos;aperçu
           </Button>
           <Button onClick={handleSave} className="rounded-xl">
             <Save className="w-4 h-4 mr-2" />
@@ -94,15 +135,17 @@ export default function InvoiceTemplatePage() {
           <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Informations Entreprise</CardTitle>
-              <CardDescription>Ces informations apparaîtront sur toutes les factures</CardDescription>
+              <CardDescription>
+                Ces informations apparaîtront sur toutes les factures
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="companyName">Nom de l'entreprise</Label>
+                <Label htmlFor="companyName">Nom de l&apos;entreprise</Label>
                 <Input
                   id="companyName"
                   value={formData.companyName}
-                  onChange={(e) => handleChange('companyName', e.target.value)}
+                  onChange={(e) => handleChange("companyName", e.target.value)}
                   className="rounded-xl mt-2"
                 />
               </div>
@@ -112,7 +155,9 @@ export default function InvoiceTemplatePage() {
                 <Textarea
                   id="companyAddress"
                   value={formData.companyAddress}
-                  onChange={(e) => handleChange('companyAddress', e.target.value)}
+                  onChange={(e) =>
+                    handleChange("companyAddress", e.target.value)
+                  }
                   className="rounded-xl mt-2"
                   rows={2}
                 />
@@ -124,7 +169,9 @@ export default function InvoiceTemplatePage() {
                   <Input
                     id="companyPhone"
                     value={formData.companyPhone}
-                    onChange={(e) => handleChange('companyPhone', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("companyPhone", e.target.value)
+                    }
                     className="rounded-xl mt-2"
                   />
                 </div>
@@ -134,7 +181,9 @@ export default function InvoiceTemplatePage() {
                     id="companyEmail"
                     type="email"
                     value={formData.companyEmail}
-                    onChange={(e) => handleChange('companyEmail', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("companyEmail", e.target.value)
+                    }
                     className="rounded-xl mt-2"
                   />
                 </div>
@@ -145,7 +194,7 @@ export default function InvoiceTemplatePage() {
                 <Input
                   id="taxId"
                   value={formData.taxId}
-                  onChange={(e) => handleChange('taxId', e.target.value)}
+                  onChange={(e) => handleChange("taxId", e.target.value)}
                   className="rounded-xl mt-2"
                   placeholder="CI-123456789"
                 />
@@ -157,7 +206,9 @@ export default function InvoiceTemplatePage() {
           <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Calculs & Taxes</CardTitle>
-              <CardDescription>Configuration de la TVA et des calculs</CardDescription>
+              <CardDescription>
+                Configuration de la TVA et des calculs
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -168,7 +219,9 @@ export default function InvoiceTemplatePage() {
                   min="0"
                   max="100"
                   value={formData.taxRate}
-                  onChange={(e) => handleChange('taxRate', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleChange("taxRate", parseFloat(e.target.value) || 0)
+                  }
                   className="rounded-xl mt-2"
                 />
                 <p className="text-sm text-muted-foreground mt-2">
@@ -182,21 +235,25 @@ export default function InvoiceTemplatePage() {
           <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Apparence</CardTitle>
-              <CardDescription>Personnalisez l'affichage de vos factures</CardDescription>
+              <CardDescription>
+                Personnalisez l&apos;affichage de vos factures
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="templateType">Format d'impression</Label>
+                <Label htmlFor="templateType">Format d&apos;impression</Label>
                 <Select
-                  value={formData.templateType || 'a4'}
-                  onValueChange={(value) => handleChange('templateType', value)}
+                  value={formData.templateType || "a4"}
+                  onValueChange={(value) => handleChange("templateType", value)}
                 >
                   <SelectTrigger className="w-full mt-2 rounded-xl">
                     <SelectValue placeholder="Choisir un format" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="a4">Format A4 (Standard)</SelectItem>
-                    <SelectItem value="ticket">Format Ticket (Thermique 80mm)</SelectItem>
+                    <SelectItem value="ticket">
+                      Format Ticket (Thermique 80mm)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -208,8 +265,8 @@ export default function InvoiceTemplatePage() {
                 <Label htmlFor="logoUrl">URL du Logo</Label>
                 <Input
                   id="logoUrl"
-                  value={formData.logoUrl || ''}
-                  onChange={(e) => handleChange('logoUrl', e.target.value)}
+                  value={formData.logoUrl || ""}
+                  onChange={(e) => handleChange("logoUrl", e.target.value)}
                   className="rounded-xl mt-2"
                   placeholder="https://example.com/logo.png"
                 />
@@ -220,25 +277,37 @@ export default function InvoiceTemplatePage() {
 
               <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900">
                 <div>
-                  <Label htmlFor="showLogo" className="text-base">Afficher le logo</Label>
-                  <p className="text-sm text-muted-foreground">Le logo apparaît en haut de la facture</p>
+                  <Label htmlFor="showLogo" className="text-base">
+                    Afficher le logo
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Le logo apparaît en haut de la facture
+                  </p>
                 </div>
                 <Switch
                   id="showLogo"
                   checked={formData.showLogo}
-                  onCheckedChange={(checked) => handleChange('showLogo', checked)}
+                  onCheckedChange={(checked) =>
+                    handleChange("showLogo", checked)
+                  }
                 />
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900">
                 <div>
-                  <Label htmlFor="showTaxId" className="text-base">Afficher le N° TVA</Label>
-                  <p className="text-sm text-muted-foreground">Affiche le numéro de TVA sur la facture</p>
+                  <Label htmlFor="showTaxId" className="text-base">
+                    Afficher le N° TVA
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Affiche le numéro de TVA sur la facture
+                  </p>
                 </div>
                 <Switch
                   id="showTaxId"
                   checked={formData.showTaxId}
-                  onCheckedChange={(checked) => handleChange('showTaxId', checked)}
+                  onCheckedChange={(checked) =>
+                    handleChange("showTaxId", checked)
+                  }
                 />
               </div>
 
@@ -246,8 +315,10 @@ export default function InvoiceTemplatePage() {
                 <Label htmlFor="footerMessage">Message de pied de page</Label>
                 <Textarea
                   id="footerMessage"
-                  value={formData.footerMessage || ''}
-                  onChange={(e) => handleChange('footerMessage', e.target.value)}
+                  value={formData.footerMessage || ""}
+                  onChange={(e) =>
+                    handleChange("footerMessage", e.target.value)
+                  }
                   className="rounded-xl mt-2"
                   rows={2}
                   placeholder="Merci de votre visite !"
@@ -263,17 +334,37 @@ export default function InvoiceTemplatePage() {
             <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Aperçu en temps réel</CardTitle>
-                <CardDescription>Voici à quoi ressemblera votre facture</CardDescription>
+                <CardDescription>
+                  Voici à quoi ressemblera votre facture
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-0 bg-gray-100/50 min-h-[600px] flex items-center justify-center rounded-b-2xl">
-                <div className="max-h-[800px] overflow-y-auto w-full p-8 flex justify-center">
-                  <div className={formData.templateType === 'ticket' ? "w-[80mm] shadow-xl" : "w-[210mm] shadow-xl scale-75 origin-top"}>
-                    <InvoicePrintable 
-                      invoice={sampleInvoice} 
-                      templateType={formData.templateType || 'a4'} 
+              <CardContent className="p-0 bg-zinc-950 min-h-[600px] flex items-center justify-center overflow-hidden">
+                {formData.templateType === "ticket" ? (
+                  <div className="w-full h-[600px]">
+                    <TicketPreview
+                      invoice={sampleInvoice}
+                      settings={{
+                        companyName: formData.companyName,
+                        companyAddress: formData.companyAddress,
+                        companyPhone: formData.companyPhone,
+                        taxId: formData.taxId,
+                        logoUrl: formData.logoUrl,
+                        footerMessage: formData.footerMessage,
+                        showLogo: formData.showLogo,
+                        showTaxId: formData.showTaxId,
+                      }}
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="max-h-[800px] overflow-y-auto w-full p-8 flex justify-center bg-zinc-950">
+                    <div className="w-[210mm] shadow-xl scale-75 origin-top">
+                      <InvoicePrintable
+                        invoice={sampleInvoice}
+                        templateType="a4"
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

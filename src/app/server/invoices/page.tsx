@@ -1,32 +1,29 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Search, Printer, FileText, Calendar, Wallet, 
-  CreditCard, Banknote, Sparkles, X, Eye, 
-  BellRing, Loader2, Receipt, Utensils
+  Search, Printer, FileText, 
+  Banknote, X, 
+  BellRing, Loader2, Utensils
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useInvoiceStore } from "@/stores/invoices";
 import { useTableStore } from "@/stores/tables"; 
-import { useOrderStore } from "@/stores/orders"; 
 import { useRestaurantStore } from "@/stores/restaurant";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { OrderBill } from "@/components/order/OrderBill";
 import { Invoice } from "@/types";
-import { calculateTotal, calculateTax, generateInvoiceNumber, getRestaurantInfo } from "@/lib/invoice-utils";
+import { generateInvoiceNumber, getRestaurantInfo } from "@/lib/invoice-utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
+import { Timestamp } from "firebase/firestore";
 
 export default function ServerInvoicesPage() {
   const { invoices, addInvoice } = useInvoiceStore();
-  const { tables, closeTable } = useTableStore();
-  const { orders } = useOrderStore();
+  const { closeTable } = useTableStore();
   const { invoiceSettings } = useRestaurantStore();
   const { user } = useAuthStore();
 
@@ -41,8 +38,8 @@ export default function ServerInvoicesPage() {
     (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()))
   ).sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
 
-  const handleOpenInvoice = (invoice: Invoice | any) => {
-    setSelectedInvoice(invoice);
+  const handleOpenInvoice = (invoice: Invoice | unknown) => {
+    setSelectedInvoice(invoice as Invoice);
     setIsSheetOpen(true);
   };
 
@@ -51,10 +48,10 @@ export default function ServerInvoicesPage() {
       toast.error("Veuillez d'abord encaisser pour imprimer une facture officielle");
       return;
     }
-    window.open(`/admin/invoices/${invoiceId}/print`, '_blank');
+    window.open(`/print/invoice/${invoiceId}`, '_blank');
   };
 
-  const handleProcessPayment = async (provisionalInv: any) => {
+  const handleProcessPayment = async (provisionalInv: Invoice & { realTableId: string }) => {
     setIsGenerating(true);
     try {
       const newInvoice: Invoice = {
@@ -70,8 +67,8 @@ export default function ServerInvoicesPage() {
         status: 'paid',
         paymentMethod: 'cash',
         serverName: user?.name,
-        createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-        paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
+        createdAt: Timestamp.now(),
+        paidAt: Timestamp.now(),
         restaurantInfo: getRestaurantInfo()
       };
 
@@ -88,19 +85,20 @@ export default function ServerInvoicesPage() {
     }
   };
 
-  const invoiceToOrder = (inv: Invoice | any): any => {
+  const invoiceToOrder = (inv: Invoice | unknown): any => {
+    const invoice = inv as Invoice;
     return {
-      id: inv.id,
-      tableId: inv.tableId,
-      status: inv.status === 'pending' ? 'pending' : 'paid',
-      items: inv.items.map((item: any) => ({
+      id: invoice.id,
+      tableId: invoice.tableId,
+      status: invoice.status === 'pending' ? 'pending' : 'paid',
+      items: invoice.items.map((item) => ({
         ...item,
-        imageUrl: item.imageUrl || item.image, 
-        qty: item.qty || item.quantity
+        imageUrl: item.imageUrl, 
+        qty: item.qty
       })),
-      total: inv.total,
-      createdAt: inv.createdAt,
-      table: inv.tableId 
+      total: invoice.total,
+      createdAt: invoice.createdAt,
+      table: invoice.tableId 
     };
   };
 
@@ -130,9 +128,9 @@ export default function ServerInvoicesPage() {
               <p>Aucune facture</p>
             </div>
           ) : (
-            displayList.map((invoice: any) => {
-               const isProvisional = invoice.isProvisional;
-               const isRequestingBill = invoice.isRequestingBill;
+            displayList.map((invoice) => {
+               const isProvisional = (invoice as any).isProvisional;
+               const isRequestingBill = (invoice as any).isRequestingBill;
                
                return (
                 <div 
@@ -170,7 +168,7 @@ export default function ServerInvoicesPage() {
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
                          <span>{new Date(invoice.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                          <span>•</span>
-                         <span>{invoice.items?.length || 0} articles</span>
+                         <span>{invoice.items?.reduce((acc: number, item) => acc + (item.qty || 0), 0) || 0} articles</span>
                       </div>
                     </div>
                   </div>
@@ -198,7 +196,7 @@ export default function ServerInvoicesPage() {
         <SheetContent className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col h-full ring-0 shadow-2xl">
            <div className="p-4 border-b border-zinc-100 dark:border-zinc-900 flex justify-between items-center">
              <SheetTitle className="text-lg font-bold">
-               {(selectedInvoice as any)?.isProvisional ? "Encaissement" : "Détails"}
+               {(selectedInvoice as unknown as { isProvisional: boolean })?.isProvisional ? "Encaissement" : "Détails"}
              </SheetTitle>
              <Button variant="ghost" size="icon" onClick={() => setIsSheetOpen(false)}>
                <X className="w-4 h-4" />
@@ -216,9 +214,9 @@ export default function ServerInvoicesPage() {
            </div>
 
            <div className="p-4 border-t border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950 space-y-3">
-             {(selectedInvoice as any)?.isProvisional ? (
+             {(selectedInvoice as unknown as { isProvisional: boolean })?.isProvisional ? (
                 <Button 
-                  onClick={() => handleProcessPayment(selectedInvoice)} 
+                  onClick={() => handleProcessPayment(selectedInvoice as Invoice & { realTableId: string })} 
                   disabled={isGenerating}
                   className="w-full h-12 rounded-lg text-base font-semibold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200" 
                 >

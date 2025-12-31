@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Minus, Plus, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,24 +47,41 @@ interface ItemDetailContentProps {
 
 function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart, onClose }: ItemDetailContentProps) {
   const selectedVariant = item.options?.find(opt => opt.type === 'variant' && options[opt.name]);
-  const basePrice = selectedVariant ? selectedVariant.price : item.price;
+  
+  // Calculate effective base price (promo or regular)
+  const effectiveBasePrice = item.promotion && 
+    Date.now() >= item.promotion.startDate && 
+    Date.now() <= item.promotion.endDate
+      ? item.promotion.price 
+      : item.price;
+
+  const basePrice = selectedVariant ? selectedVariant.price : effectiveBasePrice;
   const addonsTotal = item.options?.filter(opt => (opt.type === 'addon' || !opt.type) && options[opt.name])
     .reduce((sum, opt) => sum + opt.price, 0) || 0;
   const unitPrice = basePrice + addonsTotal;
   const totalPrice = unitPrice * qty;
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleNoteFocus = () => {
+    setTimeout(() => {
+      noteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 500);
+  };
 
   return (
     <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-900 relative">
       <button 
         onClick={onClose}
-        className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-all shadow-lg border border-white/10"
       >
-        <X className="w-5 h-5" />
+        <X className="w-5 h-5" strokeWidth={2.5} />
       </button>
 
-      <div className="relative w-full h-56 bg-zinc-100 dark:bg-zinc-800 shrink-0">
+      <div className="relative w-full h-[45vh] min-h-[320px] bg-zinc-100 dark:bg-zinc-800 shrink-0 rounded-b-[40px] overflow-hidden shadow-2xl z-10">
         {item.imageUrl ? (
-          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+          <>
+            <Image src={item.imageUrl} alt={item.name} fill className="object-cover" priority />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-zinc-400">Pas d'image</div>
         )}
@@ -175,8 +192,10 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
             <div className="mb-4">
               <Label className="text-sm font-bold mb-2 block">Instructions spéciales (optionnel)</Label>
               <Textarea 
+                ref={noteRef}
                 placeholder="Ex: Sans oignon, bien cuit..." 
                 value={options.note || ''}
+                onFocus={handleNoteFocus}
                 onChange={(e) => setOptions({...options, note: e.target.value})}
                 className="resize-none bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 min-h-[70px] rounded-lg text-sm"
               />
@@ -233,7 +252,7 @@ export function ItemDetail({ open, onOpenChange, item, qty, setQty, options, set
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" hideDefaultClose className="h-[92vh] rounded-t-2xl p-0 flex flex-col border-t-0 shadow-xl overflow-hidden">
+      <SheetContent side="bottom" hideDefaultClose className="max-h-[100dvh] h-[96dvh] rounded-t-2xl p-0 flex flex-col border-t-0 shadow-xl overflow-hidden">
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full z-50" />
         <ItemDetailContent item={item} qty={qty} setQty={setQty} options={options} setOptions={setOptions} onAddToCart={onAddToCart} onClose={() => onOpenChange(false)} />
       </SheetContent>

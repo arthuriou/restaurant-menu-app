@@ -230,7 +230,7 @@ export function CartDrawer({
                 {/* Section "Et avec ça ?" */}
                 {recommendations.length > 0 && (
                   <div className="pt-2 pb-2">
-                    <h3 className="text-sm font-bold text-foreground mb-3 px-1">Et avec ça ? ✨</h3>
+                    <h3 className="text-sm font-bold text-foreground mb-3 px-1">Et avec ça ? 😏</h3>
                     <div className="space-y-2">
                       {recommendations.map((rec) => (
                         <button

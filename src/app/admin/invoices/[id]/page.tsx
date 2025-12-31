@@ -4,8 +4,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { 
-  ArrowLeft, Printer, Download, Share2, XCircle, CheckCircle
+import {
+  ArrowLeft,
+  Printer,
+  Download,
+  Share2,
+  XCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,12 +23,13 @@ import {
   formatInvoiceNumber,
   getInvoiceTypeLabel,
   getInvoiceStatusConfig,
-  getPaymentMethodLabel
+  getPaymentMethodLabel,
 } from "@/lib/invoice-utils";
 import { toast } from "sonner";
 import { useInvoiceStore } from "@/stores/invoices";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { generatePDF } from "@/lib/pdf-utils";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -40,7 +46,7 @@ export default function InvoiceDetailPage() {
       const id = params.id as string;
 
       // Try to find in store first
-      const found = invoices.find(i => i.id === id);
+      const found = invoices.find((i) => i.id === id);
       if (found) {
         setInvoice(found);
         setLoading(false);
@@ -51,7 +57,7 @@ export default function InvoiceDetailPage() {
       try {
         const docRef = doc(db, "invoices", id);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
           setInvoice({ id: docSnap.id, ...docSnap.data() } as Invoice);
         } else {
@@ -73,21 +79,31 @@ export default function InvoiceDetailPage() {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
-    toast.info("Téléchargement PDF en cours...");
-    // TODO: Implement PDF generation
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+    try {
+      toast.info("Génération du PDF en cours...");
+      await generatePDF(
+        "admin-invoice-content",
+        `facture-${invoice.number}.pdf`,
+      );
+      toast.success("PDF téléchargé !");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    }
   };
 
   const handleShare = async () => {
     if (!invoice) return;
     const url = `${window.location.origin}/invoice/${invoice.id}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Facture ${invoice.number}`,
           text: `Facture - ${invoice.restaurantInfo.name}`,
-          url: url
+          url: url,
         });
         toast.success("Partagé !");
       } catch (err) {
@@ -105,11 +121,19 @@ export default function InvoiceDetailPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Chargement...
+      </div>
+    );
   }
 
   if (!invoice) {
-    return <div className="flex items-center justify-center min-h-screen">Facture introuvable</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Facture introuvable
+      </div>
+    );
   }
 
   const statusConfig = getInvoiceStatusConfig(invoice.status);
@@ -123,7 +147,7 @@ export default function InvoiceDetailPage() {
       else if (dateValue.toDate) date = dateValue.toDate();
       else if (dateValue.seconds) date = new Date(dateValue.seconds * 1000);
       else date = new Date(dateValue);
-      
+
       return format(date, formatStr, { locale: fr });
     } catch (e) {
       return "-";
@@ -149,16 +173,19 @@ export default function InvoiceDetailPage() {
                 {formatInvoiceNumber(invoice.number)}
               </h2>
               <p className="text-muted-foreground mt-1">
-                {formatDate(invoice.createdAt, 'PPP à p')}
+                {formatDate(invoice.createdAt, "PPP à p")}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className={`${statusConfig.color} font-semibold px-4 py-2`}>
+            <Badge
+              variant="secondary"
+              className={`${statusConfig.color} font-semibold px-4 py-2`}
+            >
               {statusConfig.label}
             </Badge>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -168,7 +195,7 @@ export default function InvoiceDetailPage() {
               <Printer className="w-4 h-4 mr-2" />
               Imprimer
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -178,7 +205,7 @@ export default function InvoiceDetailPage() {
               <Download className="w-4 h-4 mr-2" />
               PDF
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -206,9 +233,10 @@ export default function InvoiceDetailPage() {
         {/* Invoice Preview (Printable) */}
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 overflow-hidden">
           <CardContent className="p-0 flex justify-center">
-            <InvoicePrintable 
-              ref={printRef} 
-              invoice={invoice} 
+            <InvoicePrintable
+              id="admin-invoice-content"
+              ref={printRef}
+              invoice={invoice}
               templateType={invoiceSettings.templateType}
             />
           </CardContent>
@@ -223,7 +251,9 @@ export default function InvoiceDetailPage() {
                 {getInvoiceTypeLabel(invoice.type)}
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                {invoice.type === 'table' ? invoice.tableId : invoice.customerName}
+                {invoice.type === "table"
+                  ? invoice.tableId
+                  : invoice.customerName}
               </div>
             </CardContent>
           </Card>
@@ -232,11 +262,13 @@ export default function InvoiceDetailPage() {
             <CardContent className="p-6">
               <div className="text-sm text-muted-foreground mb-2">Paiement</div>
               <div className="text-lg font-semibold">
-                {invoice.paymentMethod ? getPaymentMethodLabel(invoice.paymentMethod) : 'Non payée'}
+                {invoice.paymentMethod
+                  ? getPaymentMethodLabel(invoice.paymentMethod)
+                  : "Non payée"}
               </div>
               {invoice.paidAt && (
                 <div className="text-sm text-muted-foreground mt-1">
-                  Payé le {formatDate(invoice.paidAt, 'PPp')}
+                  Payé le {formatDate(invoice.paidAt, "PPp")}
                 </div>
               )}
             </CardContent>
@@ -244,7 +276,9 @@ export default function InvoiceDetailPage() {
 
           <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800">
             <CardContent className="p-6">
-              <div className="text-sm text-muted-foreground mb-2">Montant total</div>
+              <div className="text-sm text-muted-foreground mb-2">
+                Montant total
+              </div>
               <div className="text-2xl font-bold text-primary">
                 {formatCurrency(invoice.total)}
               </div>

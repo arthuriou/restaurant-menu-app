@@ -253,7 +253,7 @@ export default function AccountingPage() {
   };
 
   const handlePrintInvoice = (invoiceId: string): void => {
-    window.open(`/admin/invoices/${invoiceId}/print`, "_blank");
+    window.open(`/print/invoice/${invoiceId}`, "_blank");
   };
 
   return (

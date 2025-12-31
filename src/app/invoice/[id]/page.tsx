@@ -2,12 +2,43 @@
 
 import { useParams } from "next/navigation";
 import { useState, useRef } from "react";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Invoice } from "@/types";
 import { InvoicePrintable } from "@/components/invoice/InvoicePrintable";
 import { useRestaurantStore } from "@/stores/restaurant";
-import { toast } from "sonner";
+import dynamic from "next/dynamic";
+import { TicketPDF } from "@/components/invoice/TicketPDF";
+
+const PDFViewer = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[600px] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    ),
+  },
+);
+
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  {
+    ssr: false,
+    loading: () => (
+      <Button
+        disabled
+        variant="outline"
+        size="sm"
+        className="rounded-xl bg-white dark:bg-zinc-900"
+      >
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        Chargement...
+      </Button>
+    ),
+  },
+);
 
 // Mock invoice - Will be fetched from Firebase using invoice ID from params
 const mockInvoice: Invoice = {
@@ -17,7 +48,7 @@ const mockInvoice: Invoice = {
   tableId: "Table 5",
   items: [
     { menuId: "1", name: "Poulet Braisé", price: 4500, qty: 2 },
-    { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 }
+    { menuId: "2", name: "Coca Cola", price: 1000, qty: 2 },
   ],
   subtotal: 11000,
   tax: 2200,
@@ -33,8 +64,8 @@ const mockInvoice: Invoice = {
     address: "123 Avenue des Saveurs, Abidjan, Côte d'Ivoire",
     phone: "+225 27 XX XX XX XX",
     email: "contact@legourmet.ci",
-    taxId: "CI-123456789"
-  }
+    taxId: "CI-123456789",
+  },
 };
 
 export default function PublicInvoicePage() {
@@ -55,11 +86,6 @@ export default function PublicInvoicePage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleDownloadPDF = () => {
-    toast.info("Téléchargement PDF en cours...");
-    // TODO: Implement PDF generation
   };
 
   if (loading) {
@@ -87,31 +113,67 @@ export default function PublicInvoicePage() {
             <Printer className="w-4 h-4 mr-2" />
             Imprimer
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl bg-white dark:bg-zinc-900"
-            onClick={handleDownloadPDF}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Télécharger PDF
-          </Button>
+
+          {invoiceSettings.templateType === "ticket" ? (
+            <PDFDownloadLink
+              document={<TicketPDF invoice={invoice} />}
+              fileName={`facture-${invoice.number}.pdf`}
+            >
+              {/* @ts-ignore */}
+              {({ blob, url, loading, error }) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl bg-white dark:bg-zinc-900"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Télécharger PDF
+                </Button>
+              )}
+            </PDFDownloadLink>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl bg-white dark:bg-zinc-900"
+              onClick={() => window.print()}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Télécharger PDF
+            </Button>
+          )}
         </div>
 
         {/* Invoice */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex justify-center">
-          <InvoicePrintable 
-            ref={printRef} 
-            invoice={invoice} 
-            templateType={invoiceSettings.templateType}
-          />
+          {invoiceSettings.templateType === "ticket" ? (
+            <div className="w-full h-[600px]">
+              <PDFViewer width="100%" height="100%" className="border-none">
+                <TicketPDF invoice={invoice} />
+              </PDFViewer>
+            </div>
+          ) : (
+            <InvoicePrintable
+              id="public-invoice-content"
+              ref={printRef}
+              invoice={invoice}
+              templateType={invoiceSettings.templateType}
+            />
+          )}
         </div>
 
         {/* Footer - Not printed */}
         <div className="text-center mt-8 text-muted-foreground text-sm no-print">
           <p>Cette facture a été générée par {invoice.restaurantInfo.name}</p>
-          <p className="mt-1">Pour toute question, contactez-nous au {invoice.restaurantInfo.phone}</p>
+          <p className="mt-1">
+            Pour toute question, contactez-nous au{" "}
+            {invoice.restaurantInfo.phone}
+          </p>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Bell, ChefHat } from "lucide-react";
 import { 
   collection, 
@@ -48,8 +48,11 @@ type DetailState = {
   };
 };
 
-export default function Home() {
+function MenuContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tableParam = searchParams.get('table');
+
   const { loadSettings } = useRestaurantStore();
   const { 
     categories, 
@@ -79,20 +82,22 @@ export default function Home() {
   
   const { incrementTableScans, requestService } = useTableStore();
   const scanProcessed = useRef(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  // Block rendering if we have a table param to verify
+  const [isVerifyingTable, setIsVerifyingTable] = useState(!!tableParam);
 
   // Call Server State
   const [callServerOpen, setCallServerOpen] = useState(false);
   const [activeOrderStatus, setActiveOrderStatus] = useState<string | null>(null);
 
   const handleCallServer = (type: 'assistance' | 'bill') => {
-    if (!table) {
+    if (!table || !table.id) {
       toast.error("Veuillez scanner le QR code de votre table");
       return;
     }
 
-    // Find table ID from label
-    const tableId = `t${table.label}`;
-    requestService(tableId, type);
+    // Use the real table ID from the store
+    requestService(table.id, type);
     
     setCallServerOpen(false);
     
@@ -139,9 +144,7 @@ export default function Home() {
 
   // Handle URL params for QR codes
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tableParam = params.get('table');
-    
+    // Use the param from hook instead of window.location
     if (tableParam) {
       const cleanTableId = tableParam.replace('Table ', '');
       
@@ -192,10 +195,30 @@ export default function Home() {
              setTable({ id: realTableId, label: cleanTableId });
            }
 
-           // 2. Scan Logging - IMPROVED: Use combination key
+           // 2. Listen for Table Status Changes (Session Termination)
+           if (realTableId && !realTableId.startsWith('temp_')) {
+             const unsub = onSnapshot(doc(db, 'tables', realTableId), (docSnap) => {
+               if (docSnap.exists()) {
+                 const data = docSnap.data();
+                 // If table becomes available (freed by server), clear session
+                 if (data.status === 'available' && table?.id === realTableId) {
+                   console.log("Table freed by server - clearing session");
+                   clearTableSession();
+                   toast.info("Votre session a été clôturée par le serveur.");
+                   // Optional: Redirect or refresh
+                   // window.location.reload();
+                 }
+               }
+             });
+             // Note: We can't easily unsubscribe here inside the async function without a ref, 
+             // but this runs once per table param change usually.
+           }
+
+           // 3. Scan Logging - IMPROVED: Use combination key
            const scanKey = `scan_${cleanTableId}_${realTableId}`;
            if (scanProcessed.current || sessionStorage.getItem(scanKey)) {
                console.log(`[Scan] Already processed this exact scan: ${scanKey}`);
+               setIsVerifyingTable(false); // Done verifying
                return; // Already processed this exact scan
            }
 
@@ -213,11 +236,23 @@ export default function Home() {
                   await useScanStore.getState().addScan(cleanTableId);
                   
                   // Update Legacy Stats & Occupancy
-                  // We can run these in parallel
                   const { incrementTableScans } = useTableStore.getState();
-                  await Promise.all([
-                    incrementTableScans(cleanTableId)
-                  ]);
+                  const result = await incrementTableScans(cleanTableId);
+
+                  if (result && !result.success) {
+                    // toast.error(result.message, { duration: 5000 });
+                    
+                    // CRITICAL: Revert State & Block Access
+                    setTable(null);
+                    setTableId('');
+                    setAccessDenied(true);
+                    setIsVerifyingTable(false); // Done verifying (denied)
+
+                    // Clear session and stop processing
+                    sessionStorage.removeItem(scanKey);
+                    sessionStorage.removeItem(lastScanKey);
+                    return;
+                  }
 
                   console.log(`[Scan] Logged for table ${cleanTableId}`);
                   toast.success(`📍 Table ${cleanTableId} détectée`);
@@ -231,7 +266,7 @@ export default function Home() {
            // Always mark as processed for this session
            sessionStorage.setItem(scanKey, 'true');
            scanProcessed.current = true;
-           
+           setIsVerifyingTable(false); // Done verifying (success)
 
 
          } catch (err: any) {
@@ -243,12 +278,16 @@ export default function Home() {
              setTable({ id: `temp_${cleanTableId}`, label: cleanTableId });
              toast.error(`Mode hors ligne : ${err.message || "Erreur inconnue"}`);
            }
+           setIsVerifyingTable(false); // Done verifying (error fallback)
          }
       };
 
       initializeTable();
 
     } else {
+      // No table param, so no verification needed
+      setIsVerifyingTable(false);
+
       // Logic for Takeaway / No Table / URL Restoration
       const currentTable = useMenuStore.getState().table;
       
@@ -282,7 +321,7 @@ export default function Home() {
         }
       }
     }
-  }, [setTableId, setOrderType, setTable, incrementTableScans, clearTableSession, table]);
+  }, [setTableId, setOrderType, setTable, incrementTableScans, clearTableSession, table, tableParam]);
 
   // Initial Loading State
   const [mounted, setMounted] = useState(false);
@@ -441,7 +480,13 @@ export default function Home() {
   };
 
   // Loading State
-  if (isLoading && (!categories || categories.length === 0)) {
+  // CRITICAL: Block rendering if we have a table param that hasn't been processed yet
+  // This prevents the "Flash" of the menu before the access check completes
+  const shouldShowLoader = (isLoading && (!categories || categories.length === 0)) || 
+                          isVerifyingTable || 
+                          (!!tableParam && !scanProcessed.current && !accessDenied);
+
+  if (shouldShowLoader) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -460,6 +505,33 @@ export default function Home() {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <div className="fixed inset-0 bg-background z-[9999] flex flex-col items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="max-w-md w-full bg-card border rounded-3xl shadow-2xl p-8 text-center space-y-6">
+          <div className="mx-auto w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-2">
+            <Bell className="w-12 h-12 text-red-600 dark:text-red-500" />
+          </div>
+          
+          <div className="space-y-3">
+            <h1 className="text-3xl font-black text-foreground tracking-tight">Table Complète</h1>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              Cette table a atteint sa capacité maximale.
+              <br />
+              <span className="text-sm">Veuillez scanner une autre table pour commander.</span>
+            </p>
+          </div>
+
+          <div className="pt-4">
+            <p className="text-sm text-muted-foreground font-medium animate-pulse">
+               Veuillez scanner un autre code QR pour continuer.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-background flex flex-col">
       <Header 
@@ -468,7 +540,7 @@ export default function Home() {
         onCallServer={() => setCallServerOpen(true)} 
       />
       
-      <main className="max-w-5xl mx-auto w-full flex-1 pb-24">
+      <main className="max-w-5xl mx-auto w-full flex-1 pb-8">
         <Hero />
         
         <FeaturedItems items={displayItems} onAdd={openDetail} />
@@ -479,7 +551,7 @@ export default function Home() {
           onSelect={setSelectedCategory} 
         />
         
-        <div className="px-4 py-6 space-y-4">
+        <div className="px-4 py-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-xl">
               {displayCategories.find(c => c.id === selectedCategory)?.name || 'Menu'}
@@ -611,5 +683,13 @@ export default function Home() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <MenuContent />
+    </Suspense>
   );
 }

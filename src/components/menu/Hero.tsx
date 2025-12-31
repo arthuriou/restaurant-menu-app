@@ -45,7 +45,7 @@ export function Hero() {
   }
 
   return (
-    <div className="pt-2 pb-4 space-y-3 relative group/hero">
+    <div className="pt-2 pb-2 space-y-3 relative group/hero">
       
       {/* Desktop Navigation Arrows */}
       {specialOffers.length > 1 && (
@@ -72,7 +72,7 @@ export function Hero() {
         className="flex overflow-x-auto snap-x snap-mandatory px-4 gap-4 pb-4 no-scrollbar"
       >
         {specialOffers.map((promo: any) => (
-          <div key={promo.id} className="relative w-full shrink-0 aspect-[2.2/1] rounded-xl overflow-hidden shadow-2xl shadow-black/20 group snap-center">
+          <div key={promo.id} className="relative w-full shrink-0 h-[280px] sm:h-[400px] rounded-[28px] overflow-hidden shadow-xl group snap-center">
             <Image 
               src={promo.imageUrl} 
               alt={promo.title}
@@ -80,19 +80,25 @@ export function Hero() {
               className="object-cover transition-transform duration-1000 group-hover:scale-105"
               priority
             />
-            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors duration-500" />
+            {/* Gradient Overlay for better text readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
             
-            <div className="absolute inset-0 flex flex-col justify-center p-6">
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 self-start px-3 py-1 rounded-full mb-3">
-                <span className="text-white text-[10px] font-bold tracking-wider uppercase">{promo.subtitle}</span>
+            <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-center items-start">
+              {/* Glassmorphism Pill */}
+              <div className="bg-white/20 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full mb-3 shadow-sm">
+                <span className="text-white text-[10px] sm:text-xs font-bold tracking-widest uppercase drop-shadow-sm">
+                  {promo.subtitle}
+                </span>
               </div>
-              <h2 className="text-white font-black text-3xl leading-none drop-shadow-lg whitespace-pre-line">
-                {promo.title.split('\n')[0]}<br/>
-                <span className="text-primary">{promo.title.split('\n')[1]}</span>
+              
+              {/* Main Title */}
+              <h2 className="text-white font-black text-3xl sm:text-5xl leading-[0.95] drop-shadow-lg max-w-[85%]">
+                {promo.title}
               </h2>
             </div>
 
-            <div className="absolute right-4 bottom-4 bg-white text-black text-sm font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+            {/* Bottom Right Badge */}
+            <div className="absolute right-5 bottom-5 bg-white text-black text-sm font-bold px-5 py-2 rounded-full shadow-xl flex items-center gap-2 transform transition-transform group-hover:scale-105">
               {promo.discount}
             </div>
           </div>

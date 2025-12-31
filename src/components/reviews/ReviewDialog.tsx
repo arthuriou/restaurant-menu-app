@@ -167,7 +167,7 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
                   <button
                     key={star}
                     onClick={() => handleRating(item.uniqueKey, star)}
-                    className="transition-all hover:scale-110"
+                    className="transition-all"
                   >
                     <Star 
                       className={cn(

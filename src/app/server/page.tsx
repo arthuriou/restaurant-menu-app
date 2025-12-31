@@ -64,7 +64,7 @@ export default function ServerDashboard() {
   }, [orders, ordersKey]);
 
   const activeOrders = useMemo(
-    () => allOrders.filter(o => o.status !== 'served' && o.status !== 'paid'),
+    () => allOrders.filter(o => o.status !== 'paid'),
     [allOrders]
   );
 
@@ -94,6 +94,11 @@ export default function ServerDashboard() {
   const handleServeOrder = (orderId: string) => {
     updateOrderStatus(orderId, 'served');
     toast.success("Commande servie !");
+  };
+
+  const handlePayOrder = (orderId: string) => {
+    updateOrderStatus(orderId, 'paid');
+    toast.success("Commande encaissée !");
   };
 
   // Helper function to calculate elapsed time display
@@ -144,13 +149,14 @@ export default function ServerDashboard() {
                 allOrders.map((order) => {
                   try {
                     return (
-                      <ObypayCard 
-                        key={order.id} 
-                        order={order} 
-                        onServe={() => handleServeOrder(order.id)} 
-                        onViewBill={() => setViewingOrder(order)}
-                        getElapsedTimeText={getElapsedTimeText}
-                      />
+                 <ObypayCard 
+                   key={order.id} 
+                   order={order} 
+                   onServe={() => handleServeOrder(order.id)} 
+                   onPay={() => handlePayOrder(order.id)}
+                   onViewBill={() => setViewingOrder(order)}
+                   getElapsedTimeText={getElapsedTimeText}
+                 />
                     );
                   } catch (error) {
                     console.error('[ObypayCard] Error rendering order:', order.id, error);
@@ -174,6 +180,7 @@ export default function ServerDashboard() {
                    key={order.id} 
                    order={order} 
                    onServe={() => handleServeOrder(order.id)} 
+                   onPay={() => handlePayOrder(order.id)}
                    onViewBill={() => setViewingOrder(order)}
                    getElapsedTimeText={getElapsedTimeText}
                  />
@@ -190,6 +197,7 @@ export default function ServerDashboard() {
                    key={order.id} 
                    order={order} 
                    onServe={() => handleServeOrder(order.id)} 
+                   onPay={() => handlePayOrder(order.id)}
                    onViewBill={() => setViewingOrder(order)}
                    getElapsedTimeText={getElapsedTimeText}
                  />
@@ -237,11 +245,13 @@ function EmptyState() {
 function ObypayCard({ 
   order, 
   onServe, 
+  onPay,
   onViewBill,
   getElapsedTimeText
 }: { 
   order: any;
   onServe: () => void;
+  onPay?: () => void;
   onViewBill: () => void;
   getElapsedTimeText: (createdAt: any) => string;
 }) {
@@ -252,6 +262,7 @@ function ObypayCard({
   // Only detect as takeaway if explicitly labeled 'Emporter' (case insensitive) or type is takeaway
   const isTakeaway = orderTable.toLowerCase().includes('emporter') || order.type === 'takeaway';
   const isReady = order.status === 'ready';
+  const isServed = order.status === 'served';
   const { items: allMenuItems } = useMenuStore();
 
   const getOptionDetails = (orderItem: any, optionName: string) => {
@@ -458,6 +469,15 @@ function ObypayCard({
           >
             <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
             Servir
+          </Button>
+        )}
+        {isServed && onPay && (
+          <Button 
+            className="flex-1 rounded-xl h-10 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
+            onClick={onPay}
+          >
+            <Receipt className="w-3.5 h-3.5 mr-2" />
+            Encaisser
           </Button>
         )}
       </div>

@@ -48,10 +48,26 @@ export default function ServerTablesPage() {
     }
   };
 
-  const handleOpenTableDetails = (tableId: string) => {
+  const handleOpenTableDetails = async (tableId: string) => {
     setSelectedTableId(tableId);
     setActiveSheet(true);
     setGeneratedInvoice(null);
+
+    // Check if there is already a recent invoice for this table
+    const table = tables.find(t => t.id === tableId);
+    if (table) {
+      const { invoices } = useInvoiceStore.getState();
+      // Find invoice created in the last 12 hours for this table
+      const recentInvoice = invoices.find(inv => {
+        const isSameTable = inv.tableId === `Table ${table.label}`;
+        const isRecent = inv.createdAt.seconds > (Date.now() / 1000 - 43200); // 12 hours
+        return isSameTable && isRecent;
+      });
+      
+      if (recentInvoice) {
+        setGeneratedInvoice(recentInvoice);
+      }
+    }
   };
 
   const handleGenerateInvoice = async () => {
@@ -98,8 +114,8 @@ export default function ServerTablesPage() {
             name: item.name,
             price: item.price,
             qty: item.qty,
-            imageUrl: item.image,
-            options: item.options
+            imageUrl: item.image || null,
+            options: item.options || null
           });
         }
       });
@@ -124,7 +140,7 @@ export default function ServerTablesPage() {
       total,
       status: 'paid',
       paymentMethod: 'cash',
-      serverName: user?.name,
+      serverName: user?.name || 'Serveur',
       createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
       paidAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
       restaurantInfo: getRestaurantInfo()
@@ -147,7 +163,8 @@ export default function ServerTablesPage() {
 
   const handlePrint = () => {
     if (generatedInvoice) {
-      window.open(`/admin/invoices/${generatedInvoice.id}/print`, '_blank');
+      // Use the new public print route
+      window.open(`/print/invoice/${generatedInvoice.id}`, '_blank');
     }
   };
 

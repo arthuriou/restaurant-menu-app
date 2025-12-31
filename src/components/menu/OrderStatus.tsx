@@ -30,7 +30,7 @@ export function OrderStatus({ status }: OrderStatusProps) {
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 animate-pulse"></div>
           <PartyPopper className="w-12 h-12 mx-auto mb-2 animate-bounce" />
           <h2 className="text-2xl font-black uppercase tracking-wider mb-1">Votre commande est prête !</h2>
-          <p className="font-medium opacity-90">Veuillez vous présenter au comptoir pour la récupérer.</p>
+          <p className="font-medium opacity-90">Le serveur arrive sous peu avec votre commande.</p>
         </motion.div>
       )}
 
