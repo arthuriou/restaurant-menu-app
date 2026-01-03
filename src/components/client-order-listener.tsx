@@ -36,7 +36,7 @@ export function ClientOrderListener() {
           
           // Notification Toast (In-App)
           toast.success("Votre commande est prête !", {
-            description: "Veuillez vous présenter au comptoir.",
+            description: "Un serveur va vous l'apporter à table.",
             duration: 10000,
             action: {
               label: "D'accord!",

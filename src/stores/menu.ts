@@ -109,7 +109,9 @@ export const useMenuStore = create<MenuStore>()(
       clearTableSession: () => set({ 
         cart: [], 
         activeOrderId: null, 
-        activeOrderIds: [] 
+        activeOrderIds: [],
+        table: { id: 'takeaway', label: 'À emporter' },
+        orderType: 'takeaway'
       }),
       
       loadMenu: async () => {

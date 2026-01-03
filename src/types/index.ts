@@ -16,20 +16,20 @@ export type MenuItem = {
   price: number;
   imageUrl?: string;
   available: boolean;
-  featured?: boolean;       // Item vedette dans la section spécialités
-  featuredOrder?: number;   // Ordre d'affichage (optionnel)
-  averageRating?: number;   // Moyenne des avis (0-5)
-  reviewCount?: number;     // Nombre d'avis
+  featured?: boolean; // Item vedette dans la section spécialités
+  featuredOrder?: number; // Ordre d'affichage (optionnel)
+  averageRating?: number; // Moyenne des avis (0-5)
+  reviewCount?: number; // Nombre d'avis
   recommendations?: string[]; // IDs de menu items recommandés (boissons, vins, etc.)
   promotion?: {
-    price: number;        // Prix promotionnel
-    startDate: number;    // Timestamp début promo
-    endDate: number;      // Timestamp fin promo
+    price: number; // Prix promotionnel
+    startDate: number; // Timestamp début promo
+    endDate: number; // Timestamp fin promo
   };
   options?: {
     name: string;
     price: number;
-    type: 'addon' | 'variant';
+    type: "addon" | "variant";
     imageUrl?: string; // Image de l'option/variante
     description?: string; // Description optionnelle
   }[];
@@ -46,11 +46,18 @@ export type OrderItem = {
   imageUrl?: string;
 };
 
-export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "served"
+  | "paid"
+  | "cancelled";
 
 export type Order = {
   id: string;
   tableId: string;
+  tableDocId?: string;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
@@ -88,32 +95,32 @@ export type RestaurantInfo = {
 
 export type Invoice = {
   id: string;
-  number: string;              // Format: INV-2024-XXXXX
+  number: string; // Format: INV-2024-XXXXX
   type: InvoiceType;
-  
+
   // Customer/Table info
-  tableId?: string;            // For type "table"
-  customerName?: string;       // For type "takeaway"
-  
+  tableId?: string; // For type "table"
+  customerName?: string; // For type "takeaway"
+
   // Order details
   items: OrderItem[];
   subtotal: number;
-  tax: number;                 // TVA amount
-  taxRate: number;             // TVA percentage (e.g., 20 for 20%)
-  discount?: number;           // Optional discount
+  tax: number; // TVA amount
+  taxRate: number; // TVA percentage (e.g., 20 for 20%)
+  discount?: number; // Optional discount
   total: number;
-  
+
   // Payment
   status: InvoiceStatus;
   paymentMethod?: PaymentMethod;
   serverName?: string;
   paidAt?: Timestamp;
-  
+
   // Metadata
   createdAt: Timestamp;
-  createdBy?: string;          // User ID who created
+  createdBy?: string; // User ID who created
   notes?: string;
-  
+
   // Restaurant snapshot (immutable)
   restaurantInfo: RestaurantInfo;
 };

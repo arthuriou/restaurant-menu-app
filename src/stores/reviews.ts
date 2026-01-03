@@ -48,8 +48,6 @@ export const useReviewStore = create<ReviewState>()((set, get) => ({
 
       const docRef = await addDoc(collection(db, 'reviews'), review);
       
-      toast.success('Merci pour votre avis !');
-      
       // Ajouter au store local
       set(state => ({
         reviews: [...state.reviews, { ...review, id: docRef.id }]

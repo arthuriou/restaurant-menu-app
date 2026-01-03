@@ -90,6 +90,5 @@ export const getRestaurantInfo = () => {
     phone: "+225 27 XX XX XX XX",
     email: "contact@legourmet.ci",
     taxId: "CI-123456789",
-    logo: undefined, // Will be from Cloudinary
   };
 };

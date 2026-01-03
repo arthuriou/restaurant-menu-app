@@ -89,7 +89,13 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
 
       await Promise.all(promises);
       
-      toast.success("Merci pour votre avis ! ⭐");
+      const count = Object.keys(ratings).length;
+      if (count > 1) {
+        toast.success("Merci ! Vos avis ont bien été envoyés ! ⭐");
+      } else {
+        toast.success("Merci pour votre avis ! ⭐");
+      }
+
       onOpenChange(false);
       
       // Reset form
@@ -111,7 +117,7 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-hidden rounded-3xl flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden rounded-3xl flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Votre avis nous intéresse ! ⭐</DialogTitle>
         </DialogHeader>
@@ -187,6 +193,11 @@ export function ReviewDialog({ open, onOpenChange, orderId, tableId, items }: Re
                   placeholder="Un commentaire ? (optionnel)"
                   value={comments[item.uniqueKey] || ""}
                   onChange={(e) => setComments(prev => ({ ...prev, [item.uniqueKey]: e.target.value }))}
+                  onFocus={(e) => {
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                  }}
                   className="resize-none h-20 text-sm"
                 />
               )}

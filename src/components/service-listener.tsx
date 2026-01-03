@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { BellRing } from "lucide-react";
 
 export function ServiceListener() {
-  const { serviceRequests, resolveServiceRequest } = useTableStore();
+  const { serviceRequests, resolveServiceRequest, tables } = useTableStore();
   const prevRequestsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -22,15 +22,24 @@ export function ServiceListener() {
         audio.play().catch(e => console.log("Audio play failed", e));
         
         const message = req.type === 'bill' ? "Demande d'addition" : "Demande d'assistance";
-        
+        const table = tables.find(t => t.id === req.tableId);
+        const tableName = table ? table.label : req.tableId.replace('t', '');
+
         toast(message, {
-          description: `Table ${req.tableId.replace('t', '')}`, // Assuming tableId is like 't5'
+          description: `Table ${tableName}`,
           duration: Infinity,
           action: {
             label: "J'y vais",
             onClick: () => {
-              resolveServiceRequest(req.tableId);
-              toast.success("Demande prise en charge");
+              // Only resolve immediately for assistance requests.
+              // For bill requests, we want the status to remain "requesting_bill" 
+              // so the "Encaisser" button remains visible on the dashboard.
+              if (req.type !== 'bill') {
+                resolveServiceRequest(req.tableId);
+                toast.success("Demande prise en charge");
+              } else {
+                toast.dismiss();
+              }
             }
           },
           icon: <BellRing className="w-5 h-5 text-amber-500 animate-bounce" />
@@ -39,7 +48,7 @@ export function ServiceListener() {
     });
 
     prevRequestsRef.current = currentRequests;
-  }, [serviceRequests, resolveServiceRequest]);
+  }, [serviceRequests, resolveServiceRequest, tables]);
 
   return null;
 }
