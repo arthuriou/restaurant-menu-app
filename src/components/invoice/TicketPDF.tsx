@@ -217,10 +217,9 @@ export const TicketPDF = ({ invoice, settings }: TicketPDFProps) => {
         {/* Table / Server */}
         <View style={styles.row}>
           <Text>
-            Table:{" "}
             {invoice.type === "table"
-              ? invoice.tableId?.replace("Table ", "")
-              : "Emporter"}
+              ? `Table: ${invoice.tableId?.replace("Table ", "")}`
+              : "À emporter"}
           </Text>
           <Text>Serveur: {invoice.serverName || "-"}</Text>
         </View>

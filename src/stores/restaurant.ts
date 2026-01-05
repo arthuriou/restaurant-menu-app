@@ -194,7 +194,8 @@ export const useRestaurantStore = create<RestaurantStore>()(
         if (db) {
           try {
             const docRef = doc(db, 'settings', 'general');
-            await setDoc(docRef, settings, { merge: true });
+            // Fix: Save under 'invoiceSettings' key to match loadSettings structure
+            await setDoc(docRef, { invoiceSettings: settings }, { merge: true });
           } catch (error) {
             console.error("Error saving settings:", error);
           }

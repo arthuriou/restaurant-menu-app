@@ -33,8 +33,13 @@ interface TicketPreviewProps {
 }
 
 const TicketPreview = ({ invoice, settings }: TicketPreviewProps) => {
+  // Force remount when settings change to avoid PDF renderer update crashes (Eo is not a function)
+  // This is a known issue with @react-pdf/renderer when structure changes dynamically
+  const key = React.useMemo(() => JSON.stringify(settings), [settings]);
+
   return (
     <PDFViewer
+      key={key}
       width="100%"
       height="100%"
       className="border-none"

@@ -253,6 +253,9 @@ export function ItemDetail({ open, onOpenChange, item, qty, setQty, options, set
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" hideDefaultClose className="max-h-[100dvh] h-[96dvh] rounded-t-2xl p-0 flex flex-col border-t-0 shadow-xl overflow-hidden">
+        <div className="sr-only">
+          <DialogTitle>{item.name}</DialogTitle>
+        </div>
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full z-50" />
         <ItemDetailContent item={item} qty={qty} setQty={setQty} options={options} setOptions={setOptions} onAddToCart={onAddToCart} onClose={() => onOpenChange(false)} />
       </SheetContent>

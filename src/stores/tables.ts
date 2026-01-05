@@ -357,6 +357,12 @@ export const useTableStore = create<TableState>((set, get) => ({
 
   requestService: async (tableId, type) => {
     try {
+      // Ignore takeaway requests as they don't have a physical table status
+      if (tableId === "takeaway" || tableId === "emporter") {
+        console.log("[TableStore] Ignoring service request for takeaway");
+        return;
+      }
+
       console.log(`[TableStore] Requesting service '${type}' for tableId: '${tableId}'`);
       const status = type === "bill" ? "requesting_bill" : "needs_service";
       

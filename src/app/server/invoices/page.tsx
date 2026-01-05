@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, Printer, FileText, 
   X
@@ -14,21 +15,43 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { OrderBill } from "@/components/order/OrderBill";
 import { Invoice } from "@/types";
 import { cn } from "@/lib/utils";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 
 export default function ServerInvoicesPage() {
   const { invoices } = useInvoiceStore();
   const { invoiceSettings } = useRestaurantStore();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [periodType, setPeriodType] = useState<"day" | "week" | "month">("day");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Combine and filter
-  const displayList = invoices.filter(inv => 
-    inv.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()))
-  ).sort((a, b) => {
+  const displayList = invoices.filter(inv => {
+    const matchesSearch = inv.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (inv.tableId && inv.tableId.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const invoiceDate = new Date(inv.createdAt.seconds * 1000);
+    const filterDate = parseISO(dateFilter);
+    
+    let matchesDate = false;
+
+    if (periodType === 'day') {
+       matchesDate = invoiceDate.toISOString().split('T')[0] === dateFilter;
+    } else if (periodType === 'week') {
+       const start = startOfWeek(filterDate, { weekStartsOn: 1 });
+       const end = endOfWeek(filterDate, { weekStartsOn: 1 });
+       matchesDate = isWithinInterval(invoiceDate, { start, end });
+    } else if (periodType === 'month') {
+       const start = startOfMonth(filterDate);
+       const end = endOfMonth(filterDate);
+       matchesDate = isWithinInterval(invoiceDate, { start, end });
+    }
+
+    return matchesSearch && matchesDate;
+  }).sort((a, b) => {
     return b.createdAt.seconds - a.createdAt.seconds;
   });
 
@@ -65,14 +88,30 @@ export default function ServerInvoicesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Factures</h1>
           <p className="text-sm text-muted-foreground mt-1">Gestion des encaissements et historique</p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Rechercher..." 
-            className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-zinc-400" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
+          <Tabs value={periodType} onValueChange={(v) => setPeriodType(v as any)} className="w-full sm:w-auto">
+            <TabsList>
+              <TabsTrigger value="day">Jour</TabsTrigger>
+              <TabsTrigger value="week">Semaine</TabsTrigger>
+              <TabsTrigger value="month">Mois</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="w-full sm:w-40 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
           />
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Rechercher..." 
+              className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-zinc-400" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -109,7 +148,11 @@ export default function ServerInvoicesPage() {
                         </span>
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
-                         <span>{new Date(invoice.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                         <span>
+                           {new Date(invoice.createdAt.seconds * 1000).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                           {' '}
+                           {new Date(invoice.createdAt.seconds * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                         </span>
                          <span>•</span>
                          <span>{invoice.items?.reduce((acc: number, item) => acc + (item.qty || 0), 0) || 0} articles</span>
                       </div>

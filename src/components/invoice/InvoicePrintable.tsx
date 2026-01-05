@@ -124,21 +124,17 @@ export const InvoicePrintable = forwardRef<
       <div
         className={cn("mb-2", isTicket ? "" : "bg-gray-50 p-6 rounded-xl mb-8")}
       >
-        {!isTicket && (
-          <h3 className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-3">
-            Client
-          </h3>
-        )}
-
         {isTicket ? (
           <div className="flex justify-between text-[11px] mb-2 font-bold">
             <div className="text-left">
-              <span>Table: </span>
-              <span>
-                {invoice.type === "table"
-                  ? invoice.tableId?.replace("Table ", "")
-                  : "Emporter"}
-              </span>
+              {invoice.type === "table" ? (
+                <>
+                  <span>Table: </span>
+                  <span>{invoice.tableId?.replace("Table ", "")}</span>
+                </>
+              ) : (
+                <span>À emporter</span>
+              )}
             </div>
             <div className="text-right">
               <span>Serveur: </span>
@@ -148,19 +144,19 @@ export const InvoicePrintable = forwardRef<
         ) : (
           <div className="flex justify-between items-center">
             <div>
-              <p className="font-bold text-lg">
+              <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">
+                {invoice.type === "table" ? "Table" : "Mode"}
+              </p>
+              <p className="font-bold text-xl">
                 {invoice.type === "table"
                   ? invoice.tableId
-                  : invoice.customerName || "Client Comptoir"}
-              </p>
-              <p className="text-gray-500">
-                {getInvoiceTypeLabel(invoice.type)}
+                  : "À emporter"}
               </p>
             </div>
             {invoice.serverName && (
               <div className="text-right">
-                <p className="text-gray-500">Serveur</p>
-                <p className="font-medium">{invoice.serverName}</p>
+                <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Serveur</p>
+                <p className="font-bold text-xl">{invoice.serverName}</p>
               </div>
             )}
           </div>
