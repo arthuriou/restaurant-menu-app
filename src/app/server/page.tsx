@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useOrderStore } from "@/stores/orders";
 import { useMenuStore } from "@/stores/menu";
+import { useRestaurantStore } from "@/stores/restaurant";
+import { generateInvoiceFromOrder } from "@/lib/invoice-service";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,7 @@ import { fr } from "date-fns/locale";
 export default function ServerDashboard() {
   const { orders, updateOrderStatus } = useOrderStore();
   const { items: menuItems, loadMenu } = useMenuStore();
+  const { invoiceSettings } = useRestaurantStore();
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
 
@@ -133,12 +136,75 @@ export default function ServerDashboard() {
       <Tabs defaultValue="all" className="flex-1 flex flex-col" onValueChange={setActiveTab}>
         {/* iOS Segmented Control Style Tabs */}
         <div className="px-1 mb-6">
-          <TabsList className="bg-zinc-100 dark:bg-zinc-900/50 p-1 rounded-full h-12 w-full max-w-md mx-auto grid grid-cols-3">
+          <TabsList className="bg-zinc-100 dark:bg-zinc-900/50 p-1 rounded-full h-12 w-full max-w-xl mx-auto grid grid-cols-4">
             <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">Tout</TabsTrigger>
+            <TabsTrigger value="validate" className="rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all duration-300">À Valider</TabsTrigger>
             <TabsTrigger value="ready" className="rounded-full data-[state=active]:bg-green-500 data-[state=active]:text-white transition-all duration-300">Prêts</TabsTrigger>
             <TabsTrigger value="kitchen" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">Cuisine</TabsTrigger>
           </TabsList>
         </div>
+
+        <TabsContent value="validate" className="flex-1">
+          <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+             <div className="space-y-4 pb-20 max-w-2xl mx-auto">
+              {allOrders.filter(o => o.status === 'awaiting-payment').length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                  <CheckCircle2 className="w-12 h-12 mb-4" />
+                  <p>Aucune commande à valider</p>
+                </div>
+              ) : (
+                allOrders.filter(o => o.status === 'awaiting-payment').map((order) => (
+                   <ObypayCard 
+                     key={order.id} 
+                     order={order} 
+                     onServe={() => handleServeOrder(order.id)}
+                     onPay={() => handlePayOrder(order.id)}
+                     onViewBill={() => setViewingOrder(order)}
+                     getElapsedTimeText={getElapsedTimeText}
+                     onValidate={async () => {
+                        try {
+                          // 1. Create Invoice
+                          const restaurantInfo = {
+                              name: invoiceSettings.companyName,
+                              address: invoiceSettings.companyAddress,
+                              phone: invoiceSettings.companyPhone,
+                              email: invoiceSettings.companyEmail,
+                              taxId: invoiceSettings.taxId,
+                              footerMessage: invoiceSettings.footerMessage
+                          };
+
+                          const invoice = generateInvoiceFromOrder(
+                              { ...order, tableId: order.tableId || "Unknown" } as any, 
+                              restaurantInfo, 
+                              'cash', 
+                              invoiceSettings.taxRate
+                          );
+                          
+                          // 2. Save Invoice
+                          const { doc, setDoc } = await import("firebase/firestore");
+                          const { db } = await import("@/lib/firebase");
+                          if (db) {
+                            await setDoc(doc(db, "invoices", invoice.id), invoice);
+                          }
+                          
+                          // 3. Update Order Status
+                          await updateOrderStatus(order.id, 'pending'); 
+                          
+                          // 4. Print using the INVOICE ID
+                          window.open(`/print/invoice/${invoice.id}`, '_blank');
+                          
+                          toast.success("Commande validée et facturée !");
+                        } catch (e) {
+                          console.error("Error validating:", e);
+                          toast.error("Erreur lors de la validation");
+                        }
+                     }}
+                   />
+                ))
+              )}
+             </div>
+          </ScrollArea>
+        </TabsContent>
 
         <TabsContent value="all" className="flex-1">
           <ScrollArea className="h-[calc(100vh-10rem)] pr-4">
@@ -247,13 +313,15 @@ function ObypayCard({
   onServe, 
   onPay,
   onViewBill,
-  getElapsedTimeText
+  getElapsedTimeText,
+  onValidate
 }: { 
   order: any;
   onServe: () => void;
   onPay?: () => void;
   onViewBill: () => void;
   getElapsedTimeText: (createdAt: any) => string;
+  onValidate?: () => void;
 }) {
   // Resolve table name robustly (support order.tableId and order.table)
   const orderTable = order.tableId || order.table || "";
@@ -263,6 +331,7 @@ function ObypayCard({
   const isTakeaway = orderTable.toLowerCase().includes('emporter') || order.type === 'takeaway';
   const isReady = order.status === 'ready';
   const isServed = order.status === 'served';
+  const isAwaitingPayment = order.status === 'awaiting-payment';
   const { items: allMenuItems } = useMenuStore();
 
   const getOptionDetails = (orderItem: any, optionName: string) => {
@@ -273,6 +342,13 @@ function ObypayCard({
   // Get status display info
   const getStatusInfo = (status: string) => {
     switch (status) {
+      case 'awaiting-payment':
+        return {
+          label: 'À Valider',
+          bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+          textColor: 'text-orange-700 dark:text-orange-300',
+          dotColor: 'bg-orange-500'
+        };
       case 'pending':
         return {
           label: 'En attente',
@@ -348,6 +424,7 @@ function ObypayCard({
              >
                {isTakeaway ? <ShoppingBag className="w-4 h-4 mr-2" /> : <UtensilsCrossed className="w-4 h-4 mr-2" />}
                {orderTable || "Sans Table"}
+               {order.customerName && <span className="ml-2 opacity-80 font-normal">- {order.customerName}</span>}
              </Badge>
              
              {/* Order ID Tag */}
@@ -388,6 +465,19 @@ function ObypayCard({
             </Badge>
         </div>
       </div>
+
+      {/* Validation Button for Awaiting Payment */}
+      {isAwaitingPayment && onValidate && (
+        <div className="mb-4">
+          <Button 
+            onClick={onValidate}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-6 rounded-xl shadow-lg shadow-orange-500/20"
+          >
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            Valider & Encaisser ({order.total?.toLocaleString()} FCFA)
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-4 mb-4">
         {order.items.map((item: any, idx: number) => (

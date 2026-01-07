@@ -207,7 +207,6 @@ export default function AdminStaffPage() {
                 <SelectContent>
                   <SelectItem value="server">Serveur</SelectItem>
                   <SelectItem value="kitchen">Cuisine</SelectItem>
-                  <SelectItem value="admin">Admin (PIN)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -243,7 +242,6 @@ export default function AdminStaffPage() {
                 <SelectContent>
                   <SelectItem value="server">Serveur</SelectItem>
                   <SelectItem value="kitchen">Cuisine</SelectItem>
-                  <SelectItem value="admin">Admin (PIN)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

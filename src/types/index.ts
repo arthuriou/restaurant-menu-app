@@ -48,6 +48,7 @@ export type OrderItem = {
 
 export type OrderStatus =
   | "pending"
+  | "awaiting-payment"
   | "preparing"
   | "ready"
   | "served"
@@ -58,9 +59,11 @@ export type Order = {
   id: string;
   tableId: string;
   tableDocId?: string;
+  customerName?: string;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  paymentStatus?: "pending" | "paid";
   createdAt: Timestamp;
 };
 
@@ -132,5 +135,17 @@ export type StaffMember = {
   pin: string;
   active: boolean;
   avatar?: string; // Added for custom avatars
+  createdAt: number;
+};
+
+export type MediaItem = {
+  id: string;
+  url: string;
+  publicId: string; // Cloudinary public_id
+  fileName: string;
+  format: string;
+  size: number;
+  width?: number;
+  height?: number;
   createdAt: number;
 };

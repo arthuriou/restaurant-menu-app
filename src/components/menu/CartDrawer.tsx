@@ -3,12 +3,14 @@
 import { Minus, Plus, Trash2, ShoppingBag, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { OrderItem, MenuItem } from "@/types";
 import { useMenuStore } from "@/stores/menu";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface CartDrawerProps {
   open: boolean;
@@ -16,7 +18,7 @@ interface CartDrawerProps {
   cart: OrderItem[];
   onUpdateQty: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
-  onCheckout: () => void;
+  onCheckout: (customerName?: string) => void;
   total: number;
 }
 
@@ -30,7 +32,8 @@ export function CartDrawer({
   total 
 }: CartDrawerProps) {
   const totalQuantity = cart.reduce((acc, item) => acc + (item.qty || 1), 0);
-  const { items: allMenuItems, addToCart } = useMenuStore();
+  const { items: allMenuItems, addToCart, orderType } = useMenuStore();
+  const [customerName, setCustomerName] = useState("");
 
   // Récupérer les recommandations basées sur le panier
   const recommendations = useMemo(() => {
@@ -282,11 +285,26 @@ export function CartDrawer({
                 </span>
               </div>
             </div>
+
+            {orderType === 'takeaway' && (
+              <div className="mb-4 space-y-2">
+                <Label htmlFor="customerName">Votre Nom (pour le retrait)</Label>
+                <Input
+                  id="customerName"
+                  placeholder="Ex: Martin"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="bg-zinc-50 dark:bg-zinc-900"
+                />
+              </div>
+            )}
+
             <Button 
               className="w-full h-12 text-base font-bold rounded-lg bg-primary hover:bg-primary/90 shadow-md" 
-              onClick={onCheckout}
+              onClick={() => onCheckout(customerName)}
+              disabled={orderType === 'takeaway' && !customerName.trim()}
             >
-              Commander ({totalQuantity})
+              {orderType === 'takeaway' ? 'Valider la commande' : `Commander (${totalQuantity})`}
             </Button>
           </div>
         )}

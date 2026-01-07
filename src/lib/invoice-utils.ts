@@ -9,19 +9,21 @@ export const generateInvoiceNumber = (): string => {
   return `INV-${year}-${paddedNum}`;
 };
 
-// Calculate tax amount from subtotal
+// Calculate tax amount from subtotal (TTC - Tax Inclusive)
 export const calculateTax = (
-  subtotal: number,
-  taxRate: number = 20,
+  totalTTC: number,
+  taxRate: number = 0,
 ): number => {
-  return Math.round(((subtotal * taxRate) / 100) * 100) / 100;
+  if (!taxRate || taxRate <= 0) return 0;
+  // Formula: Tax = Total * Rate / (100 + Rate)
+  return Math.round(((totalTTC * taxRate) / (100 + taxRate)) * 100) / 100;
 };
 
 // Calculate total with tax and optional discount
 // Assumes subtotal is already TTC (Tax Inclusive)
 export const calculateTotal = (
   subtotal: number,
-  taxRate: number = 20,
+  taxRate: number = 0, // Unused for total calculation since subtotal is TTC
   discount: number = 0,
 ): number => {
   return Math.round((subtotal - discount) * 100) / 100;

@@ -91,6 +91,7 @@ export default function AdminOrdersPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">Commande #{order.id.split('-')[1] || order.id}</span>
+                        {order.customerName && <span className="font-bold text-primary">({order.customerName})</span>}
                         <Badge variant="secondary" className="text-xs font-normal">
                           {order.time}
                         </Badge>

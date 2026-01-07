@@ -264,23 +264,24 @@ export const InvoicePrintable = forwardRef<
             isTicket ? "w-full text-[11px]" : "w-64 space-y-2",
           )}
         >
-          <div className="flex justify-between text-gray-600">
-            <span>Sous-total</span>
-            <span>{formatCurrency(subtotal)}</span>
-          </div>
+          {(discount || 0) > 0 && (
+            <div className="flex justify-between text-gray-600">
+             <span>Sous-total</span>
+             <span>{formatCurrency(subtotal)}</span>
+            </div>
+          )}
           {(discount || 0) > 0 && (
             <div className="flex justify-between text-green-600">
               <span>Remise</span>
               <span>-{formatCurrency(discount || 0)}</span>
             </div>
           )}
-          <div className="flex justify-between text-gray-600">
-            <span>TVA ({invoice.taxRate}%)</span>
-            <span>{formatCurrency(tax)}</span>
-          </div>
           <div
             className={cn(
-              "flex justify-between font-black pt-2 border-t border-dashed border-black mt-2",
+              "flex justify-between font-black",
+              (!isTicket || (discount || 0) > 0)
+                ? "pt-2 border-t border-dashed border-black mt-2"
+                : "",
               isTicket ? "text-base" : "text-2xl",
             )}
           >

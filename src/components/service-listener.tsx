@@ -31,15 +31,11 @@ export function ServiceListener() {
           action: {
             label: "J'y vais",
             onClick: () => {
-              // Only resolve immediately for assistance requests.
-              // For bill requests, we want the status to remain "requesting_bill" 
-              // so the "Encaisser" button remains visible on the dashboard.
-              if (req.type !== 'bill') {
-                resolveServiceRequest(req.tableId);
-                toast.success("Demande prise en charge");
-              } else {
-                toast.dismiss();
-              }
+              // Now resolve immediately for both assistance AND bill requests
+              // forcing the status back to 'occupied', so other servers stop seeing the notification.
+              resolveServiceRequest(req.tableId);
+              toast.success("Demande prise en charge");
+              toast.dismiss();
             }
           },
           icon: <BellRing className="w-5 h-5 text-amber-500 animate-bounce" />

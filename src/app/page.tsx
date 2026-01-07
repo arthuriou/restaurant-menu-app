@@ -530,7 +530,7 @@ function MenuContent() {
     toast.success("Ajouté au panier");
   };
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (customerName?: string) => {
     if (cart.length === 0) return;
 
     // Only require table for dine-in orders
@@ -539,6 +539,12 @@ function MenuContent() {
       toast.info(
         "Veuillez scanner le QR code de votre table pour commander sur place.",
       );
+      return;
+    }
+
+    // Require customer name for takeaway
+    if (orderType === "takeaway" && !customerName?.trim()) {
+      toast.error("Veuillez entrer votre nom pour la commande");
       return;
     }
 
@@ -580,9 +586,17 @@ function MenuContent() {
         tableDocId: finalTableDocId,
         items: cart,
         total: total,
+        customerName: customerName,
       });
 
-      toast.success("Commande envoyée en cuisine !");
+      if (orderType === 'takeaway') {
+        toast.success("Commande enregistrée !", {
+          description: "Veuillez vous diriger vers la caisse pour le paiement."
+        });
+      } else {
+        toast.success("Commande envoyée en cuisine !");
+      }
+      
       const { clearCart } = useMenuStore.getState();
       clearCart();
       setCartOpen(false);

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CldUploadWidget } from 'next-cloudinary';
 import { FeaturedItemsManager } from "@/components/admin/FeaturedItemsManager";
+import { MediaPickerDialog } from "@/components/admin/media/MediaPickerDialog";
 
 export default function AdminMenuPage() {
   const { 
@@ -27,6 +28,7 @@ export default function AdminMenuPage() {
   } = useMenuStore();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   
   // Category Management State
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -770,19 +772,30 @@ export default function AdminMenuPage() {
                     onChange={handleImageUpload}
                   />
                   
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="w-full bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700"
-                  >
-                    {isUploading ? (
-                      <>Envoi en cours...</>
-                    ) : (
-                      <><Plus className="w-4 h-4 mr-2" /> Choisir une image</>
-                    )}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="w-full bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700"
+                    >
+                        {isUploading ? (
+                        <>Envoi...</>
+                        ) : (
+                        <><Plus className="w-4 h-4 mr-2" /> Upload</>
+                        )}
+                    </Button>
+
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsMediaPickerOpen(true)}
+                        className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    >
+                        <ImageIcon className="w-4 h-4 mr-2" /> Galerie
+                    </Button>
+                  </div>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -965,6 +978,15 @@ export default function AdminMenuPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MediaPickerDialog 
+        open={isMediaPickerOpen} 
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={(url) => {
+            setNewItem({...newItem, imageUrl: url});
+            toast.success("Image sélectionnée depuis la galerie");
+        }} 
+      />
     </div>
   );
 }

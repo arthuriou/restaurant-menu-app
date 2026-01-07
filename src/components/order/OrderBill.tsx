@@ -17,6 +17,7 @@ interface OrderBillProps {
 }
 
 const STATUS_CONFIG = {
+  "awaiting-payment": { icon: Clock, label: "À Valider" },
   pending: { icon: Clock, label: "En attente" },
   preparing: { icon: ChefHat, label: "En cuisine" },
   ready: { icon: UtensilsCrossed, label: "Prête" },
@@ -70,6 +71,7 @@ export function OrderBill({
           </h2>
           <div className="flex flex-col text-xs text-muted-foreground uppercase tracking-wide font-medium">
             <span>{order.tableId}</span>
+            {order.customerName && <span>Client: {order.customerName}</span>}
             <span>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             <span>{new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>

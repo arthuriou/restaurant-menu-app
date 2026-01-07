@@ -39,21 +39,35 @@ export default function PublicInvoicePrintPage() {
     const fetchInvoice = async () => {
       if (!params.id) return;
 
-      try {
-        const docRef = doc(db, "invoices", params.id as string);
-        const docSnap = await getDoc(docRef);
+      // Retry logic for slow propagation
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      const tryFetch = async () => {
+        try {
+          const docRef = doc(db, "invoices", params.id as string);
+          const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          setInvoice({ id: docSnap.id, ...docSnap.data() } as Invoice);
-        } else {
-          setError("Facture introuvable");
+          if (docSnap.exists()) {
+            setInvoice({ id: docSnap.id, ...docSnap.data() } as Invoice);
+            setLoading(false);
+          } else {
+            if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(tryFetch, 1000); // Retry after 1s
+            } else {
+              setError("Facture introuvable");
+              setLoading(false);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching invoice:", err);
+          setError("Erreur lors du chargement de la facture");
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching invoice:", err);
-        setError("Erreur lors du chargement de la facture");
-      } finally {
-        setLoading(false);
-      }
+      };
+
+      tryFetch();
     };
 
     fetchInvoice();

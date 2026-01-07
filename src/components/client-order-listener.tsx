@@ -26,6 +26,7 @@ export function ClientOrderListener() {
       
       const data = doc.data();
       const newStatus = data.status;
+      const isTakeaway = data.tableId === 'À emporter' || data.tableId === 'takeaway';
 
       // Si le statut a changé
       if (previousStatus.current && previousStatus.current !== newStatus) {
@@ -34,24 +35,44 @@ export function ClientOrderListener() {
         if (newStatus === "ready") {
           playBeep(); // Son
           
-          // Notification Toast (In-App)
-          toast.success("Votre commande est prête !", {
-            description: "Un serveur va vous l'apporter à table.",
-            duration: 10000,
-            action: {
-              label: "D'accord!",
-              onClick: () => console.log("Client notifié"),
-            },
-          });
+          if (isTakeaway) {
+            // Notification Toast (Takeaway)
+            toast.success("🛍️ Votre commande est prête !", {
+              description: "Veuillez récupérer votre commande au comptoir.",
+              duration: 10000,
+              action: {
+                label: "J'arrive!",
+                onClick: () => console.log("Client notifié (takeaway)"),
+              },
+            });
+          } else {
+            // Notification Toast (Dine-in)
+            toast.success("Votre commande est prête !", {
+              description: "Un serveur va vous l'apporter à table.",
+              duration: 10000,
+              action: {
+                label: "D'accord!",
+                onClick: () => console.log("Client notifié"),
+              },
+            });
+          }
 
           // Notification Système (Navigateur)
           if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("🍽️ Commande Prête !", {
-              body: "Votre commande est prête, elle vous sera servie d'ici peu!",
+            new Notification(isTakeaway ? "🛍️ Commande Prête !" : "🍽️ Commande Prête !", {
+              body: isTakeaway 
+                ? "Votre commande est prête à être récupérée au comptoir !"
+                : "Votre commande est prête, elle vous sera servie d'ici peu!",
               icon: "/icons/icon-192x192.png", // Assure-toi d'avoir une icône
               // vibrate: [200, 100, 200], // Removed to fix TS error
             });
           }
+        }
+        else if (newStatus === "served") {
+           toast.success("✅ Commande servie", {
+             description: "Bon appétit !",
+             duration: 5000,
+           });
         }
       }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UtensilsCrossed, ListOrdered, Settings, LogOut, Menu as MenuIcon, ChefHat, Users, Grid3X3, Receipt, Star } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, ListOrdered, Settings, LogOut, Menu as MenuIcon, ChefHat, Users, Grid3X3, Receipt, Star, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminThemeProvider } from "@/components/admin-theme-provider";
@@ -55,6 +55,11 @@ export default function AdminLayout({
       label: "Équipe",
       icon: Users,
       href: "/admin/staff",
+    },
+    {
+      label: "Médiathèque",
+      icon: ImageIcon,
+      href: "/admin/gallery",
     },
     {
       label: "Paramètres",

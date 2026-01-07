@@ -22,6 +22,7 @@ export type DashboardOrder = {
   time: string;
   status: OrderStatus;
   customer?: string;
+  customerName?: string;
   createdAt?: any;
   tableId?: string;
   type?: string;
@@ -58,6 +59,7 @@ const cloneOrders = (
   orders: Record<OrderStatus, DashboardOrder[]>,
 ): Record<OrderStatus, DashboardOrder[]> => {
   return {
+    "awaiting-payment": [...(orders["awaiting-payment"] || [])],
     pending: [...orders.pending],
     preparing: [...orders.preparing],
     ready: [...orders.ready],
@@ -97,6 +99,7 @@ const unlockOrder = (orderId: string) => {
 
 export const useOrderStore = create<OrderState>((set, get) => ({
   orders: {
+    "awaiting-payment": [],
     pending: [],
     preparing: [],
     ready: [],
@@ -130,6 +133,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       (snapshot) => {
         const currentState = get();
         const orders: Record<OrderStatus, DashboardOrder[]> = {
+          "awaiting-payment": [],
           pending: [],
           preparing: [],
           ready: [],

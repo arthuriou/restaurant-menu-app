@@ -9,12 +9,12 @@ export const generateInvoiceFromOrder = (
   order: Order,
   restaurantInfo: RestaurantInfo,
   paymentMethod?: "cash" | "card" | "mobile",
-  taxRate: number = 20
+  taxRate: number = 0
 ): Invoice => {
   const subtotal = order.total;
-  // Prices are TTC (Tax Inclusive) - total is subtotal, tax is extracted
+  // Prices are TTC (Tax Inclusive)
   const total = subtotal;
-  const tax = Math.round((total * taxRate / (100 + taxRate)) * 100) / 100;
+  const tax = calculateTax(total, taxRate);
 
   // Determine type based on explicit "emporter" label
   const orderAny = order as any;
@@ -48,12 +48,12 @@ export const generateTakeawayInvoice = (
   restaurantInfo: RestaurantInfo,
   customerName?: string,
   paymentMethod?: "cash" | "card" | "mobile",
-  taxRate: number = 20
+  taxRate: number = 0
 ): Invoice => {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
   // Prices are TTC
   const total = subtotal;
-  const tax = Math.round((total * taxRate / (100 + taxRate)) * 100) / 100;
+  const tax = calculateTax(total, taxRate);
 
   const invoice: Invoice = {
     id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

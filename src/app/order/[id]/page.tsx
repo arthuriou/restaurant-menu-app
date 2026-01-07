@@ -27,10 +27,15 @@ import { OrderBill } from "@/components/order/OrderBill";
 
 // Status configuration
 const STATUS_CONFIG = {
+  "awaiting-payment": {
+    icon: Wallet,
+    label: "Paiement requis",
+    description: "Veuillez régler à la caisse",
+  },
   pending: {
     icon: Clock,
     label: "En attente",
-    description: "Commande enregistrée",
+    description: "Commande validée",
   },
   preparing: {
     icon: ChefHat,
@@ -72,7 +77,6 @@ export default function OrderPage() {
   const { invoiceSettings } = useRestaurantStore();
   const { hasReviewedOrder } = useReviewStore();
 
-  const [prevStatus, setPrevStatus] = useState<OrderStatusType | null>(null);
   const [otherOrders, setOtherOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -105,13 +109,22 @@ export default function OrderPage() {
               const currentOrder = { id: docSnap.id, ...data } as Order;
 
               // Auto-cleanup: If order is cancelled or paid, remove from store
-              if (currentOrder.status === "cancelled" || currentOrder.status === "paid") {
+              if (
+                currentOrder.status === "cancelled" ||
+                currentOrder.status === "paid"
+              ) {
                 removeActiveOrderId(currentOrder.id);
               }
 
               setOrder(currentOrder);
 
-              if (currentOrder.tableId) {
+              // Only fetch other orders if it's a real table, not takeaway
+              // Takeaway orders are individual and shouldn't be grouped
+              const isTakeaway =
+                currentOrder.tableId === "À emporter" ||
+                currentOrder.tableId === "takeaway";
+
+              if (currentOrder.tableId && !isTakeaway) {
                 try {
                   let q;
 
@@ -121,13 +134,14 @@ export default function OrderPage() {
                       collection(db, "orders"),
                       where("tableDocId", "==", currentOrder.tableDocId),
                       where("status", "in", [
+                        "awaiting-payment",
                         "pending",
                         "preparing",
                         "ready",
                         "served",
                         "paid",
                       ]),
-                      limit(50),
+                      limit(50)
                     );
                   } else {
                     // Fallback logic: Query by label (legacy)
@@ -135,13 +149,14 @@ export default function OrderPage() {
                       collection(db, "orders"),
                       where("tableId", "==", currentOrder.tableId),
                       where("status", "in", [
+                        "awaiting-payment",
                         "pending",
                         "preparing",
                         "ready",
                         "served",
                         "paid",
                       ]),
-                      limit(50),
+                      limit(50)
                     );
                   }
 
@@ -159,8 +174,12 @@ export default function OrderPage() {
                     let sessionStart = 0;
                     if (currentOrder.tableDocId) {
                       try {
-                        const { doc, getDoc } = await import("firebase/firestore");
-                        const tableSnap = await getDoc(doc(db, "tables", currentOrder.tableDocId));
+                        const { doc, getDoc } = await import(
+                          "firebase/firestore"
+                        );
+                        const tableSnap = await getDoc(
+                          doc(db, "tables", currentOrder.tableDocId)
+                        );
                         if (tableSnap.exists()) {
                           sessionStart = tableSnap.data().sessionStartTime || 0;
                         }
@@ -170,14 +189,15 @@ export default function OrderPage() {
                     }
 
                     const others = querySnapshot.docs
-                      .map((d) => ({ id: d.id, ...d.data() }) as Order)
+                      .map((d) => ({ id: d.id, ...d.data() } as Order))
                       .filter((o) => o.id !== currentOrder.id)
                       // Filter out orders older than 12h or with invalid dates
                       .filter((o) => {
                         if (!o.createdAt?.seconds) return false;
                         const orderTime = o.createdAt.seconds * 1000;
                         // Filter by session time if available
-                        if (sessionStart > 0 && orderTime < sessionStart) return false;
+                        if (sessionStart > 0 && orderTime < sessionStart)
+                          return false;
                         return now - orderTime < twelveHours;
                       })
                       .sort((a, b) => {
@@ -201,7 +221,7 @@ export default function OrderPage() {
             console.error("Error loading order:", error);
             toast.error("Erreur de chargement de la commande");
             setLoading(false);
-          },
+          }
         );
 
         return () => {
@@ -231,21 +251,8 @@ export default function OrderPage() {
     checkReview();
   }, [params.id, hasReviewedOrder]);
 
-  useEffect(() => {
-    if (!order || !prevStatus) {
-      if (order) setPrevStatus(order.status);
-      return;
-    }
-
-    if (order.status !== prevStatus) {
-      if (order.status === "ready") {
-        toast.success("🎉 Votre commande est prête !");
-      } else if (order.status === "served") {
-        toast.success("✅ Commande servie");
-      }
-      setPrevStatus(order.status);
-    }
-  }, [order?.status, prevStatus]);
+  const isTakeaway =
+    order?.tableId === "À emporter" || order?.tableId === "takeaway";
 
   const handleCallServer = async (type: "assistance" | "bill") => {
     try {
@@ -257,7 +264,7 @@ export default function OrderPage() {
         // Try to use a format that the store can resolve (e.g. "Table 1")
         await requestService(`Table ${tableNum}`, type);
       }
-      
+
       if (type === "assistance") {
         toast.success("🔔 Serveur appelé !");
       } else {
@@ -288,11 +295,11 @@ export default function OrderPage() {
       // Navigate away if we cancelled the current order
       if (targetOrderId === order?.id) {
         const remainingOrders = otherOrders.filter(
-          (o) => o.id !== targetOrderId,
+          (o) => o.id !== targetOrderId
         );
         if (remainingOrders.length > 0) {
           router.push(
-            `/order/${remainingOrders[remainingOrders.length - 1].id}`,
+            `/order/${remainingOrders[remainingOrders.length - 1].id}`
           );
         } else {
           router.push("/");
@@ -300,10 +307,8 @@ export default function OrderPage() {
       }
     } catch (error: any) {
       console.error("Error cancelling:", error);
-
-      console.error("Error cancelling:", error);
       toast.error(
-        "Impossible d'annuler cette commande. Réessayez ou appelez le serveur.",
+        "Impossible d'annuler cette commande. Réessayez ou appelez le serveur."
       );
     } finally {
       setCancellingId(null);
@@ -324,7 +329,7 @@ export default function OrderPage() {
   if (!order) return null;
 
   const allSessionOrders = [...otherOrders, order].sort(
-    (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0),
+    (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
   );
   const sessionTotal = allSessionOrders.reduce((acc, o) => acc + o.total, 0);
 
@@ -396,6 +401,42 @@ export default function OrderPage() {
               <p className="text-sm text-green-700 dark:text-green-400">
                 Merci de votre visite ! À bientôt.
               </p>
+            </div>
+          ) : isTakeaway && order.status === "awaiting-payment" ? (
+            <div className="w-full p-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-2xl text-center space-y-2">
+              <div className="mx-auto w-12 h-12 bg-orange-100 dark:bg-orange-800 rounded-full flex items-center justify-center mb-2">
+                <Wallet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-bold text-orange-800 dark:text-orange-300">
+                Paiement requis
+              </h3>
+              <p className="text-sm text-orange-700 dark:text-orange-400">
+                Veuillez vous diriger vers la caisse pour régler et valider
+                votre commande.
+              </p>
+            </div>
+          ) : isTakeaway && order.status !== "awaiting-payment" ? (
+            <div className="w-full p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-center space-y-2">
+              <div className="mx-auto w-12 h-12 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center mb-2 shadow-sm">
+                <ChefHat className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-300">
+                {order.status === "served"
+                  ? "Commande servie"
+                  : order.status === "ready"
+                  ? "Commande prête"
+                  : "Commande validée"}
+              </h3>
+              {order.status === "ready" && (
+                <p className="text-sm text-muted-foreground">
+                  Votre commande est prête à être récupérée !
+                </p>
+              )}
+              {order.status === "preparing" && (
+                <p className="text-sm text-muted-foreground">
+                  Préparation en cours...
+                </p>
+              )}
             </div>
           ) : (
             <Button

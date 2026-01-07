@@ -168,10 +168,17 @@ export const useMenuStore = create<MenuStore>()(
           const auth = getAuth();
           const userId = auth.currentUser?.uid || 'anonymous';
 
+          // Determine initial status
+          // Takeaway orders start as 'awaiting-payment'
+          // Dine-in orders start as 'pending' (sent to kitchen immediately)
+          const isTakeaway = orderData.tableId === 'À emporter' || orderData.tableId === 'takeaway';
+          const initialStatus = isTakeaway ? 'awaiting-payment' : 'pending';
+
           const docRef = await addDoc(collection(db, 'orders'), {
             ...orderData,
             items: sanitizedItems,
-            status: 'pending',
+            status: initialStatus,
+            paymentStatus: 'pending',
             userId, // Attach ownership
             createdAt: serverTimestamp()
           });

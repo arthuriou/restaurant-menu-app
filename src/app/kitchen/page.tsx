@@ -103,6 +103,7 @@ const OrderCard = memo(function OrderCard({
                 <UtensilsCrossed className="w-3 h-3 mr-1.5" />
               )}
               {tableInfo.label}
+              {order.customerName && <span className="ml-1 opacity-90 font-normal border-l border-white/20 pl-2 ml-2">{order.customerName}</span>}
             </Badge>
           )}
           {/* Order ID */}
