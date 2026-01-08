@@ -6,12 +6,10 @@ import {
   Grid3X3, 
   Receipt, 
   LogOut, 
-  BellRing,
-  Settings
+  BellRing
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth";
-import { ModeToggle } from "@/components/mode-toggle";
 import { UserAvatar } from "@/components/user-avatar";
 
 export function ServerSidebar() {
@@ -81,13 +79,9 @@ export function ServerSidebar() {
 
       {/* FOOTER */}
       <div className="mt-auto p-6 space-y-4">
-        <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-background border border-border shadow-sm">
-          <span className="text-sm font-medium text-muted-foreground">Mode</span>
-          <ModeToggle />
-        </div>
         <Button 
           variant="outline" 
-          className="w-full justify-center rounded-2xl py-6 border-red-100 dark:border-red-950/30 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/10" 
+          className="w-full justify-center rounded-2xl py-6 border-red-200 dark:border-red-950/30 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/10" 
           onClick={() => logout()}
         >
           <LogOut className="h-5 w-5 mr-2" />

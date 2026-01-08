@@ -859,23 +859,20 @@ function MenuContent() {
   );
 }
 
-import { ThemeProvider } from "@/components/theme-provider";
 import { OpeningHoursGuard } from "@/components/opening-hours-guard";
 
 export default function Home() {
   return (
-    <ThemeProvider storageKey="theme-client" defaultTheme="system">
-      <OpeningHoursGuard>
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center min-h-screen bg-background">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          }
-        >
-          <MenuContent />
-        </Suspense>
-      </OpeningHoursGuard>
-    </ThemeProvider>
+    <OpeningHoursGuard>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-screen bg-background">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <MenuContent />
+      </Suspense>
+    </OpeningHoursGuard>
   );
 }

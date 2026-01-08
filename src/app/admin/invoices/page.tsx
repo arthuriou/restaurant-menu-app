@@ -269,7 +269,7 @@ export default function AccountingPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+        <div className="flex items-center gap-2 bg-secondary p-1 rounded-xl">
           <Button
             variant={periodType === "day" ? "default" : "ghost"}
             size="sm"
@@ -304,7 +304,7 @@ export default function AccountingPage() {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-9 rounded-xl w-40"
+                className="pl-9 pr-3 rounded-xl w-44"
               />
             </div>
             <Button variant="outline" className="rounded-xl">
@@ -312,7 +312,7 @@ export default function AccountingPage() {
               Export
             </Button>
           </div>
-          <div className="text-xs text-muted-foreground font-medium bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full">
+          <div className="text-xs text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
             {format(currentStart, "dd MMM", { locale: fr })} -{" "}
             {format(currentEnd, "dd MMM yyyy", { locale: fr })}
           </div>

@@ -71,7 +71,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background relative">
+    <div className="flex flex-col h-full w-full bg-card text-card-foreground relative">
       <button 
         onClick={onClose}
         className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-all shadow-lg border border-white/10"
@@ -85,7 +85,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
             <Image src={item.imageUrl} alt={item.name} fill className="object-cover" priority />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-zinc-400">Pas d'image</div>
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground">Pas d'image</div>
         )}
       </div>
 
@@ -118,11 +118,11 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                         }}
                         className={cn(
                           "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left",
-                          isSelected ? "border-primary bg-primary/5" : "border-zinc-200 dark:border-zinc-700 hover:border-primary/50"
+                          isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                         )}
                       >
                         {option.imageUrl && (
-                          <div className="relative w-14 h-14 rounded-md overflow-hidden shrink-0 bg-zinc-100">
+                          <div className="relative w-14 h-14 rounded-md overflow-hidden shrink-0 bg-secondary">
                             <Image src={option.imageUrl} alt={option.name} fill className="object-cover" />
                           </div>
                         )}
@@ -134,7 +134,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-sm font-bold text-primary">{option.price.toLocaleString()} FCFA</span>
-                          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", isSelected ? "border-primary bg-primary" : "border-zinc-300")}>
+                          <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", isSelected ? "border-primary bg-primary" : "border-muted-foreground/50")}>
                             {isSelected && <Check className="w-3 h-3 text-white" />}
                           </div>
                         </div>
@@ -162,11 +162,11 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                         }}
                         className={cn(
                           "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left",
-                          isSelected ? "border-primary bg-primary/5" : "border-zinc-200 dark:border-zinc-700 hover:border-primary/50"
+                          isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                         )}
                       >
                         {option.imageUrl && (
-                          <div className="relative w-12 h-12 rounded-md overflow-hidden shrink-0 bg-zinc-100">
+                          <div className="relative w-12 h-12 rounded-md overflow-hidden shrink-0 bg-secondary">
                             <Image src={option.imageUrl} alt={option.name} fill className="object-cover" />
                           </div>
                         )}
@@ -180,7 +180,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                           {option.price > 0 && (
                             <span className="text-sm font-bold text-primary">+{option.price.toLocaleString()} FCFA</span>
                           )}
-                          <div className={cn("w-5 h-5 rounded border-2 flex items-center justify-center", isSelected ? "border-primary bg-primary" : "border-zinc-300")}>
+                          <div className={cn("w-5 h-5 rounded border-2 flex items-center justify-center", isSelected ? "border-primary bg-primary" : "border-muted-foreground/50")}>
                             {isSelected && <Check className="w-3 h-3 text-white" />}
                           </div>
                         </div>
@@ -206,19 +206,19 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
         </ScrollArea>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-20">
+      <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-20">
         <div className="flex items-center gap-3">
            <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
               <button 
                 onClick={() => setQty(Math.max(1, qty - 1))}
-                className="w-8 h-8 rounded-md bg-card flex items-center justify-center hover:bg-accent transition-colors"
+                className="w-8 h-8 rounded-md bg-background flex items-center justify-center hover:bg-accent transition-colors"
               >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="font-bold w-8 text-center">{qty}</span>
               <button 
                 onClick={() => setQty(qty + 1)}
-                className="w-8 h-8 rounded-md bg-card flex items-center justify-center hover:bg-accent transition-colors"
+                className="w-8 h-8 rounded-md bg-background flex items-center justify-center hover:bg-accent transition-colors"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -248,9 +248,9 @@ export function ItemDetail({ open, onOpenChange, item, qty, setQty, options, set
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl p-0 bg-transparent border-none shadow-none overflow-visible" showCloseButton={false}>
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden" showCloseButton={false}>
           <DialogTitle className="sr-only">{item.name}</DialogTitle>
-          <div className="relative w-full h-[85vh] max-h-[700px] bg-background rounded-xl overflow-hidden shadow-2xl border border-border">
+          <div className="relative w-full h-[85vh] max-h-[700px] bg-card rounded-xl overflow-hidden">
             <ItemDetailContent item={item} qty={qty} setQty={setQty} options={options} setOptions={setOptions} onAddToCart={onAddToCart} onClose={() => onOpenChange(false)} />
           </div>
         </DialogContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAdminTheme } from "@/components/admin-theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +27,6 @@ const PRESET_COLORS = [
 ];
 
 export default function AdminSettingsPage() {
-  const { theme, setTheme } = useAdminTheme();
   const [mounted, setMounted] = useState(false);
   const [siteUrl, setSiteUrl] = useState("https://restaurant-menu.app");
   const [currency, setCurrency] = useState("XOF");
@@ -429,23 +427,6 @@ export default function AdminSettingsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Thème de l'Administration</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {theme === 'dark' ? 'Mode Sombre' : 'Mode Clair'} activé.
-                    <br/>
-                    <span className="text-xs opacity-80 italic">N'affecte que l'interface admin.</span>
-                  </p>
-                </div>
-                <Switch 
-                  checked={theme === 'dark'}
-                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                />
               </div>
             </CardContent>
           </Card>

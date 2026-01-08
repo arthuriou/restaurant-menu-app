@@ -30,7 +30,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/user-avatar";
-import { ModeToggle } from "@/components/mode-toggle";
 import type { DashboardOrder } from "@/stores/orders";
 import { MenuItem } from "@/types";
 
@@ -336,7 +335,6 @@ export default function KitchenPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ModeToggle />
           <Button
             variant="outline"
             size="sm"

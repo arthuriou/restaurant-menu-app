@@ -229,22 +229,22 @@ export default function AdminMenuPage() {
       </div>
 
       <Tabs defaultValue="items" className="space-y-8">
-        <TabsList className="bg-transparent p-0 h-auto gap-6 border-b border-zinc-200 dark:border-zinc-800 w-full justify-start rounded-none">
+        <TabsList className="bg-transparent p-0 h-auto gap-6 border-b border-border w-full justify-start rounded-none">
           <TabsTrigger 
             value="items" 
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-zinc-900 dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
           >
             Plats
           </TabsTrigger>
           <TabsTrigger 
             value="categories" 
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-zinc-900 dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
           >
             Catégories
           </TabsTrigger>
           <TabsTrigger 
             value="featured" 
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-zinc-900 dark:data-[state=active]:border-white data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-4 py-3 text-muted-foreground data-[state=active]:text-foreground shadow-none transition-none"
           >
             Items Vedettes
           </TabsTrigger>
@@ -257,13 +257,13 @@ export default function AdminMenuPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Rechercher un plat..." 
-                className="pl-9 rounded-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
+                className="pl-9 rounded-xl bg-card border-border shadow-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <Button 
-              className="rounded-xl shadow-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all" 
+              className="rounded-xl shadow-lg" 
               onClick={handleOpenAdd}
             >
               <Plus className="w-4 h-4 mr-2" /> Nouveau Plat
@@ -273,11 +273,11 @@ export default function AdminMenuPage() {
           {/* Menu Items Grid - Horizontal Style */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {displayItems.map((item) => (
-              <div key={item.id} className="group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 border border-zinc-100 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all duration-300 flex gap-4 items-center">
+              <div key={item.id} className="group relative bg-card rounded-[2rem] p-3 border border-border shadow-sm hover:shadow-md transition-all duration-300 flex gap-4 items-center">
                 
                 {/* Image Container - Left Side */}
                 <div className="relative h-24 w-24 shrink-0">
-                  <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                  <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-secondary">
                     {item.imageUrl ? (
                       <Image 
                         src={item.imageUrl} 
@@ -286,21 +286,21 @@ export default function AdminMenuPage() {
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-300">
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                         <ImageIcon className="w-8 h-8" />
                       </div>
                     )}
                   </div>
                   
                   {/* Availability Indicator (Small dot) */}
-                  <div className={`absolute top-2 left-2 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${item.available ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`absolute top-2 left-2 w-3 h-3 rounded-full border-2 border-card ${item.available ? 'bg-green-500' : 'bg-red-500'}`} />
                 </div>
                 
                 {/* Content - Middle */}
                 <div className="flex-1 min-w-0 py-1">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold text-base text-zinc-900 dark:text-zinc-100 truncate pr-2">{item.name}</h3>
+                      <h3 className="font-bold text-base text-foreground truncate pr-2">{item.name}</h3>
                       <p className="text-xs text-muted-foreground line-clamp-1 mb-1.5">
                         {item.description || "Aucune description"}
                       </p>
@@ -308,7 +308,7 @@ export default function AdminMenuPage() {
                   </div>
                   
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-0">
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 bg-secondary text-secondary-foreground border-0">
                       {categories.find(c => c.id === item.categoryId)?.name || "Autre"}
                     </Badge>
                     <span className="font-bold text-sm">
@@ -324,7 +324,7 @@ export default function AdminMenuPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary"
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
@@ -359,7 +359,7 @@ export default function AdminMenuPage() {
         </TabsContent>
 
         <TabsContent value="categories">
-          <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg">
+          <Card className="rounded-2xl border-border bg-card shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Catégories</CardTitle>
@@ -383,7 +383,7 @@ export default function AdminMenuPage() {
                 {categories?.length > 0 ? categories.sort((a, b) => a.order - b.order).map((cat) => (
                   <div 
                     key={cat.id} 
-                    className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 hover:shadow-md transition-shadow"
+                    className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold shadow-md">
@@ -430,7 +430,7 @@ export default function AdminMenuPage() {
         </TabsContent>
 
         <TabsContent value="featured" className="space-y-6">
-          <Card className="rounded-xl border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <Card className="rounded-xl border-border shadow-sm">
             <CardHeader>
               <CardTitle>Items Vedettes (Spécialités du Chef)</CardTitle>
               <CardDescription>
@@ -456,32 +456,32 @@ export default function AdminMenuPage() {
 
       {/* Add/Edit Item Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-2xl rounded-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-white">
+        <DialogContent className="sm:max-w-2xl rounded-3xl max-h-[90vh] overflow-y-auto bg-card border-border text-card-foreground">
           <DialogHeader>
             <DialogTitle className="text-xl">{editingItem ? "Modifier le plat" : "Ajouter un plat"}</DialogTitle>
-            <DialogDescription className="text-zinc-400">Configurez les détails de votre plat et ses options.</DialogDescription>
+            <DialogDescription className="text-muted-foreground">Configurez les détails de votre plat et ses options.</DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1 grid gap-2">
-                <Label htmlFor="name" className="text-zinc-300">Nom du plat</Label>
+                <Label htmlFor="name">Nom du plat</Label>
                 <Input 
                   id="name" 
                   placeholder="Ex: Burger Classic" 
-                  className="rounded-xl bg-zinc-900 border-zinc-800 focus:ring-primary"
+                  className="rounded-xl bg-input border-border"
                   value={newItem.name}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                 />
               </div>
               <div className="col-span-2 sm:col-span-1 grid gap-2">
-                <Label htmlFor="price" className="text-zinc-300">Prix (FCFA)</Label>
+                <Label htmlFor="price">Prix (FCFA)</Label>
                 <Input 
                   id="price" 
                   type="number" 
                   placeholder="5000" 
-                  className="rounded-xl bg-zinc-900 border-zinc-800 focus:ring-primary"
+                  className="rounded-xl bg-input border-border"
                   value={newItem.price}
                   onChange={(e) => setNewItem({...newItem, price: parseInt(e.target.value) || 0})}
                 />
@@ -489,26 +489,26 @@ export default function AdminMenuPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="desc" className="text-zinc-300">Description</Label>
+              <Label htmlFor="desc">Description</Label>
               <Input 
                 id="desc" 
                 placeholder="Ingrédients, préparation..." 
-                className="rounded-xl bg-zinc-900 border-zinc-800 focus:ring-primary"
+                className="rounded-xl bg-input border-border"
                 value={newItem.description}
                 onChange={(e) => setNewItem({...newItem, description: e.target.value})}
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="cat" className="text-zinc-300">Catégorie</Label>
+              <Label htmlFor="cat">Catégorie</Label>
               <Select 
                 value={newItem.categoryId} 
                 onValueChange={(v) => setNewItem({...newItem, categoryId: v})}
               >
-                <SelectTrigger className="w-full rounded-xl bg-zinc-900 border-zinc-800 focus:ring-primary">
+                <SelectTrigger className="w-full rounded-xl bg-input border-border">
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-white rounded-xl">
+                <SelectContent className="bg-popover border-border rounded-xl">
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
@@ -517,13 +517,13 @@ export default function AdminMenuPage() {
             </div>
             
             {/* Extras / Options Section */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               <div className="flex items-center justify-between">
-                <Label className="text-zinc-300 text-base">Options & Suppléments</Label>
+                <Label className="text-base">Options & Suppléments</Label>
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="rounded-lg border-zinc-700 text-xs h-7 hover:bg-zinc-800 hover:text-white"
+                  className="rounded-lg text-xs h-7"
                   onClick={() => {
                     const currentOptions = newItem.options || [];
                     setNewItem({
@@ -547,12 +547,12 @@ export default function AdminMenuPage() {
                 />
 
                 {(newItem.options || []).map((opt: any, idx: number) => (
-                  <div key={idx} className="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 space-y-2">
+                  <div key={idx} className="bg-secondary/50 p-3 rounded-lg border border-border space-y-2">
                     {/* Row 1: Name, Price, Type*/}
                     <div className="flex items-center gap-2">
                       <Input 
                         placeholder="Nom (ex: Sauce Blanche)" 
-                        className="h-8 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary flex-1"
+                        className="h-8 text-sm bg-input border-border flex-1"
                         value={opt.name}
                         onChange={(e) => {
                           const newOpts = [...(newItem.options || [])];
@@ -563,7 +563,7 @@ export default function AdminMenuPage() {
                       <Input 
                         type="number" 
                         placeholder="Prix" 
-                        className="h-8 w-24 text-sm bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary"
+                        className="h-8 w-24 text-sm bg-input border-border"
                         value={opt.price}
                         onChange={(e) => {
                           const newOpts = [...(newItem.options || [])];
@@ -579,10 +579,10 @@ export default function AdminMenuPage() {
                           setNewItem({...newItem, options: newOpts});
                         }}
                       >
-                        <SelectTrigger className="h-8 w-28 text-xs bg-zinc-900 border-zinc-700 text-white">
+                        <SelectTrigger className="h-8 w-28 text-xs bg-input border-border">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectContent className="bg-popover border-border">
                           <SelectItem value="addon">Supplément</SelectItem>
                           <SelectItem value="variant">Variante</SelectItem>
                         </SelectContent>
@@ -590,7 +590,7 @@ export default function AdminMenuPage() {
                       <Button 
                         size="icon" 
                         variant="ghost" 
-                        className="h-8 w-8 text-red-500 hover:bg-red-950/30 hover:text-red-400 shrink-0"
+                        className="h-8 w-8 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 hover:text-red-600 shrink-0"
                         onClick={() => {
                           const newOpts = (newItem.options || []).filter((_: any, i: number) => i !== idx);
                           setNewItem({...newItem, options: newOpts});
@@ -602,7 +602,7 @@ export default function AdminMenuPage() {
                     
                     {/* Row 2: Image Upload & Preview */}
                     <div className="flex items-center gap-2">
-                      <div className="relative w-16 h-16 rounded-lg border border-zinc-700 bg-zinc-900 overflow-hidden shrink-0">
+                      <div className="relative w-16 h-16 rounded-lg border border-border bg-secondary overflow-hidden shrink-0">
                         {opt.imageUrl ? (
                           <Image 
                             src={opt.imageUrl} 
@@ -611,9 +611,9 @@ export default function AdminMenuPage() {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                             {isUploading && uploadingOptionIndex === idx ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground"></div>
                             ) : (
                               <ImageIcon className="w-6 h-6" />
                             )}
@@ -625,7 +625,7 @@ export default function AdminMenuPage() {
                           type="button"
                           size="sm"
                           variant="secondary"
-                          className="h-8 text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 shrink-0"
+                          className="h-8 text-xs shrink-0"
                           disabled={isUploading}
                           onClick={() => {
                             setUploadingOptionIndex(idx);
@@ -657,7 +657,7 @@ export default function AdminMenuPage() {
                     {/* Row 3: Description */}
                     <Input 
                       placeholder="Description (optionnel)" 
-                      className="h-8 text-xs bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-primary w-full"
+                      className="h-8 text-xs bg-input border-border w-full"
                       value={opt.description || ''}
                       onChange={(e) => {
                         const newOpts = [...(newItem.options || [])];
@@ -668,20 +668,20 @@ export default function AdminMenuPage() {
                   </div>
                 ))}
                 {(!newItem.options || newItem.options.length === 0) && (
-                  <p className="text-xs text-zinc-500 italic text-center py-2">Aucune option configurée</p>
+                  <p className="text-xs text-muted-foreground italic text-center py-2">Aucune option configurée</p>
                 )}
               </div>
             </div>
 
             {/* Recommendations Section */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               <div className="flex items-center justify-between">
-                <Label className="text-zinc-300 text-base font-semibold">Suggestions d'accompagnement</Label>
+                <Label className="text-base font-semibold">Suggestions d'accompagnement</Label>
                 <Button 
                   type="button" 
                   variant="outline" 
                   size="sm"
-                  className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                  className="h-7 text-xs"
                   onClick={() => {
                     setNewItem({
                       ...newItem, 
@@ -695,7 +695,7 @@ export default function AdminMenuPage() {
 
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {newItem.recommendations?.map((recId: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                  <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 border border-border">
                     <Select
                       value={recId}
                       onValueChange={(value) => {
@@ -704,10 +704,10 @@ export default function AdminMenuPage() {
                         setNewItem({...newItem, recommendations: newRecs});
                       }}
                     >
-                      <SelectTrigger className="h-8 text-xs bg-zinc-900 border-zinc-700 flex-1">
+                      <SelectTrigger className="h-8 text-xs bg-input border-border flex-1">
                         <SelectValue placeholder="Sélectionner un produit" />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-zinc-700">
+                      <SelectContent className="bg-popover border-border">
                         {items.map(menuItem => (
                           <SelectItem key={menuItem.id} value={menuItem.id} className="text-xs">
                             {menuItem.name} - {menuItem.price} FCFA
@@ -719,7 +719,7 @@ export default function AdminMenuPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-red-500 hover:bg-red-950/30 shrink-0"
+                      className="h-7 w-7 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/30 shrink-0"
                       onClick={() => {
                         const newRecs = newItem.recommendations.filter((_: any, i: number) => i !== idx);
                         setNewItem({...newItem, recommendations: newRecs});
@@ -730,7 +730,7 @@ export default function AdminMenuPage() {
                   </div>
                 ))}
                 {(!newItem.recommendations || newItem.recommendations.length === 0) && (
-                  <p className="text-xs text-zinc-500 italic text-center py-2">Aucune recommandation configurée</p>
+                  <p className="text-xs text-muted-foreground italic text-center py-2">Aucune recommandation configurée</p>
                 )}
               </div>
             </div>
@@ -738,12 +738,12 @@ export default function AdminMenuPage() {
 
 
             {/* Image Upload Native */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4">
-              <Label className="text-zinc-300">Image du plat</Label>
+            <div className="space-y-3 border-t border-border pt-4">
+              <Label>Image du plat</Label>
               
               <div className="flex gap-4 items-start">
                 {/* Preview Box */}
-                <div className="relative w-32 h-32 rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shrink-0">
+                <div className="relative w-32 h-32 rounded-xl border border-border bg-secondary overflow-hidden shrink-0">
                   {newItem.imageUrl ? (
                     <Image 
                       src={newItem.imageUrl} 
@@ -752,9 +752,9 @@ export default function AdminMenuPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       {isUploading ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-foreground"></div>
                       ) : (
                         <ImageIcon className="w-8 h-8 opacity-50" />
                       )}
@@ -778,7 +778,7 @@ export default function AdminMenuPage() {
                         variant="secondary" 
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="w-full bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700"
+                        className="w-full"
                     >
                         {isUploading ? (
                         <>Envoi...</>
@@ -791,7 +791,7 @@ export default function AdminMenuPage() {
                         type="button" 
                         variant="outline" 
                         onClick={() => setIsMediaPickerOpen(true)}
-                        className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                        className="w-full"
                     >
                         <ImageIcon className="w-4 h-4 mr-2" /> Galerie
                     </Button>
@@ -799,16 +799,16 @@ export default function AdminMenuPage() {
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-zinc-800" />
+                      <span className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-zinc-950 px-2 text-zinc-500">ou URL</span>
+                      <span className="bg-card px-2 text-muted-foreground">ou URL</span>
                     </div>
                   </div>
 
                   <Input 
                     placeholder="https://..." 
-                    className="bg-zinc-900 border-zinc-800 text-sm text-white placeholder:text-zinc-600"
+                    className="bg-input border-border text-sm"
                     value={newItem.imageUrl || ''}
                     onChange={(e) => setNewItem({...newItem, imageUrl: e.target.value})}
                   />
@@ -817,15 +817,15 @@ export default function AdminMenuPage() {
             </div>
 
             {/* Promotion Section */}
-            <div className="space-y-3 border-t border-zinc-800 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               <div className="flex items-center justify-between">
-                <Label className="text-zinc-300 text-base font-semibold">Promotion</Label>
+                <Label className="text-base font-semibold">Promotion</Label>
                 {!newItem.promotion && (
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm"
-                    className="h-7 text-xs border-zinc-700 hover:bg-zinc-800"
+                    className="h-7 text-xs"
                     onClick={() => {
                       const now = Date.now();
                       setNewItem({
@@ -844,14 +844,14 @@ export default function AdminMenuPage() {
               </div>
 
               {newItem.promotion && (
-                <div className="p-3 rounded-lg bg-green-950/30 border border-green-800/50 space-y-3">
+                <div className="p-3 rounded-lg bg-green-500/10 dark:bg-green-950/30 border border-green-500/30 dark:border-green-800/50 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-green-400 text-sm font-medium">Promotion active</span>
+                    <span className="text-green-600 dark:text-green-400 text-sm font-medium">Promotion active</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-6 text-xs text-red-400 hover:bg-red-950/30"
+                      className="h-6 text-xs text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/30"
                       onClick={() => setNewItem({...newItem, promotion: undefined})}
                     >
                       <Trash2 className="w-3 h-3 mr-1" /> Supprimer
@@ -860,14 +860,14 @@ export default function AdminMenuPage() {
                   
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <Label className="text-xs text-zinc-400">Prix original</Label>
-                      <div className="text-sm text-zinc-500 line-through">{newItem.price} FCFA</div>
+                      <Label className="text-xs text-muted-foreground">Prix original</Label>
+                      <div className="text-sm text-muted-foreground line-through">{newItem.price} FCFA</div>
                     </div>
                     <div>
-                      <Label className="text-xs text-zinc-400">Prix promo</Label>
+                      <Label className="text-xs text-muted-foreground">Prix promo</Label>
                       <Input 
                         type="number"
-                        className="h-8 text-sm bg-zinc-900 border-zinc-700 text-green-400 font-bold"
+                        className="h-8 text-sm bg-input border-border text-green-500 dark:text-green-400 font-bold"
                         value={newItem.promotion.price}
                         onChange={(e) => setNewItem({
                           ...newItem, 
@@ -876,8 +876,8 @@ export default function AdminMenuPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-zinc-400">Réduction</Label>
-                      <div className="text-sm text-green-400 font-bold">
+                      <Label className="text-xs text-muted-foreground">Réduction</Label>
+                      <div className="text-sm text-green-500 dark:text-green-400 font-bold">
                         -{Math.round((1 - newItem.promotion.price / newItem.price) * 100)}%
                       </div>
                     </div>
@@ -885,10 +885,10 @@ export default function AdminMenuPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs text-zinc-400">Date début</Label>
+                      <Label className="text-xs text-muted-foreground">Date début</Label>
                       <Input 
                         type="datetime-local"
-                        className="h-8 text-xs bg-zinc-900 border-zinc-700"
+                        className="h-8 text-xs bg-input border-border"
                         value={new Date(newItem.promotion.startDate).toISOString().slice(0, 16)}
                         onChange={(e) => setNewItem({
                           ...newItem, 
@@ -897,10 +897,10 @@ export default function AdminMenuPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-zinc-400">Date fin</Label>
+                      <Label className="text-xs text-muted-foreground">Date fin</Label>
                       <Input 
                         type="datetime-local"
-                        className="h-8 text-xs bg-zinc-900 border-zinc-700"
+                        className="h-8 text-xs bg-input border-border"
                         value={new Date(newItem.promotion.endDate).toISOString().slice(0, 16)}
                         onChange={(e) => setNewItem({
                           ...newItem, 
@@ -913,10 +913,10 @@ export default function AdminMenuPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
               <div>
-                <Label htmlFor="featured" className="text-base text-white">Item Vedette</Label>
-                <p className="text-sm text-zinc-400">Afficher dans "Spécialités du Chef"</p>
+                <Label htmlFor="featured" className="text-base">Item Vedette</Label>
+                <p className="text-sm text-muted-foreground">Afficher dans "Spécialités du Chef"</p>
               </div>
               <Switch 
                 id="featured" 
@@ -925,10 +925,10 @@ export default function AdminMenuPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
               <div>
-                <Label htmlFor="available" className="text-base text-white">Disponibilité</Label>
-                <p className="text-sm text-zinc-400">Le plat est-il disponible ?</p>
+                <Label htmlFor="available" className="text-base">Disponibilité</Label>
+                <p className="text-sm text-muted-foreground">Le plat est-il disponible ?</p>
               </div>
               <Switch 
                 id="available" 
@@ -938,7 +938,7 @@ export default function AdminMenuPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl border-zinc-700 text-white hover:bg-zinc-800 hover:text-white">
+            <Button variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
               Annuler
             </Button>
             <Button onClick={handleSaveItem} className="rounded-xl bg-primary hover:bg-primary/90 text-white">

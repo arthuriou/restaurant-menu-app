@@ -190,25 +190,12 @@
   }
 }
 
-/* Global theme transition - applies smooth color transitions to ALL elements */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: ease-out;
-  transition-duration: 150ms;
-}
+/* Theme transitions - only on specific properties for bg/text transitions */
+/* Removed global transitions that caused performance issues */
 
-/* Exclude elements that shouldn't transition (animations, transforms, images) */
-.no-theme-transition,
-.no-theme-transition *,
-img,
-video,
-svg path,
-[data-radix-scroll-area-viewport],
-.animate-pulse,
-.animate-spin {
-  transition-property: none !important;
+/* Apply transitions only to theme-aware elements */
+.theme-transition {
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
 }
 
 @layer utilities {
@@ -219,4 +206,69 @@ svg path,
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* Custom scrollbar for dark mode */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(240 3.7% 30%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 3.7% 40%);
+}
+
+/* Fix input styling in dark mode */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Ensure proper text colors on inputs/selects in all states */
+input, select, textarea {
+  color: inherit;
+}
+
+/* Fix autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: hsl(0 0% 98%);
+}
+
+/* Ensure inputs and buttons keep proper contrast */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  color: hsl(0 0% 98%);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(240 5% 50%);
 }

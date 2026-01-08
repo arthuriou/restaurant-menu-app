@@ -1,7 +1,6 @@
 "use client";
 
 import ProtectedLayout from "@/components/auth/ProtectedLayout";
-import { ThemeProvider } from "@/components/theme-provider";
 import { OrdersListener } from "@/components/orders-listener";
 
 export default function KitchenLayout({
@@ -11,10 +10,11 @@ export default function KitchenLayout({
 }) {
   return (
     <ProtectedLayout allowedRoles={['kitchen', 'admin']}>
-      <ThemeProvider storageKey="theme-kitchen" defaultTheme="dark">
+      {/* Cuisine toujours en thème sombre */}
+      <div className="dark bg-background text-foreground min-h-screen">
         <OrdersListener />
         {children}
-      </ThemeProvider>
+      </div>
     </ProtectedLayout>
   );
 }

@@ -1,5 +1,4 @@
-import { UtensilsCrossed, Moon, Sun, Bell } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { UtensilsCrossed, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRestaurantStore } from "@/stores/restaurant";
 
@@ -10,23 +9,14 @@ interface HeaderProps {
 }
 
 export function Header({ table, orderType, onCallServer }: HeaderProps) {
-  const { resolvedTheme, setTheme } = useTheme();
   const { invoiceSettings } = useRestaurantStore();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border/5">
       <div className="flex h-14 items-center justify-between px-4 max-w-md mx-auto relative">
         
-        {/* Left: Theme Toggle */}
+        {/* Left: Spacer */}
         <div className="flex items-center w-12">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="rounded-full w-8 h-8 text-muted-foreground hover:text-foreground"
-          >
-            {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          </Button>
         </div>
 
         {/* Center: Logo/Name + Table */}

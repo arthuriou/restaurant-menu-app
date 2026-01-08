@@ -1,7 +1,6 @@
 import ProtectedLayout from "@/components/auth/ProtectedLayout";
 import { UserRole } from "@/stores/auth";
 import { ServerSidebar } from "@/components/server/ServerSidebar";
-import { ThemeProvider } from "@/components/theme-provider";
 import { OrdersListener } from "@/components/orders-listener";
 import { ServiceListener } from "@/components/service-listener";
 
@@ -14,16 +13,15 @@ export default function ServerLayout({
 }) {
   return (
     <ProtectedLayout allowedRoles={SERVER_ALLOWED_ROLES}>
-      <ThemeProvider storageKey="theme-server" defaultTheme="dark">
-        <div className="flex h-screen overflow-hidden bg-background text-foreground">
-          <ServerSidebar />
-          <main className="flex-1 overflow-auto relative bg-background">
-            <OrdersListener />
-            <ServiceListener />
-            {children}
-          </main>
-        </div>
-      </ThemeProvider>
+      {/* Serveur toujours en thème sombre */}
+      <div className="dark flex h-screen overflow-hidden bg-background text-foreground">
+        <ServerSidebar />
+        <main className="flex-1 overflow-auto relative">
+          <OrdersListener />
+          <ServiceListener />
+          {children}
+        </main>
+      </div>
     </ProtectedLayout>
   );
 }

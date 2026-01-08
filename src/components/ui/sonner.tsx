@@ -8,34 +8,11 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { useEffect, useState } from "react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  
-  useEffect(() => {
-    // Watch for theme class changes on closest parent with .dark or .light
-    const observer = new MutationObserver(() => {
-      const isDark = document.querySelector('.dark') !== null;
-      setTheme(isDark ? "dark" : "light");
-    });
-    
-    // Initial check
-    const isDark = document.querySelector('.dark') !== null;
-    setTheme(isDark ? "dark" : "light");
-    
-    observer.observe(document.body, { 
-      attributes: true, 
-      subtree: true,
-      attributeFilter: ['class']
-    });
-    
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <Sonner
-      theme={theme}
+      theme="dark"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

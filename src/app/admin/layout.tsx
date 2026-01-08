@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, UtensilsCrossed, Settings, LogOut, Menu as MenuIcon, Users, Grid3X3, Receipt, Star, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { AdminThemeProvider } from "@/components/admin-theme-provider";
 import ProtectedLayout from "@/components/auth/ProtectedLayout";
 import { useAuthStore } from "@/stores/auth";
 import { UserAvatar } from "@/components/user-avatar";
@@ -117,34 +116,32 @@ export default function AdminLayout({
 
   return (
     <ProtectedLayout allowedRoles={['admin']}>
-      <AdminThemeProvider>
-        <div className="h-full relative bg-background">
-          {/* Desktop Sidebar */}
-          <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
-            <SidebarContent />
-          </div>
-          
-          {/* Mobile Sidebar */}
-          <main className="md:pl-72 min-h-screen">
-            <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="-ml-2">
-                    <MenuIcon className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-72">
-                  <SidebarContent />
-                </SheetContent>
-              </Sheet>
-              <span className="font-bold ml-2">Administration</span>
-            </div>
-            <div className="p-8 max-w-7xl mx-auto">
-              {children}
-            </div>
-          </main>
+      <div className="h-full relative bg-background text-foreground">
+        {/* Desktop Sidebar */}
+        <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
+          <SidebarContent />
         </div>
-      </AdminThemeProvider>
+        
+        {/* Mobile Sidebar */}
+        <main className="md:pl-72 min-h-screen">
+          <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="-ml-2">
+                  <MenuIcon className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+            <span className="font-bold ml-2">Administration</span>
+          </div>
+          <div className="p-8 max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </ProtectedLayout>
   );
 }
