@@ -3,84 +3,56 @@
 import { useEffect, useRef } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useMenuStore } from "@/stores/menu";
 import { toast } from "sonner";
-import { playBeep } from "@/lib/sound";
+import { UserCheck } from "lucide-react";
 
-export function ClientOrderListener() {
-  const { activeOrderId } = useMenuStore();
-  const previousStatus = useRef<string | null>(null);
+interface ClientOrderListenerProps {
+  tableId: string | null;
+}
 
-  useEffect(() => {
-    // Demander la permission pour les notifications au chargement
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
+export function ClientOrderListener({ tableId }: ClientOrderListenerProps) {
+  const lastClaimRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!db || !activeOrderId) return;
+    if (!tableId || !db || tableId === "takeaway" || tableId.startsWith("temp_")) return;
 
-    const unsub = onSnapshot(doc(db, "orders", activeOrderId), (doc) => {
-      if (!doc.exists()) return;
-      
-      const data = doc.data();
-      const newStatus = data.status;
-      const isTakeaway = data.tableId === 'À emporter' || data.tableId === 'takeaway';
+    // Listen only for the specific "claimedBy" field changes
+    const unsubscribe = onSnapshot(doc(db, "tables", tableId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const claimedBy = data.claimedBy;
 
-      // Si le statut a changé
-      if (previousStatus.current && previousStatus.current !== newStatus) {
-        
-        // Notification pour "ready" (Prêt)
-        if (newStatus === "ready") {
-          playBeep(); // Son
+        // If newly claimed and different from last seen claim
+        if (claimedBy && claimedBy !== lastClaimRef.current) {
+          lastClaimRef.current = claimedBy;
           
-          if (isTakeaway) {
-            // Notification Toast (Takeaway)
-            toast.success("🛍️ Votre commande est prête !", {
-              description: "Veuillez récupérer votre commande au comptoir.",
-              duration: 10000,
-              action: {
-                label: "J'arrive!",
-                onClick: () => console.log("Client notifié (takeaway)"),
-              },
-            });
-          } else {
-            // Notification Toast (Dine-in)
-            toast.success("Votre commande est prête !", {
-              description: "Un serveur va vous l'apporter à table.",
-              duration: 10000,
-              action: {
-                label: "D'accord!",
-                onClick: () => console.log("Client notifié"),
-              },
-            });
-          }
+          // Play a small sound for the client
+          const audio = new Audio('/sounds/notification.mp3');
+          audio.volume = 0.5;
+          audio.play().catch(() => {});
 
-          // Notification Système (Navigateur)
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(isTakeaway ? "🛍️ Commande Prête !" : "🍽️ Commande Prête !", {
-              body: isTakeaway 
-                ? "Votre commande est prête à être récupérée au comptoir !"
-                : "Votre commande est prête, elle vous sera servie d'ici peu!",
-              icon: "/icons/icon-192x192.png", // Assure-toi d'avoir une icône
-              // vibrate: [200, 100, 200], // Removed to fix TS error
-            });
-          }
+          toast.success(`${claimedBy} a pris en charge votre demande !`, {
+            description: "Le serveur arrive à votre table.",
+            duration: 8000,
+            icon: <UserCheck className="w-5 h-5 text-green-500" />,
+            position: "top-center", // Make it very visible
+            style: {
+                backgroundColor: "#ecfdf5", // green-50
+                border: "2px solid #10b981", // green-500
+                color: "#1f2937"
+            }
+          });
         }
-        else if (newStatus === "served") {
-           toast.success("✅ Commande servie", {
-             description: "Bon appétit !",
-             duration: 5000,
-           });
+        
+        // Reset if claim is cleared (request resolved)
+        if (!claimedBy) {
+            lastClaimRef.current = null;
         }
       }
-
-      previousStatus.current = newStatus;
     });
 
-    return () => unsub();
-  }, [activeOrderId]);
+    return () => unsubscribe();
+  }, [tableId]);
 
   return null;
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Bell, ChefHat } from "lucide-react";
+import { Loader2, Bell, ChefHat, User } from "lucide-react";
 import {
   collection,
   query,
@@ -169,6 +169,16 @@ function MenuContent() {
         unsubscribe = onSnapshot(doc(db, "tables", table.id), (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
+
+            // NEW: Service Acceptance Notification
+            if (data.serviceAcceptedBy) {
+                // Show notification to client
+                toast.success(`${data.serviceAcceptedBy} arrive !`, {
+                    icon: <User className="w-5 h-5" />,
+                    duration: 5000,
+                    id: `service-accepted-${data.serviceAcceptedBy}` // Dedupe
+                });
+            }
             
             // Check if session is still valid
             const storedSessionKey = `session_${table.id}`;

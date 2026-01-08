@@ -35,6 +35,7 @@ export type Table = {
   activeOrderId?: string;
   lastScanTime?: number;
   sessionStartTime?: number;
+  serviceAcceptedBy?: string; // Name of server handling request
 };
 
 interface TableState {
@@ -58,10 +59,8 @@ interface TableState {
     status: TableStatus,
     occupants?: number,
   ) => Promise<void>;
-  requestService: (
-    tableId: string,
-    type: "assistance" | "bill",
-  ) => Promise<void>;
+  requestService: (tableId: string, type: "assistance" | "bill") => Promise<void>;
+  acceptServiceRequest: (tableId: string, serverName: string) => Promise<void>;
   resolveServiceRequest: (tableId: string) => Promise<void>;
   closeTable: (id: string) => Promise<void>;
 }
@@ -397,10 +396,24 @@ export const useTableStore = create<TableState>((set, get) => ({
       }
 
       console.log(`[TableStore] Resolved targetId: '${targetId}' for update`);
-      await updateDoc(doc(db, "tables", targetId), { status });
+      await updateDoc(doc(db, "tables", targetId), { 
+        status,
+        serviceAcceptedBy: null // Clear previous acceptance
+      });
       console.log(`[TableStore] Status updated successfully to '${status}'`);
     } catch (error) {
       console.error("Error requesting service:", error);
+      throw error;
+    }
+  },
+
+  acceptServiceRequest: async (tableId, serverName) => {
+    try {
+       await updateDoc(doc(db, "tables", tableId), { 
+        serviceAcceptedBy: serverName 
+      });
+    } catch (error) {
+      console.error("Error accepting request:", error);
       throw error;
     }
   },
@@ -409,7 +422,10 @@ export const useTableStore = create<TableState>((set, get) => ({
     try {
       // Assuming resolving means setting back to occupied (or available if empty?)
       // Usually resolving a request keeps the table occupied.
-      await updateDoc(doc(db, "tables", tableId), { status: "occupied" });
+      await updateDoc(doc(db, "tables", tableId), { 
+        status: "occupied",
+        serviceAcceptedBy: null
+      });
     } catch (error) {
       console.error("Error resolving request:", error);
       throw error;
