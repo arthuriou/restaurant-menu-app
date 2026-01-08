@@ -71,7 +71,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-zinc-900 relative">
+    <div className="flex flex-col h-full w-full bg-background relative">
       <button 
         onClick={onClose}
         className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-all shadow-lg border border-white/10"
@@ -79,7 +79,7 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
         <X className="w-5 h-5" strokeWidth={2.5} />
       </button>
 
-      <div className="relative w-full h-[45vh] min-h-[320px] bg-zinc-100 dark:bg-zinc-800 shrink-0 rounded-b-[40px] overflow-hidden shadow-2xl z-10">
+      <div className="relative w-full h-[45vh] min-h-[320px] bg-secondary shrink-0 rounded-b-[40px] overflow-hidden shadow-2xl z-10">
         {item.imageUrl ? (
           <>
             <Image src={item.imageUrl} alt={item.name} fill className="object-cover" priority />
@@ -199,26 +199,26 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
                 value={options.note || ''}
                 onFocus={handleNoteFocus}
                 onChange={(e) => setOptions({...options, note: e.target.value})}
-                className="resize-none bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 min-h-[70px] rounded-lg text-sm"
+                className="resize-none bg-secondary border-border min-h-[70px] rounded-lg text-sm"
               />
             </div>
           </div>
         </ScrollArea>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 z-20">
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-20">
         <div className="flex items-center gap-3">
-           <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+           <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
               <button 
                 onClick={() => setQty(Math.max(1, qty - 1))}
-                className="w-8 h-8 rounded-md bg-white dark:bg-zinc-700 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors"
+                className="w-8 h-8 rounded-md bg-card flex items-center justify-center hover:bg-accent transition-colors"
               >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="font-bold w-8 text-center">{qty}</span>
               <button 
                 onClick={() => setQty(qty + 1)}
-                className="w-8 h-8 rounded-md bg-white dark:bg-zinc-700 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors"
+                className="w-8 h-8 rounded-md bg-card flex items-center justify-center hover:bg-accent transition-colors"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -264,7 +264,7 @@ export function ItemDetail({ open, onOpenChange, item, qty, setQty, options, set
         <div className="sr-only">
           <DialogTitle>{item.name}</DialogTitle>
         </div>
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full z-50" />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-border rounded-full z-50" />
         <ItemDetailContent item={item} qty={qty} setQty={setQty} options={options} setOptions={setOptions} onAddToCart={onAddToCart} onClose={() => onOpenChange(false)} />
       </SheetContent>
     </Sheet>

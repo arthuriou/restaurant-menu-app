@@ -1,7 +1,6 @@
 import { UtensilsCrossed, Moon, Sun, Bell } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
 import { useRestaurantStore } from "@/stores/restaurant";
 
 interface HeaderProps {
@@ -11,31 +10,26 @@ interface HeaderProps {
 }
 
 export function Header({ table, orderType, onCallServer }: HeaderProps) {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
   const { invoiceSettings } = useRestaurantStore();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border/5 transition-all duration-300">
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border/5">
       <div className="flex h-14 items-center justify-between px-4 max-w-md mx-auto relative">
         
-        {/* Left: Back/Menu (Placeholder for now, or Theme) */}
+        {/* Left: Theme Toggle */}
         <div className="flex items-center w-12">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             className="rounded-full w-8 h-8 text-muted-foreground hover:text-foreground"
           >
-            {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
         </div>
 
-        {/* Center: Logo/Name + Table (ONLY if dine-in) */}
+        {/* Center: Logo/Name + Table */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5">
           {invoiceSettings.logoUrl ? (
             <img 
@@ -44,24 +38,23 @@ export function Header({ table, orderType, onCallServer }: HeaderProps) {
               className="h-6 w-auto object-contain max-w-[120px]" 
             />
           ) : (
-            <span className="font-black text-lg tracking-tight uppercase">
+            <span className="font-black text-lg tracking-tight uppercase text-foreground">
               {invoiceSettings.companyName || "GOOD FOOD"}
             </span>
           )}
-          {mounted && orderType === 'dine-in' && table && (
-             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-600 dark:text-zinc-400">
+          {orderType === 'dine-in' && table && (
+             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                <span>TABLE {table.label}</span>
              </div>
           )}
           
-          {mounted && orderType !== 'dine-in' && (
-             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-600 dark:text-zinc-400">
+          {orderType !== 'dine-in' && (
+             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
                 <UtensilsCrossed className="w-3 h-3" />
                 <span>EMPORTER</span>
              </div>
           )}
-
         </div>
 
         {/* Right: Actions (Bell) */}

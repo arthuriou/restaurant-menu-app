@@ -83,10 +83,10 @@ export function CartDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent hideDefaultClose className="w-full sm:max-w-md flex flex-col h-full p-0 bg-white dark:bg-zinc-950 border-l border-border/20">
-        <SheetHeader className="px-4 py-4 border-b border-border/20 sticky top-0 z-10 space-y-0 bg-white dark:bg-zinc-950">
+      <SheetContent hideDefaultClose className="w-full sm:max-w-md flex flex-col h-full p-0 bg-background border-l border-border/20">
+        <SheetHeader className="px-4 py-4 border-b border-border/20 sticky top-0 z-10 space-y-0 bg-background">
           <div className="w-full flex justify-center pb-3">
-            <div className="w-12 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            <div className="w-12 h-1 rounded-full bg-border" />
           </div>
           
           <div className="flex items-center justify-between">
@@ -110,7 +110,7 @@ export function CartDrawer({
         <div className="flex-1 min-h-0 overflow-hidden">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-4">
-              <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+              <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center">
                 <ShoppingBag className="w-10 h-10 text-zinc-400" />
               </div>
               <div>
@@ -126,7 +126,7 @@ export function CartDrawer({
               <div className="px-4 py-4 space-y-4">
                 {/* Liste des items */}
                 {cart.map((item, idx) => (
-                  <div key={idx} className="bg-zinc-50 dark:bg-zinc-900 rounded-xl p-3 border border-border/30">
+                  <div key={idx} className="bg-secondary rounded-xl p-3 border border-border/30">
                     {/* Header: Image plat + Nom + Prix + Actions */}
                     <div className="flex gap-3 mb-3">
                       <div className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-zinc-100">
@@ -148,7 +148,7 @@ export function CartDrawer({
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 rounded-lg p-0.5 border border-border/30">
+                          <div className="flex items-center gap-2 bg-card rounded-lg p-0.5 border border-border/30">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -188,7 +188,7 @@ export function CartDrawer({
                           if (optionName === 'note') {
                             // Afficher la note différemment
                             return (
-                              <div key={optionName} className="text-xs text-muted-foreground italic bg-zinc-100 dark:bg-zinc-800 p-2 rounded">
+                              <div key={optionName} className="text-xs text-muted-foreground italic bg-secondary p-2 rounded">
                                 📝 {optionValue as string}
                               </div>
                             );
@@ -241,7 +241,7 @@ export function CartDrawer({
                         <button
                           key={rec.id}
                           onClick={() => handleAddRecommendation(rec)}
-                          className="w-full bg-white dark:bg-zinc-900 rounded-lg p-2.5 flex items-center gap-3 border border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-[0.98]"
+                          className="w-full bg-card rounded-lg p-2.5 flex items-center gap-3 border border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-[0.98]"
                         >
                           <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-zinc-100">
                             {rec.imageUrl ? (
@@ -273,7 +273,7 @@ export function CartDrawer({
         </div>
 
         {cart.length > 0 && (
-          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-border/20 z-20">
+          <div className="p-4 bg-background border-t border-border/20 z-20">
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Sous-total</span>
@@ -296,7 +296,7 @@ export function CartDrawer({
                   placeholder="Ex: Martin"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="bg-zinc-50 dark:bg-zinc-900"
+                  className="bg-secondary"
                 />
               </div>
             )}

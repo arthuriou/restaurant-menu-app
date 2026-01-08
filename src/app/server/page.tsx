@@ -124,9 +124,9 @@ export default function ServerDashboard() {
   };
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50/50 dark:bg-black p-2">
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-background p-2 transition-colors duration-200">
       <div className="flex items-center justify-between mb-8 px-2">
-        <h1 className="text-2xl font-bold tracking-tight uppercase">COMMANDES EN COURS</h1>
+        <h1 className="text-2xl font-bold tracking-tight uppercase text-foreground">COMMANDES EN COURS</h1>
         <div className="flex gap-2">
            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
            <span className="text-xs font-medium text-muted-foreground">{activeOrders.length} actives</span>
@@ -136,11 +136,11 @@ export default function ServerDashboard() {
       <Tabs defaultValue="all" className="flex-1 flex flex-col" onValueChange={setActiveTab}>
         {/* iOS Segmented Control Style Tabs */}
         <div className="px-1 mb-6">
-          <TabsList className="bg-zinc-100 dark:bg-zinc-900/50 p-1 rounded-full h-12 w-full max-w-xl mx-auto grid grid-cols-4">
-            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">Tout</TabsTrigger>
-            <TabsTrigger value="validate" className="rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all duration-300">À Valider</TabsTrigger>
-            <TabsTrigger value="ready" className="rounded-full data-[state=active]:bg-green-500 data-[state=active]:text-white transition-all duration-300">Prêts</TabsTrigger>
-            <TabsTrigger value="kitchen" className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">Cuisine</TabsTrigger>
+          <TabsList className="bg-secondary p-1 rounded-full h-12 w-full max-w-xl mx-auto grid grid-cols-4 transition-colors duration-200">
+            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200">Tout</TabsTrigger>
+            <TabsTrigger value="validate" className="rounded-full data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all duration-200">À Valider</TabsTrigger>
+            <TabsTrigger value="ready" className="rounded-full data-[state=active]:bg-green-500 data-[state=active]:text-white transition-all duration-200">Prêts</TabsTrigger>
+            <TabsTrigger value="kitchen" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200">Cuisine</TabsTrigger>
           </TabsList>
         </div>
 
@@ -284,7 +284,7 @@ export default function ServerDashboard() {
               <div className="absolute top-4 right-4 z-50 print:hidden">
                 <button 
                   onClick={() => window.print()}
-                  className="bg-zinc-900 text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform"
+                  className="bg-foreground text-background p-3 rounded-full shadow-lg hover:opacity-80 transition-opacity"
                 >
                   <Receipt className="w-5 h-5" />
                 </button>
@@ -300,10 +300,10 @@ export default function ServerDashboard() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 opacity-50">
-      <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4 transition-colors duration-200">
         <CheckCircle2 className="w-8 h-8 text-muted-foreground" />
       </div>
-      <p>Aucune commande en cours</p>
+      <p className="text-foreground">Aucune commande en cours</p>
     </div>
   );
 }
@@ -394,9 +394,9 @@ function ObypayCard({
       default:
         return {
           label: status,
-          bgColor: 'bg-zinc-100 dark:bg-zinc-900/30',
-          textColor: 'text-zinc-700 dark:text-zinc-300',
-          dotColor: 'bg-zinc-500'
+          bgColor: 'bg-secondary',
+          textColor: 'text-muted-foreground',
+          dotColor: 'bg-muted-foreground'
         };
     }
   };
@@ -406,7 +406,7 @@ function ObypayCard({
   return (
     <div 
       className={cn(
-        "group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300",
+        "group relative bg-card rounded-[2rem] p-6 shadow-sm border border-border transition-colors duration-200",
         isReady ? "border-green-200 dark:border-green-900/50 ring-2 ring-transparent ring-green-500/20" : "opacity-90"
       )}
     >
@@ -419,7 +419,7 @@ function ObypayCard({
                  "text-sm md:text-base font-black px-3 py-1.5 rounded-xl shadow-sm uppercase tracking-wide",
                  isTakeaway 
                    ? "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-900" 
-                   : "bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200"
+                   : "bg-foreground text-background hover:bg-foreground/90 transition-colors duration-200"
                )}
              >
                {isTakeaway ? <ShoppingBag className="w-4 h-4 mr-2" /> : <UtensilsCrossed className="w-4 h-4 mr-2" />}
@@ -428,7 +428,7 @@ function ObypayCard({
              </Badge>
              
              {/* Order ID Tag */}
-             <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">
+             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider bg-secondary px-2 py-1 rounded-md transition-colors duration-200">
                #{order.id.slice(0, 4)}
              </span>
           </div>
@@ -483,11 +483,11 @@ function ObypayCard({
         {order.items.map((item: any, idx: number) => (
            <div key={idx} className="flex items-start gap-3">
              {/* Image Thumbnail */}
-             <div className="w-12 h-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-200 dark:border-zinc-700">
+             <div className="w-12 h-12 rounded-lg bg-secondary overflow-hidden flex-shrink-0 border border-border transition-colors duration-200">
                {item.imageUrl ? (
                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                ) : (
-                 <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                    <UtensilsCrossed className="w-5 h-5" />
                  </div>
                )}
@@ -495,7 +495,7 @@ function ObypayCard({
              
              <div className="flex-1 min-w-0">
                <div className="flex justify-between items-start">
-                 <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                 <p className="text-sm font-bold text-foreground truncate transition-colors duration-200">
                    <span className="text-primary mr-1">{item.qty}x</span> {item.name}
                  </p>
                </div>
@@ -509,19 +509,19 @@ function ObypayCard({
                        const optionDetails = getOptionDetails(item, key);
                        
                        return (
-                         <div key={key} className="flex items-start gap-3 text-xs text-muted-foreground bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-lg border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800/50 transition-colors">
+                         <div key={key} className="flex items-start gap-3 text-xs text-muted-foreground bg-secondary/50 p-2 rounded-lg border border-transparent hover:border-border transition-colors duration-200">
                            {/* Option Image if available */}
                            {optionDetails?.imageUrl && (
-                              <div className="w-10 h-10 rounded overflow-hidden bg-white dark:bg-zinc-900 flex-shrink-0 border border-zinc-200 dark:border-zinc-800">
+                              <div className="w-10 h-10 rounded overflow-hidden bg-card flex-shrink-0 border border-border transition-colors duration-200">
                                 <img src={optionDetails.imageUrl} alt={key} className="w-full h-full object-cover" />
                               </div>
                            )}
                            <div className="flex-1 min-w-0 pt-0.5">
-                             <div className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                             <div className="text-xs font-medium text-foreground transition-colors duration-200">
                                {value === true || value === 'true' ? key : <>{key}: <span className="font-normal text-muted-foreground">{String(value)}</span></>}
                              </div>
                              {optionDetails?.description && (
-                                <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">{optionDetails.description}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{optionDetails.description}</p>
                              )}
                            </div>
                          </div>
@@ -542,7 +542,7 @@ function ObypayCard({
         ))}
       </div>
       
-      <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="flex gap-2 mt-4 pt-4 border-t border-border transition-colors duration-200">
         {/* User requested to remove Details button */}
         {/* <Button 
           variant="outline" 

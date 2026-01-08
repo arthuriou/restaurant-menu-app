@@ -9,11 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ChefHat, Loader2, Delete, ArrowRight } from "lucide-react";
+import { Loader2, Delete, ArrowRight } from "lucide-react";
+import { useRestaurantStore } from "@/stores/restaurant";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, loginWithPin } = useAuthStore();
+  const { invoiceSettings } = useRestaurantStore();
   const [isLoading, setIsLoading] = useState(false);
   
   // Email Form
@@ -73,13 +76,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
-      <Card className="w-full max-w-md border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border-border shadow-xl overflow-hidden">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <ChefHat className="w-8 h-8" />
-            </div>
+            {invoiceSettings.logoUrl ? (
+              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-secondary">
+                <Image
+                  src={invoiceSettings.logoUrl}
+                  alt={invoiceSettings.companyName || "Restaurant"}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
+                <span className="text-2xl font-bold text-primary-foreground">
+                  {(invoiceSettings.companyName || "R")[0]}
+                </span>
+              </div>
+            )}
           </div>
           <CardTitle className="text-2xl font-bold">Bienvenue</CardTitle>
           <CardDescription>Identifiez-vous pour accéder au service</CardDescription>

@@ -7,15 +7,35 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { useEffect, useState } from "react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  
+  useEffect(() => {
+    // Watch for theme class changes on closest parent with .dark or .light
+    const observer = new MutationObserver(() => {
+      const isDark = document.querySelector('.dark') !== null;
+      setTheme(isDark ? "dark" : "light");
+    });
+    
+    // Initial check
+    const isDark = document.querySelector('.dark') !== null;
+    setTheme(isDark ? "dark" : "light");
+    
+    observer.observe(document.body, { 
+      attributes: true, 
+      subtree: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

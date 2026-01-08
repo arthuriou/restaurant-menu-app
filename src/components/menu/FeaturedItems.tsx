@@ -79,38 +79,38 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
           {featured.map((item) => (
             <div 
               key={item.id} 
-              className="snap-center shrink-0 w-[85vw] md:w-[500px] h-[160px] md:h-[280px] flex bg-zinc-950 rounded-[32px] relative border border-zinc-800/50 shadow-xl transition-all duration-300 hover:border-zinc-700 hover:shadow-2xl hover:-translate-y-1"
+              className="snap-center shrink-0 w-[85vw] md:w-[500px] h-[160px] md:h-[280px] flex bg-card rounded-[32px] relative border border-border shadow-lg"
             >
               {/* Left Side - Content */}
               <div className="w-[65%] md:w-[50%] p-5 md:p-8 flex flex-col justify-between relative z-10 h-full">
                 <div className="space-y-3">
-                  <h3 className="font-black text-2xl md:text-3xl leading-[0.9] text-white tracking-tight line-clamp-2">
+                  <h3 className="font-black text-2xl md:text-3xl leading-[0.9] text-foreground tracking-tight line-clamp-2">
                     {item.name}
                   </h3>
-                  <p className="text-zinc-400 text-xs md:text-sm font-medium line-clamp-2 leading-relaxed">
+                  <p className="text-muted-foreground text-xs md:text-sm font-medium line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
                 
                 <div className="flex items-center gap-2 md:gap-3 mt-auto">
                   {/* Price Bubble - Compact Squircle */}
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3 md:px-4 py-2 md:py-2.5 min-w-[70px] md:min-w-[80px] flex flex-col items-center justify-center shrink-0">
+                  <div className="bg-secondary border border-border rounded-2xl px-3 md:px-4 py-2 md:py-2.5 min-w-[70px] md:min-w-[80px] flex flex-col items-center justify-center shrink-0">
                     <span className="font-black text-lg md:text-xl text-primary leading-none">
                       {item.price.toLocaleString()}
                     </span>
-                    <span className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5">FCFA</span>
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase mt-0.5">FCFA</span>
                   </div>
                   
                   {/* Action Button - Compact Squircle */}
                   {item.available ? (
                     <button
                       onClick={() => onAdd(item)}
-                      className="h-[45px] w-[45px] md:h-[50px] md:w-[50px] bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 active:scale-95 transition-transform hover:bg-primary/90 shrink-0"
+                      className="h-[45px] w-[45px] md:h-[50px] md:w-[50px] bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 active:scale-95 transition-transform shrink-0 no-theme-transition"
                     >
-                      <Plus className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" strokeWidth={3} />
+                      <Plus className="w-5 h-5 md:w-6 md:h-6 text-white" strokeWidth={3} />
                     </button>
                   ) : (
-                     <div className="bg-zinc-800 text-zinc-400 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 shrink-0">
+                     <div className="bg-secondary text-muted-foreground text-[10px] font-bold px-3 py-1.5 rounded-lg border border-border shrink-0">
                         Épuisé
                      </div>
                   )}
@@ -118,13 +118,13 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
               </div>
 
               {/* Right Side - Image - Floating Rounded Block */}
-              <div className="absolute top-3 right-3 bottom-3 w-[43%] md:w-[50%] rounded-3xl overflow-hidden bg-zinc-900 shadow-2xl group">
+              <div className="absolute top-3 right-3 bottom-3 w-[43%] md:w-[50%] rounded-3xl overflow-hidden bg-secondary shadow-lg">
                 {item.imageUrl ? (
                   <Image 
                     src={item.imageUrl} 
                     alt={item.name} 
                     fill 
-                    className="object-cover"
+                    className="object-cover no-theme-transition"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs p-2 text-center">
@@ -142,8 +142,8 @@ export function FeaturedItems({ items, onAdd }: FeaturedItemsProps) {
         {featured.map((_, i) => (
           <div 
             key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === activeIndex ? 'w-6 bg-primary' : 'w-1.5 bg-zinc-300 dark:bg-zinc-700'
+            className={`h-1.5 rounded-full transition-all duration-200 ${
+              i === activeIndex ? 'w-6 bg-primary' : 'w-1.5 bg-secondary'
             }`}
           />
         ))}

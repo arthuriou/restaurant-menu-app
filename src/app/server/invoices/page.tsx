@@ -82,10 +82,10 @@ export default function ServerInvoicesPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50 dark:bg-black p-4">
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-background p-4 transition-colors duration-200">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Factures</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground transition-colors duration-200">Factures</h1>
           <p className="text-sm text-muted-foreground mt-1">Gestion des encaissements et historique</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
@@ -101,13 +101,13 @@ export default function ServerInvoicesPage() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full sm:w-40 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+            className="w-full sm:w-40 bg-card border-border transition-colors duration-200"
           />
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Rechercher..." 
-              className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-zinc-400" 
+              className="pl-9 bg-card border-border focus-visible:ring-ring transition-colors duration-200" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -130,20 +130,20 @@ export default function ServerInvoicesPage() {
                   onClick={() => handleOpenInvoice(invoice)}
                   className={cn(
                     "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
-                    "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                    "bg-card border-border hover:border-primary/30 transition-colors duration-200"
                   )}
                 >
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-10 h-10 rounded-lg flex items-center justify-center",
-                      "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                      "bg-secondary text-muted-foreground transition-colors duration-200"
                     )}>
                        <FileText className="w-5 h-5" />
                     </div>
                     
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-900 dark:text-zinc-100 uppercase">
+                        <span className="font-semibold text-foreground uppercase transition-colors duration-200">
                           {invoice.number}
                         </span>
                       </div>
@@ -160,7 +160,7 @@ export default function ServerInvoicesPage() {
                   </div>
 
                   <div className="text-right">
-                    <div className="font-bold text-lg text-zinc-900 dark:text-zinc-100">
+                    <div className="font-bold text-lg text-foreground transition-colors duration-200">
                       {invoice.total.toLocaleString()} FCFA
                     </div>
                     <div className="text-xs font-medium mt-0.5">
@@ -175,8 +175,8 @@ export default function ServerInvoicesPage() {
       </ScrollArea>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col h-full ring-0 shadow-2xl">
-           <div className="p-4 border-b border-zinc-100 dark:border-zinc-900 flex justify-between items-center">
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 border-l border-border bg-card flex flex-col h-full ring-0 shadow-2xl transition-colors duration-200">
+           <div className="p-4 border-b border-border flex justify-between items-center transition-colors duration-200">
              <SheetTitle className="text-lg font-bold">
                Détails
              </SheetTitle>
@@ -185,7 +185,7 @@ export default function ServerInvoicesPage() {
              </Button>
            </div>
 
-           <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-black p-6">
+           <div className="flex-1 overflow-y-auto bg-background p-6 transition-colors duration-200">
              {selectedInvoice && (
                <OrderBill 
                  order={invoiceToOrder(selectedInvoice)} 
@@ -195,7 +195,7 @@ export default function ServerInvoicesPage() {
              )}
            </div>
 
-           <div className="p-4 border-t border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950 space-y-3">
+           <div className="p-4 border-t border-border bg-card space-y-3 transition-colors duration-200">
                 <Button 
                   onClick={() => selectedInvoice && handlePrint(selectedInvoice.id)} 
                   variant="outline"

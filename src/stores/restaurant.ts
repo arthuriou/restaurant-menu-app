@@ -87,7 +87,7 @@ export const useRestaurantStore = create<RestaurantStore>()(
         title: "Spécialité du chef",
         itemId: "chicken_01",
       },
-      primaryColor: "hsl(142.1 76.2% 36.3%)",
+      primaryColor: "hsl(24.6 95% 53.1%)",
       openingHours: {
         monday: { open: "09:00", close: "22:00", closed: false },
         tuesday: { open: "09:00", close: "22:00", closed: false },

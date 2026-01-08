@@ -17,7 +17,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
     <div 
       onClick={isAvailable ? onAdd : undefined}
       className={cn(
-        "group relative bg-white dark:bg-zinc-900 rounded-[2rem] p-3 shadow-lg hover:shadow-xl transition-all flex gap-4 min-h-[140px] w-full !overflow-visible",
+        "group relative bg-card rounded-[2rem] p-3 shadow-lg hover:shadow-xl transition-all duration-300 flex gap-4 min-h-[140px] w-full !overflow-visible",
         isAvailable ? "cursor-pointer" : "cursor-not-allowed opacity-60 grayscale"
       )}
     >
@@ -39,19 +39,19 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
 
       {/* Image Container - Left Side */}
       <div className="relative h-32 w-32 shrink-0 self-center">
-        <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-inner">
+        <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-secondary shadow-inner">
           {item.imageUrl ? (
             <Image
               src={item.imageUrl}
               alt={item.name}
               fill
               className={cn(
-                "object-cover transition-transform duration-500",
+                "object-cover transition-transform duration-500 no-theme-transition",
                 isAvailable && "group-hover:scale-110"
               )}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-300">
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               <ShoppingBag className="w-10 h-10" />
             </div>
           )}
@@ -61,7 +61,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       {/* Content Container - Right Side */}
       <div className="flex-1 flex flex-col py-1 min-w-0 relative">
         <div className="space-y-1 pr-2">
-          <h3 className="font-black text-xl uppercase leading-none text-zinc-900 dark:text-white line-clamp-2 tracking-tight">
+          <h3 className="font-black text-xl uppercase leading-none text-foreground line-clamp-2 tracking-tight">
             {item.name}
           </h3>
           <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium">
@@ -73,9 +73,9 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
         {isAvailable && (
           <div className="absolute -bottom-8 -right-1 z-10">
             <div className={cn(
-              "text-white font-black px-5 py-2 rounded-[1rem] shadow-md transform transition-transform flex items-center justify-center min-w-[80px]",
+              "text-primary-foreground font-black px-5 py-2 rounded-[1rem] shadow-md transform transition-all duration-300 flex items-center justify-center min-w-[80px]",
               "group-hover:scale-105",
-              isOnPromo ? "bg-green-500" : "bg-primary"
+              isOnPromo ? "bg-green-500 text-white" : "bg-primary"
             )}>
               {isOnPromo && originalPrice && (
                 <span className="line-through text-xs opacity-70 mr-2">

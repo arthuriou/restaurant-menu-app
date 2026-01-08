@@ -11,7 +11,7 @@ export default function KitchenLayout({
 }) {
   return (
     <ProtectedLayout allowedRoles={['kitchen', 'admin']}>
-      <ThemeProvider storageKey="theme-kitchen">
+      <ThemeProvider storageKey="theme-kitchen" defaultTheme="dark">
         <OrdersListener />
         {children}
       </ThemeProvider>

@@ -14,10 +14,10 @@ export default function ServerLayout({
 }) {
   return (
     <ProtectedLayout allowedRoles={SERVER_ALLOWED_ROLES}>
-      <ThemeProvider storageKey="theme-server">
-        <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
+      <ThemeProvider storageKey="theme-server" defaultTheme="dark">
+        <div className="flex h-screen overflow-hidden bg-background text-foreground">
           <ServerSidebar />
-          <main className="flex-1 overflow-auto relative">
+          <main className="flex-1 overflow-auto relative bg-background">
             <OrdersListener />
             <ServiceListener />
             {children}

@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/user-avatar";
+import { ModeToggle } from "@/components/mode-toggle";
 import type { DashboardOrder } from "@/stores/orders";
 import { MenuItem } from "@/types";
 
@@ -83,7 +84,7 @@ const OrderCard = memo(function OrderCard({
   };
 
   return (
-    <Card className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+    <Card className="p-4 bg-card border border-border rounded-xl">
       {/* Header with table and time */}
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
@@ -94,7 +95,7 @@ const OrderCard = memo(function OrderCard({
                 "text-xs font-bold px-2.5 py-1 rounded-lg",
                 tableInfo.isTakeaway
                   ? "bg-orange-900/30 text-orange-400 border border-orange-800"
-                  : "bg-zinc-800 text-white border border-zinc-700",
+                  : "bg-secondary text-foreground border border-border",
               )}
             >
               {tableInfo.isTakeaway ? (
@@ -107,12 +108,12 @@ const OrderCard = memo(function OrderCard({
             </Badge>
           )}
           {/* Order ID */}
-          <span className="text-xs font-mono text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded">
+          <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded">
             #{order.id.slice(0, 4)}
           </span>
         </div>
         {/* Timer */}
-        <div className="flex items-center gap-1 text-xs text-zinc-400">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
           {elapsed} min
         </div>
@@ -126,7 +127,7 @@ const OrderCard = memo(function OrderCard({
           return (
             <div key={idx} className="flex items-start gap-3">
               {/* Item Image */}
-              <div className="relative w-12 h-12 rounded-lg bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700">
+              <div className="relative w-12 h-12 rounded-lg bg-secondary overflow-hidden shrink-0 border border-border">
                 {itemImage ? (
                   <Image
                     src={itemImage}
@@ -135,7 +136,7 @@ const OrderCard = memo(function OrderCard({
                     className="object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <UtensilsCrossed className="w-5 h-5" />
                   </div>
                 )}
@@ -143,7 +144,7 @@ const OrderCard = memo(function OrderCard({
 
               <div className="flex-1 min-w-0">
                 {/* Item name */}
-                <div className="font-bold text-white text-sm">
+                <div className="font-bold text-foreground text-sm">
                   <span className="text-primary mr-1">{item.qty}x</span>
                   {item.name}
                 </div>
@@ -159,11 +160,11 @@ const OrderCard = memo(function OrderCard({
                         return (
                           <div
                             key={key}
-                            className="flex items-center gap-2 text-xs bg-zinc-800/60 p-1.5 rounded-md"
+                            className="flex items-center gap-2 text-xs bg-secondary/60 p-1.5 rounded-md"
                           >
                             {/* Option image */}
                             {optionDetails?.imageUrl && (
-                              <div className="relative w-8 h-8 rounded overflow-hidden shrink-0 border border-zinc-700">
+                              <div className="relative w-8 h-8 rounded overflow-hidden shrink-0 border border-border">
                                 <Image
                                   src={optionDetails.imageUrl}
                                   alt={key}
@@ -173,13 +174,13 @@ const OrderCard = memo(function OrderCard({
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <span className="text-zinc-300 font-medium">
+                              <span className="text-foreground font-medium">
                                 {value === true || value === "true"
                                   ? key
                                   : `${key}: ${value}`}
                               </span>
                               {optionDetails?.description && (
-                                <p className="text-zinc-500 text-[10px] truncate">
+                                <p className="text-muted-foreground text-[10px] truncate">
                                   {optionDetails.description}
                                 </p>
                               )}
@@ -204,7 +205,7 @@ const OrderCard = memo(function OrderCard({
       </div>
 
       {/* Action button */}
-      <div className="mt-4 pt-3 border-t border-zinc-800">
+      <div className="mt-4 pt-3 border-t border-border">
         {columnId === "ready" ? (
           <div className="text-green-400 text-sm font-bold flex items-center justify-center gap-2 py-2">
             <CheckCircle2 className="w-4 h-4" />
@@ -320,29 +321,32 @@ export default function KitchenPage() {
   if (!enabled) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-black">
+    <div className="h-screen flex flex-col bg-background">
       {/* Header with user info and logout */}
-      <header className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between bg-zinc-950">
+      <header className="border-b border-border px-4 py-3 flex items-center justify-between bg-card">
         <div className="flex items-center gap-3">
           <UserAvatar user={user} size="lg" />
           <div className="flex flex-col">
-            <span className="text-white font-bold text-base">
+            <span className="text-foreground font-bold text-base">
               {user?.name || "Cuisinier"}
             </span>
-            <span className="text-zinc-400 text-xs">
+            <span className="text-muted-foreground text-xs">
               {user?.role === "kitchen" ? "Cuisine" : user?.role || "Staff"}
             </span>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLogout}
-          className="border-red-900/30 text-red-500 hover:text-red-400 hover:bg-red-950/20"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Déconnexion
-        </Button>
+        <div className="flex items-center gap-2">
+          <ModeToggle />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="border-red-900/30 text-red-500 hover:text-red-400 hover:bg-red-950/20"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
       </header>
 
       <div className="flex-1 p-4 overflow-hidden">
@@ -356,10 +360,10 @@ export default function KitchenPage() {
             ).map(([columnId, col]) => (
               <div
                 key={columnId}
-                className="flex flex-col border border-zinc-800 rounded-xl bg-zinc-900 overflow-hidden"
+                className="flex flex-col border border-border rounded-xl bg-card overflow-hidden"
               >
-                <div className="p-3 border-b border-zinc-800 flex justify-between items-center">
-                  <h3 className="font-bold text-white">{col.title}</h3>
+                <div className="p-3 border-b border-border flex justify-between items-center">
+                  <h3 className="font-bold text-foreground">{col.title}</h3>
                   <Badge className="bg-primary text-primary-foreground">
                     {orders[columnId]?.length || 0}
                   </Badge>

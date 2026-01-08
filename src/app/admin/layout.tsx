@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UtensilsCrossed, ListOrdered, Settings, LogOut, Menu as MenuIcon, ChefHat, Users, Grid3X3, Receipt, Star, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, Settings, LogOut, Menu as MenuIcon, Users, Grid3X3, Receipt, Star, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminThemeProvider } from "@/components/admin-theme-provider";
 import ProtectedLayout from "@/components/auth/ProtectedLayout";
+import { useAuthStore } from "@/stores/auth";
+import { UserAvatar } from "@/components/user-avatar";
 
 export default function AdminLayout({
   children,
@@ -68,14 +70,18 @@ export default function AdminLayout({
     },
   ];
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800">
+  const SidebarContent = () => {
+    const { user } = useAuthStore();
+    
+    return (
+    <div className="flex flex-col h-full bg-card border-r border-border">
       <div className="px-6 py-8">
         <Link href="/admin" className="flex items-center gap-3 mb-10">
-          <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <ChefHat className="h-6 w-6 text-white" />
+          <UserAvatar user={user} size="md" className="h-10 w-10 border-2 border-primary" />
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-foreground">{user?.name || "Admin"}</h1>
+            <span className="text-xs text-muted-foreground">Administrateur</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Admin Panel</h1>
         </Link>
         <div className="space-y-1.5">
           {routes.map((route) => {
@@ -87,17 +93,17 @@ export default function AdminLayout({
                 className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   isActive 
                     ? "bg-primary/10 text-primary shadow-sm" 
-                    : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
-                <route.icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? "text-primary" : "text-zinc-400 group-hover:text-zinc-600"}`} />
+                <route.icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
                 {route.label}
               </Link>
             );
           })}
         </div>
       </div>
-      <div className="mt-auto p-6 border-t border-zinc-100 dark:border-zinc-900">
+      <div className="mt-auto p-6 border-t border-border">
         <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/10" asChild>
           <Link href="/login">
             <LogOut className="h-5 w-5 mr-3" />
@@ -107,11 +113,12 @@ export default function AdminLayout({
       </div>
     </div>
   );
+  };
 
   return (
     <ProtectedLayout allowedRoles={['admin']}>
       <AdminThemeProvider>
-        <div className="h-full relative bg-zinc-50 dark:bg-black">
+        <div className="h-full relative bg-background">
           {/* Desktop Sidebar */}
           <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80]">
             <SidebarContent />
@@ -119,7 +126,7 @@ export default function AdminLayout({
           
           {/* Mobile Sidebar */}
           <main className="md:pl-72 min-h-screen">
-            <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center p-4 md:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="-ml-2">

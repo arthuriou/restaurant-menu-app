@@ -201,9 +201,9 @@ export default function ServerTablesPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col bg-zinc-50 dark:bg-black p-4">
+    <div className="h-[calc(100vh-2rem)] flex flex-col bg-background p-4 transition-colors duration-200">
       <div className="flex flex-col gap-1 mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground transition-colors duration-200">
           Mes Tables
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -329,7 +329,7 @@ export default function ServerTablesPage() {
               "rounded-full shadow-sm transition-colors duration-300";
             
             let activeChairColor = "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]";
-            let tableColor = "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100";
+            let tableColor = "bg-card border-border text-foreground transition-colors duration-200";
             let pulseColor = "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]";
 
             if (isService) {
@@ -349,7 +349,7 @@ export default function ServerTablesPage() {
             const getChairColor = (isActive: boolean) =>
               isActive
                 ? activeChairColor
-                : "bg-zinc-300 dark:bg-zinc-600";
+                : "bg-secondary transition-colors duration-200";
 
             const tableBase =
               "relative flex items-center justify-center rounded-2xl shadow-md transition-all duration-300 border-4";
@@ -457,7 +457,7 @@ export default function ServerTablesPage() {
       <Sheet open={activeSheet} onOpenChange={setActiveSheet}>
         <SheetContent
           side="right"
-          className="w-[400px] sm:w-[540px] p-0 border-l border-zinc-200 dark:border-zinc-800"
+          className="w-[400px] sm:w-[540px] p-0 border-l border-border transition-colors duration-200"
         >
           {selectedTableId &&
             (() => {
@@ -466,8 +466,8 @@ export default function ServerTablesPage() {
               const hasOrders = tableOrders.length > 0;
 
               return (
-                <div className="h-full flex flex-col bg-zinc-50 dark:bg-black">
-                  <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center">
+                <div className="h-full flex flex-col bg-background transition-colors duration-200">
+                  <div className="p-4 border-b border-border bg-card flex justify-between items-center transition-colors duration-200">
                     <div>
                       <SheetTitle className="text-xl font-bold">
                         Table {table?.label}
@@ -535,14 +535,14 @@ export default function ServerTablesPage() {
                   </ScrollArea>
 
                   {hasOrders && table?.status === "requesting_bill" && (
-                    <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+                    <div className="p-4 bg-card border-t border-border space-y-3 transition-colors duration-200">
                         <div className="flex items-center gap-3 text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-900/50 mb-3">
                           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                           <div className="text-sm font-medium">Le client demande l'addition</div>
                         </div>
                         <div className="flex flex-col gap-3">
                           <Button
-                            className="h-12 rounded-lg font-bold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black shadow-sm"
+                            className="h-12 rounded-lg font-bold bg-foreground text-background hover:bg-foreground/90 shadow-sm transition-colors duration-200"
                             onClick={handleGenerateInvoice}
                           >
                             <BanknoteIcon className="mr-2 w-4 h-4" />

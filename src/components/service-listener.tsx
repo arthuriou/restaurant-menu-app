@@ -14,8 +14,8 @@ export function ServiceListener() {
   const { acceptServiceRequest } = useTableStore(); // We use the hook to get actions
 
   useEffect(() => {
-    // Only for staff
-    if (!user || (user.role !== 'server' && user.role !== 'admin')) return;
+    // Only for server (not admin, not kitchen)
+    if (!user || user.role !== 'server') return;
     if (!db) return;
 
     // Query active service requests

@@ -40,17 +40,17 @@ export function ServerSidebar() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-zinc-50/50 dark:bg-black border-r border-zinc-200 dark:border-zinc-800">
+    <div className="flex flex-col h-full bg-card border-r border-border transition-colors duration-200">
       {/* HEADER: USER INFO */}
       <div className="px-6 py-8">
         <div className="flex flex-col items-center justify-center text-center gap-4 mb-8">
            <div className="relative">
              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary to-orange-500 opacity-70 blur-sm"></div>
-             <UserAvatar user={user} size="lg" className="h-20 w-20 border-4 border-white dark:border-black relative" />
+             <UserAvatar user={user} size="lg" className="h-20 w-20 border-4 border-background relative" />
            </div>
            <div>
-             <h2 className="text-lg font-bold tracking-tight">{user?.name || "Serveur"}</h2>
-             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
+             <h2 className="text-lg font-bold tracking-tight text-foreground">{user?.name || "Serveur"}</h2>
+             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                {user?.role === 'server' ? 'Service' : user?.role || 'Staff'}
              </span>
            </div>
@@ -64,12 +64,12 @@ export function ServerSidebar() {
               href={route.href}
               className={`group flex items-center px-4 py-3.5 text-sm font-medium rounded-2xl transition-all duration-200 ${
                 route.active 
-                  ? "bg-white dark:bg-zinc-900 text-primary shadow-sm border border-zinc-100 dark:border-zinc-800" 
-                  : "text-zinc-500 hover:bg-white/50 dark:hover:bg-zinc-900/50 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  ? "bg-background text-primary shadow-sm border border-border" 
+                  : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
               }`}
             >
               <div className={`mr-3 p-2 rounded-xl transition-colors ${
-                 route.active ? "bg-primary/10 text-primary" : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 group-hover:text-zinc-600"
+                 route.active ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground group-hover:text-foreground"
               }`}>
                 <route.icon className="h-5 w-5" />
               </div>
@@ -81,8 +81,8 @@ export function ServerSidebar() {
 
       {/* FOOTER */}
       <div className="mt-auto p-6 space-y-4">
-        <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm">
-          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Mode</span>
+        <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-background border border-border shadow-sm">
+          <span className="text-sm font-medium text-muted-foreground">Mode</span>
           <ModeToggle />
         </div>
         <Button 

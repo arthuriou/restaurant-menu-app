@@ -17,7 +17,7 @@ export function Footer() {
   const todayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][todayIndex];
 
   return (
-    <footer className="bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 pt-16 pb-12">
+    <footer className="bg-secondary border-t border-border pt-16 pb-12">
       <div className="max-w-md mx-auto px-6 text-center">
         
         {/* Section Horaires */}
@@ -43,14 +43,14 @@ export function Footer() {
                   <span className="capitalize w-24">{formatDayLong(dayKey)}</span>
                   
                   <div className={`flex-1 mx-3 border-b border-dotted ${
-                    isToday ? 'border-primary/30' : 'border-zinc-300 dark:border-zinc-700'
+                    isToday ? 'border-primary/30' : 'border-border'
                   } relative top-1`} />
                   
                   <div className="text-right w-24 tabular-nums">
                     {isOpen ? (
                       <span>{dayHours?.open} - {dayHours?.close}</span>
                     ) : (
-                      <span className="text-zinc-400 italic text-xs">Fermé</span>
+                      <span className="text-muted-foreground italic text-xs">Fermé</span>
                     )}
                   </div>
                 </div>
@@ -78,7 +78,7 @@ export function Footer() {
         </div>
 
         {/* Divider */}
-        <div className="w-16 h-px bg-zinc-200 dark:bg-zinc-800 mx-auto my-12" />
+        <div className="w-16 h-px bg-border mx-auto my-12" />
 
         {/* Contact & Socials */}
         <div className="space-y-8">
@@ -130,7 +130,7 @@ export function Footer() {
         </div>
 
         {/* Footer Bottom */}
-        <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
+        <div className="mt-12 pt-8 border-t border-border space-y-4">
           <p className="text-xs text-zinc-500 font-medium">
             © {new Date().getFullYear()} {invoiceSettings.companyName}. Tous droits réservés.
           </p>
