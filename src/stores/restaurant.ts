@@ -43,6 +43,8 @@ interface RestaurantStore {
   };
   
   isLoading: boolean;
+  isRestaurantOpen: boolean; // Computed state
+  setRestaurantOpen: (isOpen: boolean) => void;
   
   addSpecialOffer: (offer: Omit<SpecialOffer, 'id'>) => void;
   removeSpecialOffer: (id: string) => void;
@@ -113,6 +115,9 @@ export const useRestaurantStore = create<RestaurantStore>()(
       },
       
       isLoading: false,
+      isRestaurantOpen: true,
+
+      setRestaurantOpen: (isOpen) => set({ isRestaurantOpen: isOpen }),
       
       loadSettings: async () => {
         if (!db) return;

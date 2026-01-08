@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { OrderItem, MenuItem } from "@/types";
 import { useMenuStore } from "@/stores/menu";
+import { useRestaurantStore } from "@/stores/restaurant";
 import { useMemo, useState } from "react";
 
 interface CartDrawerProps {
@@ -33,6 +34,7 @@ export function CartDrawer({
 }: CartDrawerProps) {
   const totalQuantity = cart.reduce((acc, item) => acc + (item.qty || 1), 0);
   const { items: allMenuItems, addToCart, orderType } = useMenuStore();
+  const { isRestaurantOpen } = useRestaurantStore();
   const [customerName, setCustomerName] = useState("");
 
   // Récupérer les recommandations basées sur le panier
@@ -300,11 +302,16 @@ export function CartDrawer({
             )}
 
             <Button 
-              className="w-full h-12 text-base font-bold rounded-lg bg-primary hover:bg-primary/90 shadow-md" 
+              className="w-full h-12 text-base font-bold rounded-lg bg-primary hover:bg-primary/90 shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
               onClick={() => onCheckout(customerName)}
-              disabled={orderType === 'takeaway' && !customerName.trim()}
+              disabled={!isRestaurantOpen || (orderType === 'takeaway' && !customerName.trim())}
             >
-              {orderType === 'takeaway' ? 'Valider la commande' : `Commander (${totalQuantity})`}
+              {!isRestaurantOpen 
+                ? 'Restaurant Fermé' 
+                : orderType === 'takeaway' 
+                  ? 'Valider la commande' 
+                  : `Commander (${totalQuantity})`
+              }
             </Button>
           </div>
         )}

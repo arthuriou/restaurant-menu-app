@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Minus, Plus, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRestaurantStore } from "@/stores/restaurant";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ interface ItemDetailContentProps {
 
 function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart, onClose }: ItemDetailContentProps) {
   const selectedVariant = item.options?.find(opt => opt.type === 'variant' && options[opt.name]);
+  const { isRestaurantOpen } = useRestaurantStore();
   
   // Calculate effective base price (promo or regular)
   const effectiveBasePrice = item.promotion && 
@@ -222,10 +224,16 @@ function ItemDetailContent({ item, qty, setQty, options, setOptions, onAddToCart
               </button>
            </div>
            <Button 
-            className="flex-1 h-12 rounded-lg text-base font-bold bg-primary hover:bg-primary/90 text-white shadow-md" 
+            className="flex-1 h-12 rounded-lg text-base font-bold bg-primary hover:bg-primary/90 text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed" 
             onClick={onAddToCart}
+            disabled={!item.available || !isRestaurantOpen}
            >
-             Ajouter • {totalPrice.toLocaleString()} FC FA
+             {!item.available 
+                ? "Épuisé" 
+                : !isRestaurantOpen 
+                  ? "Fermé"
+                  : `Ajouter • ${totalPrice.toLocaleString()} FC FA`
+             }
            </Button>
         </div>
       </div>
