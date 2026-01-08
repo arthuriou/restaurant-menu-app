@@ -213,6 +213,16 @@ export const useTableStore = create<TableState>((set, get) => ({
   incrementTableScans: async (label) => {
     try {
       console.log(`[TableStore] Incrementing scans for label: "${label}"`);
+
+      // Special handling for Takeaway: Always allow, never block on capacity
+      if (
+        label === "takeaway" ||
+        label === "À emporter" ||
+        label.toLowerCase().includes("emport")
+      ) {
+        return { success: true, message: "Mode à emporter", newSession: false };
+      }
+
       const { query, where, getDocs, increment, serverTimestamp } =
         await import("firebase/firestore");
 

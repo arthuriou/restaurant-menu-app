@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 import { FirebaseInitializer } from "@/components/firebase-initializer";
 import { ClientOrderListener } from "@/components/client-order-listener";
+import { OpeningHoursGuard } from "@/components/opening-hours-guard";
 
 export default function RootLayout({
   children,
@@ -34,7 +35,9 @@ export default function RootLayout({
           <ThemeInitializer />
           <FirebaseInitializer />
           <ClientOrderListener />
-          {children}
+          <OpeningHoursGuard>
+            {children}
+          </OpeningHoursGuard>
           <Toaster />
         </ThemeProvider>
       </body>

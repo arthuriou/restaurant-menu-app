@@ -272,7 +272,14 @@ function MenuContent() {
           // CRITICAL: Only update if different to prevent loop
           if (table?.id !== realTableId || table?.label !== cleanTableId) {
             setTableId(cleanTableId);
-            setOrderType("dine-in");
+            
+            // Check if this is a takeaway "table"
+            const isTakeaway =
+              cleanTableId === "takeaway" ||
+              cleanTableId === "À emporter" ||
+              cleanTableId.toLowerCase().includes("emport");
+
+            setOrderType(isTakeaway ? "takeaway" : "dine-in");
             setTable({ id: realTableId, label: cleanTableId });
           }
 
@@ -354,7 +361,14 @@ function MenuContent() {
           // Fallback: Force set table from URL even if DB lookup fails
           if (table?.label !== cleanTableId) {
             setTableId(cleanTableId);
-            setOrderType("dine-in");
+            
+            // Check if this is a takeaway "table"
+            const isTakeaway =
+              cleanTableId === "takeaway" ||
+              cleanTableId === "À emporter" ||
+              cleanTableId.toLowerCase().includes("emport");
+
+            setOrderType(isTakeaway ? "takeaway" : "dine-in");
             setTable({ id: `temp_${cleanTableId}`, label: cleanTableId });
             const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
             toast.error(
